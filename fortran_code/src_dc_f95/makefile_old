@@ -1,0 +1,103 @@
+##  If you want to change the size of GF bank, please just modify the size.h
+FFLAGS=-O
+MY_BIN=../bin
+F77=gfortran -ffixed-line-length-132 -mcmodel=large -O2 -Wunused-dummy-argument -g #-fbacktrace -ffpe-trap=underflow,denormal
+# linux or Mac
+#F77= ifort -132 -O2 -assume byterecl
+#F77= gfortran -fno-rerun-loop-opt -fstrength-reduce -ffixed-line-length-132 -fno-range-check -mcmodel=large
+#
+
+SUBS = fft.o Complex.o 
+FKSUBS = green_bank_dc_3n.o cmodel_fk.o trav_fk.o fk_dc_4.o kernel.o prop.o haskell.o source.o bessel.o $(SUBS) # fk_dc_3.o
+FKSUBS2 = green_bank_dc_31n.o cmodel_fk.o trav_fk.o fk_dc_41.o kernel.o prop.o haskell.o source.o bessel.o $(SUBS) # fk_dc_3.o
+FKSUBS_STA = gf_static.o ddis.o cmodel_fk.o trav_fk.o fk_dc_3.o kernel.o prop.o st_haskell.o source.o bessel.o $(SUBS) 
+all: gf_static_parallel clean 
+
+gf_static_parallel: \
+	$(FKSUBS_STA)
+	$(F77) -fopenmp -o $(MY_BIN)/gf_static_parallel $(FKSUBS_STA)
+
+green_bank_parallel: \
+	$(FKSUBS)
+	$(F77) -fopenmp -o $(MY_BIN)/green_bank_parallel_v3n $(FKSUBS)
+
+green_bank2: \
+	$(FKSUBS2)
+	$(F77) -o $(MY_BIN)/green_bank_v31n $(FKSUBS2)
+
+fft.o:\
+	fft.c 
+	cc -c fft.c
+
+Complex.o:\
+	Complex.c Complex.h
+	cc -c Complex.c
+
+cmodel_fk.o:\
+	cmodel_fk.f fk.h size.h
+	$(F77) -c  cmodel_fk.f
+trav_fk.o:\
+	trav_fk.f fk.h
+	$(F77) -c trav_fk.f
+
+fk_dc_4.o:\
+	fk_dc_4.f fk.h
+	$(F77) -fopenmp -c fk_dc_4.f
+
+fk_dc_41.o:\
+	fk_dc_41.f fk.h
+	$(F77) -c fk_dc_41.f
+
+fk_dc_3.o:\
+	fk_dc_3.f fk.h
+	$(F77) -c fk_dc_3.f
+
+prop.o:\
+	prop.f constants.h
+	$(F77) -c prop.f
+
+kernel.o:\
+	kernel.f constants.h size.h
+	$(F77) -c kernel.f
+
+st_haskell.o:\
+	st_haskell.f
+	$(F77) -c st_haskell.f
+
+haskell.o:\
+	haskell.f constants.h size.h
+	$(F77) -c haskell.f
+
+source.o:\
+	source.f
+	$(F77) -c source.f
+#bessel.o:\
+#	bessel.F
+#	$(F77) -c bessel.F
+
+bessel.o:\
+	bessel.f
+	$(F77) -c bessel.f
+
+bessel.f: bessel.FF
+	cpp -traditional-cpp $< > $@
+
+ddis.o:\
+	ddis.f
+	$(F77) -c ddis.f
+
+gf_static.o: \
+	gf_static.f fk.h
+	$(F77) -fopenmp -c gf_static.f
+
+green_bank_dc_3n.o: \
+	green_bank_dc_3n.f fk.h
+	$(F77) -c green_bank_dc_3n.f
+
+
+green_bank_dc_31n.o: \
+	green_bank_dc_31n.f fk.h
+	$(F77) -c green_bank_dc_31n.f
+
+clean:
+	rm -f *.o

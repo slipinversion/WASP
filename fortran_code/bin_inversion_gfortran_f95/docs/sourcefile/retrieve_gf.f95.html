@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+    <meta name="description" content="Documentation for Kinematic modelling">
+   
+    <meta name="author" content="" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>retrieve_gf.f95 &ndash; Kinematic modelling</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">Kinematic modelling </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+        
+            <li><a href="../lists/programs.html">Programs</a></li>
+        
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/programs.html">Programs</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>retrieve_gf.f95
+    <small>Source File</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title="13.5% of total for source files.">635 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/retrieve_gf.f95"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+  
+     <li class="active">retrieve_gf.f95</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-0">Modules</a></h3></div>
+  <div id="mods-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/retrieve_gf.html">retrieve_gf</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/retrieve_gf.f95.html#src">retrieve_gf.f95</a>
+  </div>
+</div>
+
+
+
+</div>
+
+    </div>
+    <div class="col-md-9" id='text'>
+      
+      <br>
+    
+      
+      
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#mods-1">Modules</a></h3></div>
+  <div id="mods-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/retrieve_gf.html">retrieve_gf</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../sourcefile/retrieve_gf.f95.html#src">retrieve_gf.f95</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    <section>
+      <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl"><pre><span></span><a name="ln-1"></a><span class="c">!</span>
+<a name="ln-2"></a><span class="c">! TODO: change to velocity if io_v_d = 1</span>
+<a name="ln-3"></a><span class="c">!</span>
+<a name="ln-4"></a><span class="k">module </span><span class="n">retrieve_gf</span>
+<a name="ln-5"></a>
+<a name="ln-6"></a>
+<a name="ln-7"></a>   <span class="k">use </span><span class="n">constants</span><span class="p">,</span> <span class="n">only</span> <span class="p">:</span> <span class="n">npuse</span><span class="p">,</span> <span class="n">nnsta</span><span class="p">,</span> <span class="n">nnxy_m</span><span class="p">,</span> <span class="n">nnxy</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nny</span><span class="p">,</span> <span class="n">ndis</span><span class="p">,</span> <span class="n">inptd</span><span class="p">,</span> <span class="n">max_seg</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-8"></a>           <span class="p">&amp;</span>  <span class="n">block_far</span><span class="p">,</span> <span class="n">ltde</span><span class="p">,</span> <span class="n">n_data</span><span class="p">,</span> <span class="n">nnpxy</span><span class="p">,</span> <span class="n">nnpy</span><span class="p">,</span> <span class="n">nnys</span><span class="p">,</span> <span class="n">block_stg</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">twopi</span><span class="p">,</span> <span class="n">npth</span>
+<a name="ln-9"></a>   <span class="k">use </span><span class="n">model_parameters</span><span class="p">,</span> <span class="n">only</span> <span class="p">:</span> <span class="n">point_sources</span><span class="p">,</span> <span class="n">n_seg</span><span class="p">,</span> <span class="n">v_ref</span><span class="p">,</span> <span class="n">nxs_sub</span><span class="p">,</span> <span class="n">nys_sub</span><span class="p">,</span> <span class="n">delay_seg</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-10"></a>           <span class="p">&amp;</span>  <span class="n">dxs</span><span class="p">,</span> <span class="n">dys</span><span class="p">,</span> <span class="n">nx_p</span><span class="p">,</span> <span class="n">ny_p</span><span class="p">,</span> <span class="n">dip_seg</span><span class="p">,</span> <span class="n">stk_seg</span><span class="p">,</span> <span class="n">cniu</span>
+<a name="ln-11"></a>   <span class="k">use </span><span class="n">wavelets</span><span class="p">,</span> <span class="n">only</span> <span class="p">:</span> <span class="n">fourier_coefs</span><span class="p">,</span> <span class="n">meyer_yamada</span>
+<a name="ln-12"></a>   <span class="k">use </span><span class="n">retrieve_surf_gf</span><span class="p">,</span> <span class="n">only</span> <span class="p">:</span> <span class="n">get_surf_gf_data</span><span class="p">,</span> <span class="n">interp_gf</span><span class="p">,</span> <span class="n">get_surf_gf</span><span class="p">,</span> <span class="n">npt_bank</span><span class="p">,</span> <span class="n">dt_bank</span>
+<a name="ln-13"></a>   <span class="k">use </span><span class="n">rad_pattern</span><span class="p">,</span> <span class="n">only</span> <span class="p">:</span> <span class="n">rad_coef</span>
+<a name="ln-14"></a>   <span class="k">use </span><span class="n">geodesics</span><span class="p">,</span> <span class="n">only</span> <span class="p">:</span> <span class="n">distaz</span>
+<a name="ln-15"></a>   <span class="k">use </span><span class="n">rise_time</span><span class="p">,</span> <span class="n">only</span> <span class="p">:</span> <span class="n">fft</span>
+<a name="ln-16"></a>   <span class="k">implicit none</span>
+<a name="ln-17"></a><span class="k">   </span><span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">nnsta_tele</span> <span class="o">=</span> <span class="mi">80</span>
+<a name="ln-18"></a>   <span class="kt">complex</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">green_dip</span><span class="p">(:,</span> <span class="p">:,</span> <span class="p">:),</span> <span class="n">green_stk</span><span class="p">(:,</span> <span class="p">:,</span> <span class="p">:)</span>
+<a name="ln-19"></a>
+<a name="ln-20"></a>
+<a name="ln-21"></a><span class="k">contains</span>
+<a name="ln-22"></a>
+<a name="ln-23"></a>
+<a name="ln-24"></a><span class="k">   subroutine </span><span class="n">get_gf</span><span class="p">(</span><span class="n">strong</span><span class="p">,</span> <span class="n">cgps</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">surf</span><span class="p">,</span> <span class="n">dart</span><span class="p">)</span>
+<a name="ln-25"></a>   <span class="c">!!</span>
+<a name="ln-26"></a>   <span class="c">!!  Here, we load into memory the green functions for each subfault, for every used station</span>
+<a name="ln-27"></a>   <span class="c">!!</span>
+<a name="ln-28"></a>   <span class="k">implicit none</span>
+<a name="ln-29"></a><span class="c">!</span>
+<a name="ln-30"></a>   <span class="kt">integer </span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span>
+<a name="ln-31"></a>   <span class="kt">logical</span> <span class="kd">::</span> <span class="n">strong</span><span class="p">,</span> <span class="n">cgps</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">surf</span><span class="p">,</span> <span class="n">dart</span>
+<a name="ln-32"></a>   <span class="k">allocate</span><span class="p">(</span><span class="n">green_dip</span><span class="p">(</span><span class="n">npuse</span><span class="p">,</span> <span class="n">nnsta</span><span class="p">,</span> <span class="n">nnxy_m</span><span class="p">))</span>
+<a name="ln-33"></a>   <span class="k">allocate</span><span class="p">(</span><span class="n">green_stk</span><span class="p">(</span><span class="n">npuse</span><span class="p">,</span> <span class="n">nnsta</span><span class="p">,</span> <span class="n">nnxy_m</span><span class="p">))</span>
+<a name="ln-34"></a>
+<a name="ln-35"></a>   <span class="k">call </span><span class="n">fourier_coefs</span><span class="p">()</span>
+<a name="ln-36"></a>   <span class="k">call </span><span class="n">meyer_yamada</span><span class="p">()</span>
+<a name="ln-37"></a>   <span class="n">ll_in</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-38"></a>   <span class="n">ll_out</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-39"></a>   <span class="k">if</span> <span class="p">(</span><span class="n">strong</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-40"></a><span class="k">      call </span><span class="n">get_strong_motion_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-41"></a>      <span class="n">ll_in</span> <span class="o">=</span> <span class="n">ll_out</span>
+<a name="ln-42"></a>   <span class="k">end if</span>
+<a name="ln-43"></a><span class="k">   if</span> <span class="p">(</span><span class="n">cgps</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-44"></a><span class="k">      call </span><span class="n">get_cgps_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-45"></a>      <span class="n">ll_in</span> <span class="o">=</span> <span class="n">ll_out</span>
+<a name="ln-46"></a>   <span class="k">end if</span>
+<a name="ln-47"></a><span class="k">   if</span> <span class="p">(</span><span class="n">body</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-48"></a><span class="k">      call </span><span class="n">get_body_waves_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-49"></a>      <span class="n">ll_in</span> <span class="o">=</span> <span class="n">ll_out</span>
+<a name="ln-50"></a>   <span class="k">end if</span>
+<a name="ln-51"></a><span class="k">   if</span> <span class="p">(</span><span class="n">surf</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-52"></a><span class="k">      call </span><span class="n">get_surface_waves_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-53"></a>      <span class="n">ll_in</span> <span class="o">=</span> <span class="n">ll_out</span>
+<a name="ln-54"></a>   <span class="k">end if</span>
+<a name="ln-55"></a><span class="k">   if</span> <span class="p">(</span><span class="n">dart</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-56"></a><span class="k">      call </span><span class="n">get_dart_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-57"></a>      <span class="n">ll_in</span> <span class="o">=</span> <span class="n">ll_out</span>
+<a name="ln-58"></a>   <span class="k">end if</span>
+<a name="ln-59"></a><span class="c">!   select case (io_data)</span>
+<a name="ln-60"></a><span class="c">!      case (1)</span>
+<a name="ln-61"></a><span class="c">!         call get_cgps_gf(ll_in, ll_out)</span>
+<a name="ln-62"></a><span class="c">!      case (2)</span>
+<a name="ln-63"></a><span class="c">!         call get_strong_motion_gf(ll_in, ll_out)</span>
+<a name="ln-64"></a><span class="c">!      case (3)</span>
+<a name="ln-65"></a><span class="c">!         call get_body_waves_gf(ll_in, ll_out)</span>
+<a name="ln-66"></a><span class="c">!      case (4)</span>
+<a name="ln-67"></a><span class="c">!         call get_strong_motion_gf(ll_in, ll_out)</span>
+<a name="ln-68"></a><span class="c">!         lL_in = ll_out</span>
+<a name="ln-69"></a><span class="c">!         call get_cgps_gf(ll_in, ll_out)</span>
+<a name="ln-70"></a><span class="c">!      case (5)</span>
+<a name="ln-71"></a><span class="c">!         call get_body_waves_gf(ll_in, ll_out)</span>
+<a name="ln-72"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-73"></a><span class="c">!         call get_cgps_gf(ll_in, ll_out)</span>
+<a name="ln-74"></a><span class="c">!      case (6)</span>
+<a name="ln-75"></a><span class="c">!         call get_body_waves_gf(ll_in, ll_out)</span>
+<a name="ln-76"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-77"></a><span class="c">!         call get_strong_motion_gf(ll_in, ll_out)</span>
+<a name="ln-78"></a><span class="c">!      case (7)</span>
+<a name="ln-79"></a><span class="c">!         call get_strong_motion_gf(ll_in, ll_out)</span>
+<a name="ln-80"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-81"></a><span class="c">!         call get_surface_waves_gf(ll_in, ll_out)</span>
+<a name="ln-82"></a><span class="c">!      case (8)</span>
+<a name="ln-83"></a><span class="c">!         call get_cgps_gf(ll_in, ll_out)</span>
+<a name="ln-84"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-85"></a><span class="c">!         call get_surface_waves_gf(ll_in, ll_out)</span>
+<a name="ln-86"></a><span class="c">!      case (9)</span>
+<a name="ln-87"></a><span class="c">!         call get_body_waves_gf(ll_in, ll_out)</span>
+<a name="ln-88"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-89"></a><span class="c">!         call get_surface_waves_gf(ll_in, ll_out)</span>
+<a name="ln-90"></a><span class="c">!      case (10)</span>
+<a name="ln-91"></a><span class="c">!         call get_body_waves_gf(ll_in, ll_out)</span>
+<a name="ln-92"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-93"></a><span class="c">!         call get_strong_motion_gf(ll_in, ll_out)</span>
+<a name="ln-94"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-95"></a><span class="c">!         call get_cgps_gf(ll_in, ll_out)</span>
+<a name="ln-96"></a><span class="c">!      case (11)</span>
+<a name="ln-97"></a><span class="c">!         call get_body_waves_gf(ll_in, ll_out)</span>
+<a name="ln-98"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-99"></a><span class="c">!         call get_surface_waves_gf(ll_in, ll_out)</span>
+<a name="ln-100"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-101"></a><span class="c">!         call get_cgps_gf(ll_in, ll_out)</span>
+<a name="ln-102"></a><span class="c">!      case (12)</span>
+<a name="ln-103"></a><span class="c">!         call get_body_waves_gf(ll_in, ll_out)</span>
+<a name="ln-104"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-105"></a><span class="c">!         call get_surface_waves_gf(ll_in, ll_out)</span>
+<a name="ln-106"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-107"></a><span class="c">!         call get_strong_motion_gf(ll_in, ll_out)</span>
+<a name="ln-108"></a><span class="c">!      case (13)</span>
+<a name="ln-109"></a><span class="c">!         call get_strong_motion_gf(ll_in, ll_out)</span>
+<a name="ln-110"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-111"></a><span class="c">!         call get_surface_waves_gf(ll_in, ll_out)</span>
+<a name="ln-112"></a><span class="c">!         lL_in = ll_out</span>
+<a name="ln-113"></a><span class="c">!         call get_cgps_gf(ll_in, ll_out)</span>
+<a name="ln-114"></a><span class="c">!      case (14)</span>
+<a name="ln-115"></a><span class="c">!         call get_body_waves_gf(ll_in, ll_out)</span>
+<a name="ln-116"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-117"></a><span class="c">!         call get_strong_motion_gf(ll_in, ll_out)</span>
+<a name="ln-118"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-119"></a><span class="c">!         call get_cgps_gf(ll_in, ll_out)</span>
+<a name="ln-120"></a><span class="c">!      case (15)</span>
+<a name="ln-121"></a><span class="c">!         call get_body_waves_gf(ll_in, ll_out)</span>
+<a name="ln-122"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-123"></a><span class="c">!         call get_strong_motion_gf(ll_in, ll_out)</span>
+<a name="ln-124"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-125"></a><span class="c">!         call get_surface_waves_gf(ll_in, ll_out)</span>
+<a name="ln-126"></a><span class="c">!         ll_in = ll_out</span>
+<a name="ln-127"></a><span class="c">!         call get_cgps_gf(ll_in, ll_out)</span>
+<a name="ln-128"></a><span class="c">!   endselect   </span>
+<a name="ln-129"></a>   <span class="k">end subroutine </span><span class="n">get_gf</span>
+<a name="ln-130"></a>
+<a name="ln-131"></a>   
+<a name="ln-132"></a>   <span class="k">subroutine </span><span class="n">get_strong_motion_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-133"></a>   <span class="k">implicit none</span>
+<a name="ln-134"></a><span class="k">   </span><span class="kt">integer </span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">,</span> <span class="n">io_v_d</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-135"></a>   <span class="p">&amp;</span>  <span class="n">nstb</span><span class="p">,</span> <span class="n">io_chan</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">,</span> <span class="n">no</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-136"></a>   <span class="p">&amp;</span>  <span class="n">n_wave_weight</span><span class="p">,</span> <span class="n">ir_max</span><span class="p">,</span> <span class="n">n_chan</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-137"></a>   <span class="p">&amp;</span>  <span class="n">nos</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">io_mod</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">n_chan3</span><span class="p">,</span> <span class="n">lnpt</span><span class="p">,</span> <span class="n">nlen</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-138"></a>   <span class="p">&amp;</span>  <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-139"></a>   <span class="kt">real </span><span class="n">omega</span><span class="p">,</span> <span class="k">block</span><span class="p">,</span> <span class="n">lat_e</span><span class="p">,</span> <span class="n">lon_e</span><span class="p">,</span> <span class="n">lat_s</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">lon_s</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-140"></a>   <span class="p">&amp;</span>  <span class="n">weig</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">dt_sample</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">tlen</span>
+<a name="ln-141"></a>   <span class="kt">complex </span><span class="n">z0</span><span class="p">,</span> <span class="n">z</span>
+<a name="ln-142"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span> <span class="n">path</span>
+<a name="ln-143"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span> <span class="n">sta_name</span><span class="p">(</span><span class="n">nnsta</span><span class="p">)</span>
+<a name="ln-144"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span> <span class="n">filename</span>
+<a name="ln-145"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span> <span class="n">component</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">comp</span>
+<a name="ln-146"></a>   
+<a name="ln-147"></a>   <span class="n">z0</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-148"></a>   <span class="n">n_chan3</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-149"></a><span class="c">!</span>
+<a name="ln-150"></a><span class="c">!  suppose the ni = u3e+11, then then moment of 1cm*1km^2 </span>
+<a name="ln-151"></a><span class="c">!       subfault is 3e+21. The gfs is for Mo = 1e+20</span>
+<a name="ln-152"></a><span class="c">!</span>
+<a name="ln-153"></a>   <span class="k">block</span> <span class="o">=</span> <span class="n">dxs</span> <span class="o">*</span> <span class="n">dys</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.e-10</span><span class="p">)</span> 
+<a name="ln-154"></a>   <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;block: &#39;</span><span class="p">,</span> <span class="k">block </span>
+<a name="ln-155"></a><span class="k">   write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;area=&#39;</span><span class="p">,</span><span class="n">dxs</span> <span class="o">*</span> <span class="n">dys</span>
+<a name="ln-156"></a>
+<a name="ln-157"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Readlp.inf&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">)</span>
+<a name="ln-158"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Obser.str&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+<a name="ln-159"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Wave.str&#39;</span><span class="p">)</span>
+<a name="ln-160"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-161"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="s1">&#39;(a)&#39;</span><span class="p">)</span><span class="n">path</span>
+<a name="ln-162"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">n_wave_weight</span>
+<a name="ln-163"></a>
+<a name="ln-164"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-165"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">lat_e</span><span class="p">,</span> <span class="n">lon_e</span><span class="p">,</span> <span class="n">depth</span>
+<a name="ln-166"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">lnpt</span><span class="p">,</span> <span class="n">dt_sample</span>
+<a name="ln-167"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">io_v_d</span>
+<a name="ln-168"></a>   <span class="n">nstb</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-169"></a>   <span class="n">nlen</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">lnpt</span>
+<a name="ln-170"></a>   <span class="n">dt</span> <span class="o">=</span> <span class="n">dt_sample</span>
+<a name="ln-171"></a>   <span class="n">tlen</span> <span class="o">=</span> <span class="n">dt</span><span class="o">*</span><span class="n">nlen</span>
+<a name="ln-172"></a>   <span class="n">df</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">tlen</span>
+<a name="ln-173"></a>
+<a name="ln-174"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">ir_max</span><span class="p">,</span> <span class="n">n_chan</span>
+<a name="ln-175"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-176"></a>   <span class="k">if</span> <span class="p">(</span><span class="n">n_wave_weight</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">n_chan</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-177"></a><span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;n_wave_chan n_chan&#39;</span><span class="p">,</span><span class="n">n_wave_weight</span><span class="p">,</span><span class="n">n_chan</span>
+<a name="ln-178"></a>      <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;Mismatch in amount of stations betweeen wavelet file and stations file&#39;</span>
+<a name="ln-179"></a>      <span class="k">stop</span>
+<a name="ln-180"></a><span class="k">   end if</span>
+<a name="ln-181"></a><span class="k">   </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-182"></a>   <span class="n">io_chan</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-183"></a><span class="c">!       </span>
+<a name="ln-184"></a><span class="c">!       Here we read the green functions of strong motion waves</span>
+<a name="ln-185"></a><span class="c">!</span>
+<a name="ln-186"></a>   <span class="n">df</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">((</span><span class="mf">2.0</span> <span class="o">**</span> <span class="n">lnpt</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
+<a name="ln-187"></a>   <span class="n">nlen</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">lnpt</span>
+<a name="ln-188"></a>   <span class="n">tlen</span> <span class="o">=</span> <span class="n">nlen</span> <span class="o">*</span> <span class="n">dt</span>
+<a name="ln-189"></a>
+<a name="ln-190"></a>   <span class="k">do </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ir_max</span>
+<a name="ln-191"></a>
+<a name="ln-192"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">no</span><span class="p">,</span> <span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lat_s</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lon_s</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">io_mod</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">component</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">weig</span><span class="p">,</span> <span class="n">nos</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-193"></a>      <span class="n">comp</span> <span class="o">=</span> <span class="n">component</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-194"></a>
+<a name="ln-195"></a>      <span class="n">io_chan</span> <span class="o">=</span> <span class="n">io_chan</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-196"></a>      <span class="n">ll_g</span> <span class="o">=</span> <span class="n">io_chan</span><span class="o">+</span><span class="n">ll_in</span>
+<a name="ln-197"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">comp</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="s1">&#39;HNZ&#39;</span><span class="p">)</span> <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;1&#39;</span>
+<a name="ln-198"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">comp</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="s1">&#39;HNN&#39;</span><span class="p">)</span> <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;2&#39;</span>
+<a name="ln-199"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">comp</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="s1">&#39;HNE&#39;</span><span class="p">)</span> <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;3&#39;</span>
+<a name="ln-200"></a>      <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<a name="ln-201"></a>
+<a name="ln-202"></a>      <span class="k">open</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">block_stg</span><span class="p">)</span>
+<a name="ln-203"></a>      <span class="n">ll</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-204"></a><span class="c">!</span>
+<a name="ln-205"></a><span class="c">!       Here, we read the green functions and derivate them</span>
+<a name="ln-206"></a><span class="c">!</span>
+<a name="ln-207"></a>      <span class="n">ll_g</span> <span class="o">=</span> <span class="n">ll_in</span><span class="o">+</span><span class="n">io_chan</span>
+<a name="ln-208"></a>      <span class="k">do </span><span class="n">i_s</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_seg</span>
+<a name="ln-209"></a>         <span class="k">do </span><span class="n">iys</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-210"></a>            <span class="k">do </span><span class="n">ixs</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-211"></a>               <span class="n">ll</span> <span class="o">=</span> <span class="n">ll</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-212"></a>               <span class="k">read</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">rec</span> <span class="o">=</span> <span class="n">ll</span><span class="p">)(</span><span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">),</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span><span class="p">),(</span><span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">),</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span><span class="p">)</span>
+<a name="ln-213"></a>               <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-214"></a><span class="c">!</span>
+<a name="ln-215"></a><span class="c">! we eventually shift synthetics in time, in case the fault plane used has a delay</span>
+<a name="ln-216"></a><span class="c">!</span>
+<a name="ln-217"></a>                  <span class="n">omega</span> <span class="o">=</span> <span class="n">twopi</span><span class="o">*</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">df</span>
+<a name="ln-218"></a>                  <span class="n">w</span> <span class="o">=</span> <span class="o">-</span><span class="n">omega</span><span class="o">*</span><span class="n">delay_seg</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-219"></a>                  <span class="n">z</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+<a name="ln-220"></a>                  <span class="n">z</span> <span class="o">=</span> <span class="nb">cexp</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+<a name="ln-221"></a>                  <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span><span class="o">*</span><span class="n">z</span><span class="o">*</span><span class="k">block</span>
+<a name="ln-222"></a><span class="k">                  </span><span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span><span class="o">*</span><span class="n">z</span><span class="o">*</span><span class="k">block</span>
+<a name="ln-223"></a><span class="k">               end do</span>
+<a name="ln-224"></a><span class="k">            end do</span>
+<a name="ln-225"></a><span class="k">         end do</span>
+<a name="ln-226"></a><span class="k">      end do</span>
+<a name="ln-227"></a><span class="k">      close</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<a name="ln-228"></a>   <span class="k">end do      </span>
+<a name="ln-229"></a><span class="k">   close</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<a name="ln-230"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+<a name="ln-231"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+<a name="ln-232"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<a name="ln-233"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
+<a name="ln-234"></a>   <span class="n">ll_out</span> <span class="o">=</span> <span class="n">ll_out</span><span class="o">+</span><span class="n">n_chan</span>
+<a name="ln-235"></a>   <span class="k">end subroutine </span><span class="n">get_strong_motion_gf</span>
+<a name="ln-236"></a>
+<a name="ln-237"></a>   
+<a name="ln-238"></a>   <span class="k">subroutine </span><span class="n">get_cgps_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-239"></a>   <span class="k">implicit none</span>
+<a name="ln-240"></a><span class="k">   </span><span class="kt">integer </span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">,</span> <span class="n">n_chan3</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-241"></a>   <span class="p">&amp;</span>  <span class="n">nstb</span><span class="p">,</span> <span class="n">io_chan</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">,</span> <span class="n">no</span><span class="p">,</span> <span class="n">lnpt</span><span class="p">,</span> <span class="n">nlen</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-242"></a>   <span class="p">&amp;</span>  <span class="n">n_wave_weight</span><span class="p">,</span> <span class="n">ir_max</span><span class="p">,</span> <span class="n">n_chan</span><span class="p">,</span> <span class="n">nos</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">io_mod</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-243"></a>   <span class="p">&amp;</span>  <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-244"></a>   <span class="kt">real </span><span class="n">omega</span><span class="p">,</span> <span class="k">block</span><span class="p">,</span> <span class="n">lat_e</span><span class="p">,</span> <span class="n">lon_e</span><span class="p">,</span> <span class="n">lat_s</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">lon_s</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-245"></a>   <span class="p">&amp;</span>  <span class="n">weig</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">dt_sample</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">low_freq</span><span class="p">,</span> <span class="n">tlen</span>
+<a name="ln-246"></a>   <span class="kt">complex </span><span class="n">z0</span><span class="p">,</span> <span class="n">z</span>
+<a name="ln-247"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span> <span class="n">path</span>
+<a name="ln-248"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span> <span class="n">sta_name</span><span class="p">(</span><span class="n">nnsta</span><span class="p">)</span>
+<a name="ln-249"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span> <span class="n">filename</span>
+<a name="ln-250"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span> <span class="n">component</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">comp</span>
+<a name="ln-251"></a>
+<a name="ln-252"></a>   <span class="n">z0</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-253"></a>   <span class="n">n_chan3</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-254"></a><span class="c">!</span>
+<a name="ln-255"></a><span class="c">!  suppose the ni = u3e+11, then then moment of 1cm*1km^2 </span>
+<a name="ln-256"></a><span class="c">!       subfault is 3e+21. The gfs is for Mo = 1e+20</span>
+<a name="ln-257"></a><span class="c">!</span>
+<a name="ln-258"></a>   <span class="k">block</span> <span class="o">=</span> <span class="n">dxs</span> <span class="o">*</span> <span class="n">dys</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.e-10</span><span class="p">)</span> 
+<a name="ln-259"></a>   <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;block: &#39;</span><span class="p">,</span> <span class="k">block </span>
+<a name="ln-260"></a><span class="k">   write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;area=&#39;</span><span class="p">,</span><span class="n">dxs</span> <span class="o">*</span> <span class="n">dys</span>
+<a name="ln-261"></a>
+<a name="ln-262"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Readlp.cgps&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">)</span>
+<a name="ln-263"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Obser.cgps&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+<a name="ln-264"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Wave.cgps&#39;</span><span class="p">)</span>
+<a name="ln-265"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-266"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="s1">&#39;(a)&#39;</span><span class="p">)</span><span class="n">path</span>
+<a name="ln-267"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">n_wave_weight</span>
+<a name="ln-268"></a>
+<a name="ln-269"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-270"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">lat_e</span><span class="p">,</span> <span class="n">lon_e</span><span class="p">,</span> <span class="n">depth</span>
+<a name="ln-271"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">lnpt</span><span class="p">,</span> <span class="n">dt_sample</span>
+<a name="ln-272"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-273"></a>   <span class="n">nstb</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-274"></a>   <span class="n">nlen</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">lnpt</span>
+<a name="ln-275"></a>   <span class="n">dt</span> <span class="o">=</span> <span class="n">dt_sample</span>
+<a name="ln-276"></a>   <span class="n">tlen</span> <span class="o">=</span> <span class="n">dt</span><span class="o">*</span><span class="n">nlen</span>
+<a name="ln-277"></a>   <span class="n">df</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">tlen</span>
+<a name="ln-278"></a>
+<a name="ln-279"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">ir_max</span><span class="p">,</span> <span class="n">n_chan</span>
+<a name="ln-280"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-281"></a>   <span class="k">if</span> <span class="p">(</span><span class="n">n_wave_weight</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">n_chan</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-282"></a><span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;n_wave_chan n_chan&#39;</span><span class="p">,</span><span class="n">n_wave_weight</span><span class="p">,</span><span class="n">n_chan</span>
+<a name="ln-283"></a>      <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;Mismatch in number of stations between wavelet file and stations file&#39;</span>
+<a name="ln-284"></a>      <span class="k">stop</span>
+<a name="ln-285"></a><span class="k">   end if</span>
+<a name="ln-286"></a><span class="k">   </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-287"></a>   <span class="n">io_chan</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-288"></a><span class="c">!       </span>
+<a name="ln-289"></a><span class="c">!       Here we read the green functions of strong motion waves</span>
+<a name="ln-290"></a><span class="c">!</span>
+<a name="ln-291"></a>   <span class="n">df</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">((</span><span class="mf">2.0</span> <span class="o">**</span> <span class="n">lnpt</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
+<a name="ln-292"></a>   <span class="n">nlen</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">lnpt</span>
+<a name="ln-293"></a>   <span class="n">tlen</span> <span class="o">=</span> <span class="n">nlen</span> <span class="o">*</span> <span class="n">dt</span>
+<a name="ln-294"></a>   <span class="n">low_freq</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mi">20</span><span class="mf">0.0</span>
+<a name="ln-295"></a>
+<a name="ln-296"></a>   <span class="k">do </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ir_max</span>
+<a name="ln-297"></a>
+<a name="ln-298"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">no</span><span class="p">,</span> <span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lat_s</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lon_s</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">io_mod</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">component</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">weig</span><span class="p">,</span> <span class="n">nos</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-299"></a>
+<a name="ln-300"></a>      <span class="n">comp</span> <span class="o">=</span> <span class="n">component</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-301"></a>
+<a name="ln-302"></a>      <span class="n">io_chan</span> <span class="o">=</span> <span class="n">io_chan</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-303"></a>      <span class="n">ll_g</span> <span class="o">=</span> <span class="n">io_chan</span><span class="o">+</span><span class="n">ll_in</span>
+<a name="ln-304"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">comp</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="s1">&#39;LXZ&#39;</span><span class="p">)</span> <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;.cgps.1&#39;</span>
+<a name="ln-305"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">comp</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="s1">&#39;LXN&#39;</span><span class="p">)</span> <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;.cgps.2&#39;</span>
+<a name="ln-306"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">comp</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span><span class="s1">&#39;LXE&#39;</span><span class="p">)</span> <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;.cgps.3&#39;</span>
+<a name="ln-307"></a>      <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<a name="ln-308"></a>
+<a name="ln-309"></a>      <span class="k">open</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">block_stg</span><span class="p">)</span>
+<a name="ln-310"></a>      <span class="n">ll</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-311"></a><span class="c">!</span>
+<a name="ln-312"></a><span class="c">!       Here, we read the green functions and derivate them</span>
+<a name="ln-313"></a><span class="c">!</span>
+<a name="ln-314"></a>      <span class="n">ll_g</span> <span class="o">=</span> <span class="n">ll_in</span><span class="o">+</span><span class="n">io_chan</span>
+<a name="ln-315"></a>      <span class="k">do </span><span class="n">i_s</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_seg</span>
+<a name="ln-316"></a>         <span class="k">do </span><span class="n">iys</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-317"></a>            <span class="k">do </span><span class="n">ixs</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-318"></a>               <span class="n">ll</span> <span class="o">=</span> <span class="n">ll</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-319"></a>               <span class="k">read</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">rec</span> <span class="o">=</span> <span class="n">ll</span><span class="p">)(</span><span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">),</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span><span class="p">),(</span><span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">),</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span><span class="p">)</span>
+<a name="ln-320"></a>               <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-321"></a>                  <span class="n">omega</span> <span class="o">=</span> <span class="n">twopi</span><span class="o">*</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">df</span>
+<a name="ln-322"></a>                  <span class="n">w</span> <span class="o">=</span> <span class="o">-</span><span class="n">omega</span><span class="o">*</span><span class="n">delay_seg</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span> <span class="c">! we shift synthetics in time by delay_seg(i_s) seconds</span>
+<a name="ln-323"></a>                  <span class="n">z</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+<a name="ln-324"></a>                  <span class="n">z</span> <span class="o">=</span> <span class="nb">cexp</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+<a name="ln-325"></a>                  <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span><span class="o">*</span><span class="n">z</span><span class="o">*</span><span class="k">block</span>
+<a name="ln-326"></a><span class="k">                  </span><span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span><span class="o">*</span><span class="n">z</span><span class="o">*</span><span class="k">block</span>
+<a name="ln-327"></a><span class="k">               end do</span>
+<a name="ln-328"></a><span class="k">            end do</span>
+<a name="ln-329"></a><span class="k">         end do</span>
+<a name="ln-330"></a><span class="k">      end do</span>
+<a name="ln-331"></a><span class="k">      close</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<a name="ln-332"></a>   <span class="k">end do</span>
+<a name="ln-333"></a><span class="k">   close</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<a name="ln-334"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+<a name="ln-335"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+<a name="ln-336"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<a name="ln-337"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
+<a name="ln-338"></a>   <span class="n">ll_out</span> <span class="o">=</span> <span class="n">ll_out</span><span class="o">+</span><span class="n">n_chan</span>
+<a name="ln-339"></a>   <span class="k">end subroutine </span><span class="n">get_cgps_gf</span>
+<a name="ln-340"></a>
+<a name="ln-341"></a>
+<a name="ln-342"></a>   <span class="k">subroutine </span><span class="n">get_body_waves_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-343"></a>   <span class="k">implicit none</span>
+<a name="ln-344"></a><span class="k">   </span><span class="kt">integer </span><span class="n">nstaon</span><span class="p">,</span> <span class="n">ir</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">nsta</span><span class="p">,</span> <span class="n">n_chan</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-345"></a>   <span class="p">&amp;</span>  <span class="n">love</span><span class="p">,</span> <span class="n">ll</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">iyp</span><span class="p">,</span> <span class="n">io_seg</span><span class="p">,</span> <span class="n">iys_c</span><span class="p">,</span> <span class="n">iy_c</span><span class="p">,</span> <span class="n">jf</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">nstb</span><span class="p">,</span> <span class="n">ipy</span><span class="p">,</span> <span class="n">npxy</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-346"></a>   <span class="p">&amp;</span>  <span class="n">nkxy</span><span class="p">,</span> <span class="n">nxs_c</span><span class="p">,</span> <span class="n">nys_c</span><span class="p">,</span> <span class="n">nxp_c</span><span class="p">,</span> <span class="n">nyp_c</span><span class="p">,</span> <span class="n">ll_s</span><span class="p">,</span> <span class="n">kxy</span><span class="p">,</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">kpxy</span><span class="p">,</span> <span class="n">ixp</span><span class="p">,</span> <span class="p">&amp;</span> 
+<a name="ln-347"></a>   <span class="p">&amp;</span>  <span class="n">n_wave_weight</span><span class="p">,</span> <span class="n">iud</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-348"></a>   <span class="p">&amp;</span>  <span class="n">idata</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="n">nos</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="n">llove</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-349"></a>   <span class="p">&amp;</span>  <span class="n">mmm</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">,</span> <span class="n">n_chan3</span><span class="p">,</span> <span class="n">lnpt</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-350"></a>   <span class="p">&amp;</span>  <span class="n">nlen</span><span class="p">,</span> <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-351"></a>   <span class="kt">real </span><span class="n">dt</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">ddelt</span><span class="p">,</span> <span class="nb">time</span><span class="p">,</span> <span class="k">block</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-352"></a>   <span class="p">&amp;</span>  <span class="n">earth_angle</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="n">hcru</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-353"></a>   <span class="p">&amp;</span>  <span class="n">disp_or_vel</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="n">rang</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="n">az</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-354"></a>   <span class="p">&amp;</span>  <span class="n">ttvl</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-355"></a>   <span class="p">&amp;</span>  <span class="n">lat_sta</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="n">lon_sta</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="n">tlen</span>
+<a name="ln-356"></a>   <span class="kt">real</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">tdel</span><span class="p">(:,:,:,:)</span>
+<a name="ln-357"></a>   <span class="kt">complex</span> <span class="kd">::</span> <span class="n">z</span><span class="p">,</span> <span class="n">z0</span><span class="p">,</span> <span class="n">wsyn</span><span class="p">(</span><span class="n">npth</span><span class="p">)</span>
+<a name="ln-358"></a>   <span class="kt">complex</span> <span class="kd">::</span> <span class="n">kahan_y1</span><span class="p">(</span><span class="n">inptd</span><span class="p">),</span> <span class="n">kahan_t1</span><span class="p">(</span><span class="n">inptd</span><span class="p">),</span> <span class="n">kahan_c1</span><span class="p">(</span><span class="n">inptd</span><span class="p">)</span>
+<a name="ln-359"></a>   <span class="kt">complex</span> <span class="kd">::</span> <span class="n">kahan_y2</span><span class="p">(</span><span class="n">inptd</span><span class="p">),</span> <span class="n">kahan_t2</span><span class="p">(</span><span class="n">inptd</span><span class="p">),</span> <span class="n">kahan_c2</span><span class="p">(</span><span class="n">inptd</span><span class="p">)</span>
+<a name="ln-360"></a>   <span class="kt">complex</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">green_dip0</span><span class="p">(:,:,:,:,:)</span>
+<a name="ln-361"></a>   <span class="kt">complex</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">green_stk0</span><span class="p">(:,:,:,:,:)</span>
+<a name="ln-362"></a><span class="c">!</span>
+<a name="ln-363"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="n">earth</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">)</span>
+<a name="ln-364"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span> <span class="n">fname</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">)</span>
+<a name="ln-365"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span> <span class="n">stname</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">),</span> <span class="n">sttyp</span><span class="p">(</span><span class="n">nnsta_tele</span><span class="p">)</span>
+<a name="ln-366"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span> <span class="n">fname4</span><span class="p">,</span> <span class="n">fname6</span>
+<a name="ln-367"></a>   <span class="k">allocate</span><span class="p">(</span><span class="n">green_dip0</span><span class="p">(</span><span class="n">npuse</span><span class="p">,</span> <span class="n">nnpy</span><span class="p">,</span> <span class="n">nnys</span><span class="p">,</span> <span class="n">max_seg</span><span class="p">,</span> <span class="n">nnsta_tele</span><span class="p">))</span>
+<a name="ln-368"></a>   <span class="k">allocate</span><span class="p">(</span><span class="n">green_stk0</span><span class="p">(</span><span class="n">npuse</span><span class="p">,</span> <span class="n">nnpy</span><span class="p">,</span> <span class="n">nnys</span><span class="p">,</span> <span class="n">max_seg</span><span class="p">,</span> <span class="n">nnsta_tele</span><span class="p">))</span>
+<a name="ln-369"></a>   <span class="k">allocate</span><span class="p">(</span><span class="n">tdel</span><span class="p">(</span><span class="n">nnpxy</span><span class="p">,</span> <span class="n">nnxy</span><span class="p">,</span> <span class="n">max_seg</span><span class="p">,</span> <span class="n">nnsta_tele</span><span class="p">))</span>
+<a name="ln-370"></a>   
+<a name="ln-371"></a>   <span class="n">z0</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-372"></a>   <span class="n">n_chan3</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-373"></a>
+<a name="ln-374"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Readlp.das&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">)</span>
+<a name="ln-375"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Obser.tele&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+<a name="ln-376"></a>   <span class="k">if</span> <span class="p">(</span><span class="n">jfmax</span> <span class="p">.</span><span class="n">gt</span><span class="p">.</span> <span class="n">npuse</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-377"></a><span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;You should stop and check dimension sww,sws&#39;</span>
+<a name="ln-378"></a>      <span class="k">stop</span>
+<a name="ln-379"></a><span class="k">   end if</span>
+<a name="ln-380"></a><span class="k">   read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-381"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-382"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-383"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">nstaON</span>
+<a name="ln-384"></a>   <span class="n">nstb</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-385"></a>   <span class="k">block</span> <span class="o">=</span> <span class="n">dxs</span><span class="o">*</span><span class="n">dys</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0e-10</span><span class="p">)</span>
+<a name="ln-386"></a>   <span class="k">block</span> <span class="o">=</span> <span class="k">block</span><span class="o">*</span><span class="mf">1.e+4</span>
+<a name="ln-387"></a><span class="c">!  </span>
+<a name="ln-388"></a><span class="c">!  Because the data is micrometer, so The amplitude of block should</span>
+<a name="ln-389"></a><span class="c">!  time e+4 Only in this test</span>
+<a name="ln-390"></a><span class="c">!</span>
+<a name="ln-391"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Wave.tele&#39;</span><span class="p">)</span>
+<a name="ln-392"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-393"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">n_wave_weight</span>
+<a name="ln-394"></a>
+<a name="ln-395"></a>   <span class="n">tlen</span> <span class="o">=</span> <span class="n">nlen</span><span class="o">*</span><span class="n">dt</span>
+<a name="ln-396"></a>   <span class="n">npxy</span> <span class="o">=</span> <span class="n">nx_p</span><span class="o">*</span><span class="n">ny_p</span>
+<a name="ln-397"></a>   <span class="k">do </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nstaon</span>
+<a name="ln-398"></a>      <span class="n">ll_g</span> <span class="o">=</span> <span class="n">ll_in</span><span class="o">+</span><span class="n">ir</span>
+<a name="ln-399"></a>
+<a name="ln-400"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">nos</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">earth</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">sttyp</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">stname</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">fname</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-401"></a>      <span class="p">&amp;</span>  <span class="n">rang</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">az</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lat_sta</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lon_sta</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">earth_angle</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">ttvl</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-402"></a>      <span class="p">&amp;</span>  <span class="n">mmm</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">hcru</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">disp_or_vel</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">llove</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">iud</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">idata</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-403"></a>
+<a name="ln-404"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">idata</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span> <span class="p">.</span><span class="n">gt</span><span class="p">.</span> <span class="mi">0</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">mmm</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">3</span><span class="p">)</span> <span class="k">cycle</span>
+<a name="ln-405"></a><span class="k">      </span><span class="n">nstb</span> <span class="o">=</span> <span class="n">nstb</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-406"></a>      <span class="n">nsta</span> <span class="o">=</span> <span class="n">nstaON</span>
+<a name="ln-407"></a>      <span class="n">n_chan</span> <span class="o">=</span> <span class="n">nstaon</span>
+<a name="ln-408"></a>      <span class="n">love</span> <span class="o">=</span> <span class="n">llove</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-409"></a><span class="c">!</span>
+<a name="ln-410"></a><span class="c">!  MM = 0 FOR FAR; MM = 1 FOR UPPER; MM = 3 FOR PNL</span>
+<a name="ln-411"></a><span class="c">!  Here we read the green functions of the teleseismic body waves</span>
+<a name="ln-412"></a><span class="c">!  </span>
+<a name="ln-413"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">love</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-414"></a><span class="k">         </span><span class="n">fname4</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">stname</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;.GRE&#39;</span>
+<a name="ln-415"></a>         <span class="n">fname6</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">stname</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;.TDE&#39;</span>
+<a name="ln-416"></a>      <span class="k">else</span>
+<a name="ln-417"></a><span class="k">         </span><span class="n">fname4</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">stname</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;SH.GRE&#39;</span>
+<a name="ln-418"></a>         <span class="n">fname6</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">stname</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;SH.TDE&#39;</span>
+<a name="ln-419"></a>      <span class="k">end if</span>
+<a name="ln-420"></a><span class="k">      open</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">fname4</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">block_far</span><span class="p">)</span>
+<a name="ln-421"></a>      <span class="k">open</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">fname6</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">,</span><span class="nb">access</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">,</span><span class="n">recl</span><span class="o">=</span><span class="n">ltde</span><span class="p">)</span>
+<a name="ln-422"></a>      <span class="n">LL</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-423"></a>      <span class="k">do </span><span class="n">i_s</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_seg</span>
+<a name="ln-424"></a>         <span class="k">if</span> <span class="p">(</span><span class="n">i_s</span> <span class="p">.</span><span class="n">le</span><span class="p">.</span> <span class="mi">10</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-425"></a><span class="k">            do </span><span class="n">iys</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-426"></a>               <span class="k">do </span><span class="n">IPY</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ny_p</span>
+<a name="ln-427"></a>                  <span class="n">LL</span> <span class="o">=</span> <span class="n">LL</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-428"></a>                  <span class="k">read</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">rec</span> <span class="o">=</span> <span class="n">LL</span><span class="p">)</span> <span class="n">io_seg</span><span class="p">,</span> <span class="n">iys_c</span><span class="p">,</span> <span class="n">iy_c</span><span class="p">,</span> <span class="n">JF</span><span class="p">,</span> <span class="n">DT</span><span class="p">,</span> <span class="n">DF</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-429"></a>     <span class="p">&amp;</span>  <span class="p">(</span><span class="n">green_dip0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ipy</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">),</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">jfmax</span><span class="p">)</span>
+<a name="ln-430"></a>                  <span class="n">LL</span> <span class="o">=</span> <span class="n">LL</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-431"></a>                  <span class="k">read</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">rec</span> <span class="o">=</span> <span class="n">LL</span><span class="p">)</span> <span class="n">io_seg</span><span class="p">,</span> <span class="n">iys_c</span><span class="p">,</span> <span class="n">iy_c</span><span class="p">,</span> <span class="n">JF</span><span class="p">,</span> <span class="n">LNPT</span><span class="p">,</span> <span class="n">NLEN</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-432"></a>     <span class="p">&amp;</span>  <span class="p">(</span><span class="n">green_stk0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ipy</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">),</span> <span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">JFmax</span><span class="p">)</span>
+<a name="ln-433"></a><span class="c">!</span>
+<a name="ln-434"></a><span class="c">!       Sanity checks</span>
+<a name="ln-435"></a><span class="c">!</span>
+<a name="ln-436"></a>                  <span class="k">if</span> <span class="p">((</span><span class="n">io_seg</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">i_s</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="n">iys_c</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">iys</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="n">iy_c</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">ipy</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-437"></a><span class="k">                     write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;io_seg vs i_s: &#39;</span><span class="p">,</span> <span class="n">io_seg</span><span class="p">,</span><span class="n">i_s</span>
+<a name="ln-438"></a>                     <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;iys_c, iys: &#39;</span><span class="p">,</span> <span class="n">iys_c</span><span class="p">,</span><span class="n">iys</span>
+<a name="ln-439"></a>                     <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;iy_c, ipy: &#39;</span><span class="p">,</span> <span class="n">iy_c</span><span class="p">,</span><span class="n">ipy</span>
+<a name="ln-440"></a>                     <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s2">&quot;Green function is not matched with fault model&quot;</span>
+<a name="ln-441"></a>                     <span class="k">stop</span>
+<a name="ln-442"></a><span class="k">                  end if</span>
+<a name="ln-443"></a><span class="k">                  do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">jfmax</span>
+<a name="ln-444"></a>                     <span class="n">green_dip0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ipy</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span> <span class="o">=</span> <span class="k">block</span><span class="o">*</span><span class="n">green_dip0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ipy</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span>
+<a name="ln-445"></a>                     <span class="n">green_stk0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ipy</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span> <span class="o">=</span> <span class="k">block</span><span class="o">*</span><span class="n">green_stk0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ipy</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span>
+<a name="ln-446"></a>                  <span class="k">end do</span>
+<a name="ln-447"></a><span class="k">               end do</span>
+<a name="ln-448"></a><span class="k">            end do</span>
+<a name="ln-449"></a><span class="k">            </span><span class="n">nkxy</span> <span class="o">=</span> <span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span><span class="o">*</span><span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-450"></a>            <span class="k">read</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">rec</span> <span class="o">=</span> <span class="n">i_s</span><span class="p">)</span> <span class="n">nxs_c</span><span class="p">,</span> <span class="n">nys_c</span><span class="p">,</span> <span class="n">nxp_c</span><span class="p">,</span> <span class="n">nyp_c</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-451"></a>     <span class="p">&amp;</span>  <span class="p">((</span><span class="n">tdel</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">ll_s</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">),</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npxy</span><span class="p">),</span> <span class="n">ll_s</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkxy</span><span class="p">)</span>
+<a name="ln-452"></a>            <span class="k">if</span> <span class="p">((</span><span class="n">nxs_c</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">))</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="n">nys_c</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">))</span> <span class="p">&amp;</span>
+<a name="ln-453"></a>     <span class="p">&amp;</span>      <span class="p">.</span><span class="nb">or</span><span class="p">.(</span><span class="n">nxp_c</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">nx_p</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="n">nyp_c</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">ny_p</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-454"></a><span class="k">                write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;nxs&#39;</span><span class="p">,</span><span class="n">nxs_c</span><span class="p">,</span><span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-455"></a>                <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;nys&#39;</span><span class="p">,</span><span class="n">nys_c</span><span class="p">,</span><span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-456"></a>                <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;nxp&#39;</span><span class="p">,</span><span class="n">nxp_c</span><span class="p">,</span><span class="n">nx_p</span>
+<a name="ln-457"></a>                <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;nyp&#39;</span><span class="p">,</span><span class="n">nyp_c</span><span class="p">,</span><span class="n">ny_p</span>
+<a name="ln-458"></a>                <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">&#39;(a)&#39;</span><span class="p">)</span><span class="s1">&#39;Mismatch in amount of point sources or subfaults &amp;</span>
+<a name="ln-459"></a><span class="s1">                &amp;between the specified in Fault.time, and those used in the &amp;</span>
+<a name="ln-460"></a><span class="s1">                &amp;green functions.&#39;</span>
+<a name="ln-461"></a>                <span class="k">stop</span>
+<a name="ln-462"></a><span class="k">             end if</span>
+<a name="ln-463"></a><span class="k">          else</span>
+<a name="ln-464"></a><span class="k">             </span><span class="n">npxy</span> <span class="o">=</span> <span class="n">nx_p</span><span class="o">*</span><span class="n">ny_p</span>
+<a name="ln-465"></a>             <span class="n">nkxy</span> <span class="o">=</span> <span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span><span class="o">*</span><span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-466"></a>             <span class="k">do </span><span class="n">iys</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-467"></a>                <span class="k">do </span><span class="n">ipy</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ny_p</span>
+<a name="ln-468"></a>                   <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">jfmax</span>
+<a name="ln-469"></a>                      <span class="n">green_dip0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ipy</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-470"></a>                      <span class="n">green_stk0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ipy</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-471"></a>                  <span class="k">end do</span>
+<a name="ln-472"></a><span class="k">               end do</span>
+<a name="ln-473"></a><span class="k">            end do</span>
+<a name="ln-474"></a><span class="k">            do </span><span class="n">ll_s</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkxy</span>
+<a name="ln-475"></a>               <span class="k">do </span><span class="n">k</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npxy</span>
+<a name="ln-476"></a>                  <span class="n">tdel</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">ll_s</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-477"></a>               <span class="k">end do</span>
+<a name="ln-478"></a><span class="k">            end do</span>
+<a name="ln-479"></a><span class="k">         end if</span>
+<a name="ln-480"></a><span class="k">      end do</span>
+<a name="ln-481"></a><span class="k">      close</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<a name="ln-482"></a>      <span class="k">close</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+<a name="ln-483"></a>   <span class="k">end do</span>
+<a name="ln-484"></a><span class="k">   close</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+<a name="ln-485"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
+<a name="ln-486"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<a name="ln-487"></a>   
+<a name="ln-488"></a>   <span class="k">do </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nstaon</span>
+<a name="ln-489"></a>      <span class="n">ll_g</span> <span class="o">=</span> <span class="n">ll_in</span><span class="o">+</span><span class="n">ir</span>
+<a name="ln-490"></a>
+<a name="ln-491"></a>      <span class="k">do </span><span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npth</span>
+<a name="ln-492"></a>         <span class="n">wsyn</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-493"></a>      <span class="k">end do</span>
+<a name="ln-494"></a><span class="k">      </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-495"></a>      <span class="n">ddelt</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-496"></a>      <span class="n">z</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-497"></a>      <span class="k">do </span><span class="n">i_s</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_seg</span>
+<a name="ln-498"></a>         <span class="n">kxy</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-499"></a>         <span class="k">do </span><span class="n">iys</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-500"></a>            <span class="k">do </span><span class="n">ixs</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-501"></a>               <span class="n">kxy</span> <span class="o">=</span> <span class="n">kxy</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-502"></a>               <span class="n">ll</span> <span class="o">=</span> <span class="n">ll</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-503"></a>               <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">jfmax</span>
+<a name="ln-504"></a>                  <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-505"></a>                  <span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-506"></a>               <span class="k">end do</span>
+<a name="ln-507"></a><span class="k">               </span><span class="n">kahan_y1</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-508"></a>               <span class="n">kahan_t1</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-509"></a>               <span class="n">kahan_c1</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-510"></a>               <span class="n">kahan_y2</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-511"></a>               <span class="n">kahan_t2</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-512"></a>               <span class="n">kahan_c2</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-513"></a>               <span class="n">kpxy</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-514"></a>               <span class="k">do </span><span class="n">iyp</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ny_p</span>
+<a name="ln-515"></a>                  <span class="k">do </span><span class="n">ixp</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nx_p</span>
+<a name="ln-516"></a>                     <span class="n">kpxy</span> <span class="o">=</span> <span class="n">kpxy</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-517"></a>                     <span class="nb">time</span> <span class="o">=</span> <span class="n">tdel</span><span class="p">(</span><span class="n">kpxy</span><span class="p">,</span> <span class="n">kxy</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span><span class="o">+</span><span class="p">&amp;</span>
+<a name="ln-518"></a>                  <span class="p">&amp;</span>  <span class="n">point_sources</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">ixp</span><span class="p">,</span> <span class="n">iyp</span><span class="p">,</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">)</span><span class="o">/</span><span class="n">v_ref</span><span class="o">+</span><span class="n">delay_seg</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-519"></a>                     <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">jfmax</span>
+<a name="ln-520"></a>                        <span class="n">W</span> <span class="o">=</span> <span class="o">-</span><span class="n">twopi</span><span class="o">*</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">df</span><span class="o">*</span><span class="nb">time</span>
+<a name="ln-521"></a><span class="nb">                        </span><span class="n">z</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+<a name="ln-522"></a>                        <span class="n">z</span> <span class="o">=</span> <span class="nb">cexp</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+<a name="ln-523"></a><span class="c">!                        green_dip(i, ll_g, ll) = green_dip(i, ll_g, ll)+green_dip0(i, iyp, iys, i_s, ir)*Z</span>
+<a name="ln-524"></a><span class="c">!                        green_stk(i, ll_g, ll) = green_stk(i, ll_g, ll)+green_stk0(i, iyp, iys, i_s, ir)*z</span>
+<a name="ln-525"></a>                        <span class="n">kahan_y1</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">green_dip0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">iyp</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span><span class="o">*</span><span class="n">z</span> <span class="o">-</span> <span class="n">kahan_c1</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a name="ln-526"></a>                        <span class="n">kahan_t1</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">+</span> <span class="n">kahan_y1</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a name="ln-527"></a>                        <span class="n">kahan_c1</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="n">kahan_t1</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">-</span> <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">))</span> <span class="o">-</span> <span class="n">kahan_y1</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a name="ln-528"></a>                        <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">kahan_t1</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a name="ln-529"></a>                        <span class="n">kahan_y2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">green_stk0</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">iyp</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">)</span><span class="o">*</span><span class="n">z</span> <span class="o">-</span> <span class="n">kahan_c2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a name="ln-530"></a>                        <span class="n">kahan_t2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">+</span> <span class="n">kahan_y2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a name="ln-531"></a>                        <span class="n">kahan_c2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="n">kahan_t2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">-</span> <span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">))</span> <span class="o">-</span> <span class="n">kahan_y2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a name="ln-532"></a>                        <span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">kahan_t2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a name="ln-533"></a>                     <span class="k">end do</span>
+<a name="ln-534"></a><span class="k">                  end do</span>
+<a name="ln-535"></a><span class="k">               end do</span>
+<a name="ln-536"></a><span class="k">               do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">jfmax</span>
+<a name="ln-537"></a>                  <span class="k">if</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">disp_or_vel</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span><span class="o">+</span><span class="mf">0.1</span><span class="p">)</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-538"></a><span class="k">                     </span><span class="n">z</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-539"></a>                  <span class="n">elseif</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">disp_or_vel</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span><span class="o">+</span><span class="mf">0.1</span><span class="p">)</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-540"></a><span class="k">                     </span><span class="n">w</span> <span class="o">=</span> <span class="n">twopi</span><span class="o">*</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">df</span>
+<a name="ln-541"></a>                     <span class="n">z</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+<a name="ln-542"></a>                  <span class="k">end if</span>
+<a name="ln-543"></a><span class="k">                  </span><span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">z</span><span class="o">*</span><span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span><span class="o">/</span><span class="n">npxy</span>
+<a name="ln-544"></a>                  <span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">z</span><span class="o">*</span><span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span><span class="o">/</span><span class="n">npxy</span>
+<a name="ln-545"></a>               <span class="k">end do</span>
+<a name="ln-546"></a><span class="k">            end do</span>
+<a name="ln-547"></a><span class="k">         end do</span>
+<a name="ln-548"></a><span class="k">      end do</span>
+<a name="ln-549"></a><span class="k">   end do</span>
+<a name="ln-550"></a><span class="k">   </span><span class="n">ll_out</span> <span class="o">=</span> <span class="n">ll_out</span><span class="o">+</span><span class="n">nstaon</span>
+<a name="ln-551"></a>   <span class="k">deallocate</span><span class="p">(</span><span class="n">green_stk0</span><span class="p">)</span>
+<a name="ln-552"></a>   <span class="k">deallocate</span><span class="p">(</span><span class="n">green_dip0</span><span class="p">)</span>
+<a name="ln-553"></a>   <span class="k">deallocate</span><span class="p">(</span><span class="n">tdel</span><span class="p">)</span>
+<a name="ln-554"></a>   <span class="k">end subroutine </span><span class="n">get_body_waves_gf</span>
+<a name="ln-555"></a>
+<a name="ln-556"></a>
+<a name="ln-557"></a>   <span class="k">subroutine </span><span class="n">get_surface_waves_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-558"></a>   <span class="k">implicit none</span>
+<a name="ln-559"></a><span class="k">   </span><span class="kt">integer </span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">,</span> <span class="n">nf1</span><span class="p">,</span> <span class="n">nf2</span><span class="p">,</span> <span class="n">nf3</span><span class="p">,</span> <span class="n">nf4</span><span class="p">,</span> <span class="n">no</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-560"></a>   <span class="p">&amp;</span>  <span class="n">npp</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">iy</span><span class="p">,</span> <span class="n">nxy</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">,</span> <span class="n">nstb</span><span class="p">,</span> <span class="n">io_chan</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">io_mod</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-561"></a>   <span class="p">&amp;</span>  <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">,</span> <span class="n">i_ch</span><span class="p">,</span> <span class="n">n_wave_weight</span><span class="p">,</span> <span class="n">ir_max</span><span class="p">,</span> <span class="n">n_chan</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-562"></a>   <span class="p">&amp;</span>  <span class="n">iys</span><span class="p">,</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">io_up</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">io_ew</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">io_ns</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-563"></a>   <span class="p">&amp;</span>  <span class="n">n_chan3</span><span class="p">,</span> <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span><span class="p">,</span> <span class="n">lnpt</span><span class="p">,</span> <span class="n">nlen</span>
+<a name="ln-564"></a>
+<a name="ln-565"></a>   <span class="kt">real</span><span class="o">*</span><span class="mi">8</span> <span class="kd">::</span> <span class="n">dip</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">dis</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">baz</span><span class="p">,</span> <span class="n">rad_c</span><span class="p">,</span> <span class="n">coef_v</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">coef_r</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<a name="ln-566"></a>   <span class="kt">real </span><span class="n">fint</span><span class="p">(</span><span class="n">npth</span><span class="p">),</span> <span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">f3</span><span class="p">,</span> <span class="n">f4</span><span class="p">,</span> <span class="n">const_c</span><span class="p">,</span> <span class="n">tsub</span><span class="p">(</span><span class="n">nnpxy</span><span class="p">),</span> <span class="n">h</span><span class="p">,</span> <span class="n">omega</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-567"></a>   <span class="p">&amp;</span>  <span class="n">dist_min</span><span class="p">,</span> <span class="n">dist_max</span><span class="p">,</span> <span class="n">depth_sub</span><span class="p">,</span> <span class="n">dep_min</span><span class="p">,</span> <span class="n">dep_max</span><span class="p">,</span> <span class="n">lat_p</span><span class="p">,</span> <span class="n">lon_p</span><span class="p">,</span> <span class="n">niu</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-568"></a>   <span class="p">&amp;</span>  <span class="n">lat_sta</span><span class="p">,</span> <span class="n">lon_sta</span><span class="p">,</span> <span class="n">df_bank</span><span class="p">,</span> <span class="n">tlen_bank</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-569"></a>   <span class="p">&amp;</span>  <span class="nb">time</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="k">block</span><span class="p">,</span> <span class="n">lat_e</span><span class="p">,</span> <span class="n">lon_e</span><span class="p">,</span> <span class="n">lat_s</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">lon_s</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">rake</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-570"></a>   <span class="p">&amp;</span>  <span class="n">depth</span><span class="p">,</span> <span class="n">ang_ns</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">ang_ew</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">df</span><span class="p">,</span> <span class="n">area</span><span class="p">,</span> <span class="n">dt_sample</span><span class="p">,</span> <span class="n">tlen</span>
+<a name="ln-571"></a>   
+<a name="ln-572"></a>   <span class="kt">complex</span> <span class="kd">::</span> <span class="n">kahan_y</span><span class="p">,</span> <span class="n">kahan_t</span><span class="p">,</span> <span class="n">kahan_c</span>
+<a name="ln-573"></a>   <span class="kt">complex </span><span class="n">sour_sub</span><span class="p">(</span><span class="n">npth</span><span class="p">),</span> <span class="n">green_s</span><span class="p">(</span><span class="n">inptd</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">www</span><span class="p">,</span> <span class="n">wss</span><span class="p">,</span> <span class="n">z0</span>
+<a name="ln-574"></a>
+<a name="ln-575"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">250</span><span class="p">)</span> <span class="n">modes</span>
+<a name="ln-576"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span> <span class="n">surf_gf_bank</span>
+<a name="ln-577"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span> <span class="n">sta_name</span><span class="p">(</span><span class="n">nnsta</span><span class="p">)</span>
+<a name="ln-578"></a>
+<a name="ln-579"></a>   <span class="n">z0</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-580"></a>   <span class="n">n_chan3</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-581"></a><span class="c">!</span>
+<a name="ln-582"></a><span class="c">!  suppose the ni = u3e+11, then then moment of 1cm*1km^2 </span>
+<a name="ln-583"></a><span class="c">!       subfault is 3e+21. The gf is for Mo = 1e+20 dyne.cm</span>
+<a name="ln-584"></a><span class="c">!  the unit of surface wave is mm.</span>
+<a name="ln-585"></a><span class="c">!</span>
+<a name="ln-586"></a>   <span class="n">area</span> <span class="o">=</span> <span class="n">dxs</span><span class="o">*</span><span class="n">dys</span>
+<a name="ln-587"></a>   <span class="k">block</span> <span class="o">=</span> <span class="mi">100</span><span class="mf">0.0</span><span class="o">*</span><span class="n">area</span><span class="o">*</span><span class="p">(</span><span class="mf">1.e-10</span><span class="p">)</span>
+<a name="ln-588"></a>  
+<a name="ln-589"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Readlp.inf_low&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">)</span>
+<a name="ln-590"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Obser.str_low&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+<a name="ln-591"></a> 
+<a name="ln-592"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Wave.str_low&#39;</span><span class="p">)</span>
+<a name="ln-593"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-594"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="s1">&#39;(a)&#39;</span><span class="p">)</span><span class="n">modes</span>
+<a name="ln-595"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">n_wave_weight</span>
+<a name="ln-596"></a> 
+<a name="ln-597"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-598"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">lat_e</span><span class="p">,</span> <span class="n">lon_e</span><span class="p">,</span> <span class="n">depth</span>
+<a name="ln-599"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">dip</span><span class="p">,</span> <span class="n">rake</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">lnpt</span><span class="p">,</span> <span class="n">dt_sample</span>
+<a name="ln-600"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-601"></a>   <span class="k">if</span> <span class="p">(</span><span class="n">lnpt</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="mi">10</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-602"></a><span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s2">&quot;please check input LNPT&quot;</span>
+<a name="ln-603"></a>   <span class="k">end if</span>
+<a name="ln-604"></a><span class="k">   </span><span class="n">nstb</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-605"></a>   <span class="n">nlen</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">lnpt</span>
+<a name="ln-606"></a>   <span class="n">dt</span> <span class="o">=</span> <span class="n">dt_sample</span>
+<a name="ln-607"></a>   <span class="n">tlen</span> <span class="o">=</span> <span class="n">dt</span><span class="o">*</span><span class="n">nlen</span>
+<a name="ln-608"></a>   <span class="n">df</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">tlen</span>
+<a name="ln-609"></a>  
+<a name="ln-610"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">ir_max</span><span class="p">,</span> <span class="n">n_chan</span>
+<a name="ln-611"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-612"></a>   <span class="k">if</span> <span class="p">(</span><span class="n">n_wave_weight</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">n_chan</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-613"></a><span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;n_wave_chan n_chan&#39;</span><span class="p">,</span><span class="n">n_wave_weight</span><span class="p">,</span><span class="n">n_chan</span>
+<a name="ln-614"></a>      <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;Mismatch in amount of stations between wavelet file and stations file&#39;</span>
+<a name="ln-615"></a>      <span class="k">stop</span>
+<a name="ln-616"></a><span class="k">   end if</span>
+<a name="ln-617"></a><span class="k">   do </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ir_max</span>    
+<a name="ln-618"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">no</span><span class="p">,</span> <span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lat_s</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lon_s</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">io_mod</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-619"></a>      <span class="p">&amp;</span>  <span class="n">io_up</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">io_ns</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">io_ew</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">ang_ns</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">ang_ew</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-620"></a>   <span class="k">end do</span>
+<a name="ln-621"></a><span class="c">!  int</span>
+<a name="ln-622"></a><span class="c">!  by default frequency window: 0.003 0.004 0.007 0.008</span>
+<a name="ln-623"></a><span class="c">!</span>
+<a name="ln-624"></a>   <span class="n">f1</span> <span class="o">=</span> <span class="mf">0.003</span>
+<a name="ln-625"></a>   <span class="n">f2</span> <span class="o">=</span> <span class="mf">0.004</span>
+<a name="ln-626"></a>   <span class="n">f3</span> <span class="o">=</span> <span class="mf">0.006</span>
+<a name="ln-627"></a>   <span class="n">f4</span> <span class="o">=</span> <span class="mf">0.007</span>
+<a name="ln-628"></a>   <span class="n">nf1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">f1</span><span class="o">/</span><span class="n">df</span><span class="p">)</span>
+<a name="ln-629"></a>   <span class="n">nf2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">f2</span><span class="o">/</span><span class="n">df</span><span class="p">)</span>
+<a name="ln-630"></a>   <span class="n">nf3</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">f3</span><span class="o">/</span><span class="n">df</span><span class="p">)</span>
+<a name="ln-631"></a>   <span class="n">nf4</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">f4</span><span class="o">/</span><span class="n">df</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-632"></a>   <span class="k">do </span><span class="n">k</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nlen</span><span class="o">/</span><span class="mi">2</span>
+<a name="ln-633"></a>      <span class="n">fint</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a name="ln-634"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">k</span> <span class="p">.</span><span class="n">ge</span><span class="p">.</span> <span class="n">nf4</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="n">k</span> <span class="p">.</span><span class="n">lt</span><span class="p">.</span> <span class="n">nf1</span><span class="p">)</span> <span class="n">fint</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-635"></a>      <span class="k">if</span> <span class="p">(</span><span class="n">k</span> <span class="p">.</span><span class="n">ge</span><span class="p">.</span> <span class="n">nf1</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">k</span> <span class="p">.</span><span class="n">lt</span><span class="p">.</span> <span class="n">nf2</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">((</span><span class="n">nf2</span><span class="o">-</span><span class="n">nf1</span><span class="p">)</span> <span class="p">.</span><span class="n">gt</span><span class="p">.</span> <span class="mi">0</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-636"></a><span class="k">         </span><span class="n">fint</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span><span class="o">-</span><span class="nb">cos</span><span class="p">(</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="n">nf1</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">nf2</span><span class="o">-</span><span class="n">nf1</span><span class="p">)))</span>
+<a name="ln-637"></a>      <span class="k">end if</span>
+<a name="ln-638"></a><span class="k">      if</span> <span class="p">(</span><span class="n">k</span> <span class="p">.</span><span class="n">gt</span><span class="p">.</span> <span class="n">nf3</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">k</span> <span class="p">.</span><span class="n">lt</span><span class="p">.</span> <span class="n">nf4</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">((</span><span class="n">nf4</span><span class="o">-</span><span class="n">nf3</span><span class="p">)</span> <span class="p">.</span><span class="n">gt</span><span class="p">.</span> <span class="mi">0</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-639"></a><span class="k">         </span><span class="n">fint</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span><span class="o">+</span><span class="nb">cos</span><span class="p">(</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="n">nf3</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">nf4</span><span class="o">-</span><span class="n">nf3</span><span class="p">)))</span>
+<a name="ln-640"></a>      <span class="k">end if</span>
+<a name="ln-641"></a><span class="k">      </span><span class="n">fint</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">fint</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="k">block</span>
+<a name="ln-642"></a><span class="k">   end do</span>
+<a name="ln-643"></a>
+<a name="ln-644"></a><span class="k">   </span><span class="n">io_chan</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-645"></a>   <span class="n">npp</span> <span class="o">=</span> <span class="n">nx_p</span><span class="o">*</span><span class="n">ny_p</span>
+<a name="ln-646"></a><span class="c">!       </span>
+<a name="ln-647"></a><span class="c">!       Here we read the green functions of long period surface waves</span>
+<a name="ln-648"></a><span class="c">!</span>
+<a name="ln-649"></a>   <span class="k">call </span><span class="n">get_surf_gf_data</span><span class="p">(</span><span class="n">modes</span><span class="p">,</span> <span class="n">surf_gf_bank</span><span class="p">)</span>
+<a name="ln-650"></a>   <span class="n">tlen_bank</span> <span class="o">=</span> <span class="n">npt_bank</span><span class="o">*</span><span class="n">dt_bank</span>
+<a name="ln-651"></a>   <span class="n">df_bank</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">tlen_bank</span>
+<a name="ln-652"></a>   <span class="n">const_c</span> <span class="o">=</span> <span class="n">dt_bank</span><span class="o">/</span><span class="n">dt</span>
+<a name="ln-653"></a>   <span class="n">ll</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-654"></a>   <span class="n">dist_min</span> <span class="o">=</span> <span class="mi">2</span><span class="mf">0.0</span>
+<a name="ln-655"></a>   <span class="n">dist_max</span> <span class="o">=</span> <span class="mi">12</span><span class="mf">0.0</span>
+<a name="ln-656"></a>   <span class="k">do </span><span class="n">i_s</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_seg</span>
+<a name="ln-657"></a>      <span class="n">dip</span> <span class="o">=</span> <span class="n">dip_seg</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-658"></a>      <span class="n">theta</span> <span class="o">=</span> <span class="n">stk_seg</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-659"></a>      <span class="k">do </span><span class="n">iys</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-660"></a>         <span class="n">nxy</span> <span class="o">=</span> <span class="p">(</span><span class="n">iys</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-661"></a>         <span class="n">depth_sub</span> <span class="o">=</span> <span class="n">point_sources</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">ny_p</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">)</span>
+<a name="ln-662"></a>         <span class="n">dep_min</span> <span class="o">=</span> <span class="n">point_sources</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span>
+<a name="ln-663"></a>         <span class="n">dep_max</span> <span class="o">=</span> <span class="n">point_sources</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ny_p</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span>
+<a name="ln-664"></a>         <span class="k">if</span> <span class="p">(</span><span class="n">dep_min</span> <span class="p">.</span><span class="n">lt</span><span class="p">.</span> <span class="mi">4</span><span class="p">)</span> <span class="n">dep_min</span> <span class="o">=</span> <span class="mi">4</span>
+<a name="ln-665"></a><span class="c">!  </span>
+<a name="ln-666"></a><span class="c">!  Sanity check:</span>
+<a name="ln-667"></a><span class="c">!</span>
+<a name="ln-668"></a>         <span class="k">if</span> <span class="p">(</span><span class="n">dep_max</span> <span class="p">.</span><span class="n">lt</span><span class="p">.</span> <span class="n">dep_min</span><span class="p">)</span> <span class="n">dep_max</span> <span class="o">=</span> <span class="mi">4</span>
+<a name="ln-669"></a><span class="c">!</span>
+<a name="ln-670"></a>         <span class="k">call </span><span class="n">get_surf_gf</span><span class="p">(</span><span class="n">surf_gf_bank</span><span class="p">,</span> <span class="n">dist_min</span><span class="p">,</span> <span class="n">dist_max</span><span class="p">,</span> <span class="n">dep_min</span><span class="p">,</span> <span class="n">dep_max</span><span class="p">)</span>
+<a name="ln-671"></a><span class="c">!</span>
+<a name="ln-672"></a><span class="c">!       Note that if the tlen is same in both gf bank and used in here</span>
+<a name="ln-673"></a><span class="c">!       values at each frequency are same. In this code, we will let dt_bank = 2 sec</span>
+<a name="ln-674"></a><span class="c">!       and npt_bank = 2048, in contrast, dt_sample = 4 sec, npt_bank = 1024 </span>
+<a name="ln-675"></a><span class="c">!</span>
+<a name="ln-676"></a>         <span class="k">do </span><span class="n">ixs</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-677"></a>            <span class="n">ll</span> <span class="o">=</span> <span class="n">ll</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-678"></a>            <span class="n">nxy</span> <span class="o">=</span> <span class="p">(</span><span class="n">iys</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span><span class="o">+</span><span class="n">ixs</span>
+<a name="ln-679"></a>            <span class="n">lat_p</span> <span class="o">=</span> <span class="n">point_sources</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">nx_p</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">ny_p</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">)</span>
+<a name="ln-680"></a>            <span class="n">lon_p</span> <span class="o">=</span> <span class="n">point_sources</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">nx_p</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">ny_p</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">)</span>
+<a name="ln-681"></a>            <span class="n">niu</span> <span class="o">=</span> <span class="n">cniu</span><span class="p">(</span><span class="n">nxy</span><span class="p">,</span> <span class="n">i_s</span><span class="p">)</span>
+<a name="ln-682"></a>            <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-683"></a>               <span class="n">omega</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">df_bank</span><span class="o">*</span><span class="n">twopi</span>
+<a name="ln-684"></a>               <span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-685"></a>               <span class="n">kahan_y</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-686"></a>               <span class="n">kahan_t</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-687"></a>               <span class="n">kahan_c</span> <span class="o">=</span> <span class="n">z0</span>
+<a name="ln-688"></a>               <span class="k">do </span><span class="n">iy</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ny_p</span>
+<a name="ln-689"></a>                  <span class="k">do </span><span class="n">ix</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nx_p</span>
+<a name="ln-690"></a>                     <span class="n">h</span> <span class="o">=</span> <span class="n">point_sources</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">iy</span><span class="p">,</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">)</span>
+<a name="ln-691"></a>                     <span class="nb">time</span> <span class="o">=</span> <span class="n">h</span><span class="o">/</span><span class="n">v_ref</span>
+<a name="ln-692"></a>                     <span class="n">tsub</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">time</span><span class="o">+</span><span class="n">delay_seg</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-693"></a>                     <span class="n">a</span> <span class="o">=</span> <span class="o">-</span><span class="n">omega</span><span class="o">*</span><span class="n">tsub</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-694"></a>                     <span class="n">kahan_y</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="nb">cos</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="nb">sin</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">-</span> <span class="n">kahan_c</span>
+<a name="ln-695"></a>                     <span class="n">kahan_t</span> <span class="o">=</span> <span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="n">kahan_y</span>
+<a name="ln-696"></a>                     <span class="n">kahan_c</span> <span class="o">=</span> <span class="p">(</span><span class="n">kahan_t</span> <span class="o">-</span> <span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">-</span> <span class="n">kahan_y</span>
+<a name="ln-697"></a>                     <span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">kahan_t</span>
+<a name="ln-698"></a><span class="c">!                     sour_sub(i) = sour_sub(i)+cmplx(cos(a), sin(a))</span>
+<a name="ln-699"></a>                  <span class="k">end do</span>
+<a name="ln-700"></a><span class="k">               end do</span>
+<a name="ln-701"></a><span class="k">               </span><span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">const_c</span><span class="o">/</span><span class="n">npp</span>
+<a name="ln-702"></a>            <span class="k">end do</span>
+<a name="ln-703"></a><span class="k">            </span><span class="n">io_chan</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-704"></a>            <span class="k">do </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ir_max</span>
+<a name="ln-705"></a>               <span class="n">lat_sta</span> <span class="o">=</span> <span class="n">lat_s</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-706"></a>               <span class="n">lon_sta</span> <span class="o">=</span> <span class="n">lon_s</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-707"></a>               <span class="k">call </span><span class="n">distaz</span><span class="p">(</span><span class="n">lat_sta</span><span class="p">,</span> <span class="n">lon_sta</span><span class="p">,</span> <span class="n">lat_p</span><span class="p">,</span> <span class="n">lon_p</span><span class="p">,</span> <span class="n">dis</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">baz</span><span class="p">)</span>
+<a name="ln-708"></a>               <span class="n">dis</span> <span class="o">=</span> <span class="n">dis</span><span class="o">/</span><span class="mi">11</span><span class="mf">1.32d0</span>
+<a name="ln-709"></a>               <span class="n">green_s</span> <span class="o">=</span> <span class="n">interp_gf</span><span class="p">(</span><span class="n">dis</span><span class="p">,</span> <span class="n">depth_sub</span><span class="p">,</span> <span class="n">dist_min</span><span class="p">,</span> <span class="n">dist_max</span><span class="p">,</span> <span class="n">dep_min</span><span class="p">,</span> <span class="n">dep_max</span><span class="p">)</span>
+<a name="ln-710"></a>               <span class="k">do </span><span class="n">i_ch</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span>
+<a name="ln-711"></a>                  <span class="k">if</span> <span class="p">(</span><span class="n">i_ch</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mf">1.</span><span class="nb">and</span><span class="p">.</span><span class="n">io_up</span><span class="p">(</span><span class="n">ir</span><span class="p">).</span><span class="n">ne</span><span class="p">.</span><span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-712"></a><span class="k">                     cycle</span>
+<a name="ln-713"></a><span class="k">                  </span><span class="n">elseif</span> <span class="p">(</span><span class="n">i_ch</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">1</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">io_up</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-714"></a><span class="k">                     </span><span class="n">rad_c</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-715"></a>                  <span class="k">end if</span>
+<a name="ln-716"></a><span class="k">                  if</span> <span class="p">(</span><span class="n">i_ch</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mf">2.</span><span class="nb">and</span><span class="p">.</span><span class="n">io_ns</span><span class="p">(</span><span class="n">ir</span><span class="p">).</span><span class="n">ne</span><span class="p">.</span><span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-717"></a><span class="k">                     cycle</span>
+<a name="ln-718"></a><span class="k">                  </span><span class="n">elseif</span> <span class="p">(</span><span class="n">i_ch</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">2</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">io_ns</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then </span>
+<a name="ln-719"></a><span class="k">                     </span><span class="n">rad_c</span> <span class="o">=</span> <span class="n">ang_ns</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-720"></a>                  <span class="k">end if</span>
+<a name="ln-721"></a><span class="k">                  if</span> <span class="p">(</span><span class="n">i_ch</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mf">3.</span><span class="nb">and</span><span class="p">.</span><span class="n">io_ew</span><span class="p">(</span><span class="n">ir</span><span class="p">).</span><span class="n">ne</span><span class="p">.</span><span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-722"></a><span class="k">                     cycle</span>
+<a name="ln-723"></a><span class="k">                  </span><span class="n">elseif</span> <span class="p">(</span><span class="n">i_ch</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">3</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">io_ew</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-724"></a><span class="k">                     </span><span class="n">rad_c</span> <span class="o">=</span> <span class="n">ang_ew</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-725"></a>                  <span class="k">end if</span>
+<a name="ln-726"></a>
+<a name="ln-727"></a><span class="k">                  </span><span class="n">io_chan</span> <span class="o">=</span> <span class="n">io_chan</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-728"></a>                  <span class="n">ll_g</span> <span class="o">=</span> <span class="n">io_chan</span><span class="o">+</span><span class="n">ll_in</span>
+<a name="ln-729"></a>                  <span class="k">call </span><span class="n">rad_coef</span><span class="p">(</span><span class="n">dip</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">rad_c</span><span class="p">,</span> <span class="n">coef_v</span><span class="p">,</span> <span class="n">coef_r</span><span class="p">)</span>
+<a name="ln-730"></a>                  <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-731"></a>                     <span class="n">www</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-732"></a>                     <span class="n">wss</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-733"></a>                     <span class="k">if</span> <span class="p">(</span><span class="n">i_ch</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">1</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-734"></a><span class="k">                        do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span>
+<a name="ln-735"></a>                           <span class="n">www</span> <span class="o">=</span> <span class="n">www</span><span class="o">+</span><span class="n">coef_v</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span><span class="o">*</span><span class="n">green_s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">5</span><span class="p">)</span>
+<a name="ln-736"></a>                           <span class="n">wss</span> <span class="o">=</span> <span class="n">wss</span><span class="o">+</span><span class="n">coef_v</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span><span class="o">*</span><span class="n">green_s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">5</span><span class="p">)</span>
+<a name="ln-737"></a>                        <span class="k">end do</span>
+<a name="ln-738"></a><span class="k">                     else</span>
+<a name="ln-739"></a><span class="k">                        do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span>
+<a name="ln-740"></a>                           <span class="n">www</span> <span class="o">=</span> <span class="n">www</span><span class="o">+</span><span class="n">coef_r</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span><span class="o">*</span><span class="n">green_s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+<a name="ln-741"></a>                           <span class="n">wss</span> <span class="o">=</span> <span class="n">wss</span><span class="o">+</span><span class="n">coef_r</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span><span class="o">*</span><span class="n">green_s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+<a name="ln-742"></a>                        <span class="k">end do</span>
+<a name="ln-743"></a><span class="k">                     end if</span>
+<a name="ln-744"></a><span class="k">                     if</span> <span class="p">(</span><span class="n">i</span> <span class="p">.</span><span class="n">le</span><span class="p">.</span> <span class="n">jfmax</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">i_s</span> <span class="p">.</span><span class="n">le</span><span class="p">.</span> <span class="mi">10</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-745"></a><span class="k">                        </span><span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">wss</span><span class="o">*</span><span class="n">fint</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">niu</span>
+<a name="ln-746"></a>                        <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">www</span><span class="o">*</span><span class="n">fint</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">niu</span>
+<a name="ln-747"></a>                     <span class="k">else</span>
+<a name="ln-748"></a><span class="k">                        </span><span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-749"></a>                        <span class="n">green_stk</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-750"></a>                     <span class="k">end if</span>
+<a name="ln-751"></a><span class="k">                  end do</span>
+<a name="ln-752"></a><span class="k">               end do</span>
+<a name="ln-753"></a><span class="k">            end do</span>
+<a name="ln-754"></a><span class="k">         end do</span>
+<a name="ln-755"></a><span class="k">      end do</span>
+<a name="ln-756"></a><span class="k">   end do</span>
+<a name="ln-757"></a>
+<a name="ln-758"></a><span class="k">   close</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<a name="ln-759"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+<a name="ln-760"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
+<a name="ln-761"></a>   <span class="n">ll_out</span> <span class="o">=</span> <span class="n">ll_out</span><span class="o">+</span><span class="n">n_chan</span>
+<a name="ln-762"></a>
+<a name="ln-763"></a>   <span class="k">return</span>
+<a name="ln-764"></a><span class="k">   end subroutine </span><span class="n">get_surface_waves_gf</span>
+<a name="ln-765"></a>
+<a name="ln-766"></a>
+<a name="ln-767"></a>   <span class="k">subroutine </span><span class="n">get_dart_gf</span><span class="p">(</span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">)</span>
+<a name="ln-768"></a>   <span class="k">implicit none</span>
+<a name="ln-769"></a><span class="k">   </span><span class="kt">integer </span><span class="n">ll_in</span><span class="p">,</span> <span class="n">ll_out</span><span class="p">,</span> <span class="n">io_v_d</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-770"></a>   <span class="p">&amp;</span>  <span class="n">nstb</span><span class="p">,</span> <span class="n">io_chan</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i_s</span><span class="p">,</span> <span class="n">ir</span><span class="p">,</span> <span class="n">no</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">iy</span><span class="p">,</span> <span class="n">npp</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-771"></a>   <span class="p">&amp;</span>  <span class="n">n_wave_weight</span><span class="p">,</span> <span class="n">ir_max</span><span class="p">,</span> <span class="n">n_chan</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-772"></a>   <span class="p">&amp;</span>  <span class="n">nos</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">io_mod</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">n_chan3</span><span class="p">,</span> <span class="n">lnpt</span><span class="p">,</span> <span class="n">nlen</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-773"></a>   <span class="p">&amp;</span>  <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-774"></a>   <span class="kt">real </span><span class="n">omega</span><span class="p">,</span> <span class="k">block</span><span class="p">,</span> <span class="n">lat_e</span><span class="p">,</span> <span class="n">lon_e</span><span class="p">,</span> <span class="n">lat_s</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">lon_s</span><span class="p">(</span><span class="n">nnsta</span><span class="p">),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-775"></a>   <span class="p">&amp;</span>  <span class="n">weig</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">dt_sample</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">tlen</span><span class="p">,</span> <span class="n">gf_real</span><span class="p">(</span><span class="n">inptd</span><span class="p">),</span> <span class="n">gf_real2</span><span class="p">(</span><span class="n">inptd</span><span class="p">,</span> <span class="n">nnxy_m</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-776"></a>   <span class="p">&amp;</span>  <span class="n">gf_imag</span><span class="p">(</span><span class="n">inptd</span><span class="p">),</span> <span class="n">h</span><span class="p">,</span> <span class="nb">time</span><span class="p">,</span> <span class="n">tsub</span><span class="p">(</span><span class="n">nnxy_m</span><span class="p">),</span> <span class="n">a</span>
+<a name="ln-777"></a>   <span class="kt">complex </span><span class="n">z0</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">sour_sub</span><span class="p">(</span><span class="n">npth</span><span class="p">)</span>
+<a name="ln-778"></a>   <span class="kt">complex</span> <span class="kd">::</span> <span class="n">kahan_y</span><span class="p">,</span> <span class="n">kahan_t</span><span class="p">,</span> <span class="n">kahan_c</span>
+<a name="ln-779"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span> <span class="n">path</span>
+<a name="ln-780"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span> <span class="n">sta_name</span><span class="p">(</span><span class="n">nnsta</span><span class="p">)</span>
+<a name="ln-781"></a>   <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span> <span class="n">filename</span>
+<a name="ln-782"></a>   
+<a name="ln-783"></a>   <span class="n">z0</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a name="ln-784"></a>   <span class="n">n_chan3</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-785"></a>   <span class="n">npp</span> <span class="o">=</span> <span class="n">nx_p</span><span class="o">*</span><span class="n">ny_p</span>
+<a name="ln-786"></a><span class="c">!</span>
+<a name="ln-787"></a>   <span class="k">block</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.e-2</span><span class="p">)</span>
+<a name="ln-788"></a>   <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;block: &#39;</span><span class="p">,</span> <span class="k">block </span>
+<a name="ln-789"></a><span class="k">   write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;area=&#39;</span><span class="p">,</span><span class="n">dxs</span> <span class="o">*</span> <span class="n">dys</span>
+<a name="ln-790"></a>
+<a name="ln-791"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Readlp.dart&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">)</span>
+<a name="ln-792"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Obser.dart&#39;</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+<a name="ln-793"></a>   <span class="k">open</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="s1">&#39;Wave.dart&#39;</span><span class="p">)</span>
+<a name="ln-794"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">jmin</span><span class="p">,</span> <span class="n">jmax</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-795"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="s1">&#39;(a)&#39;</span><span class="p">)</span><span class="n">path</span>
+<a name="ln-796"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">n_wave_weight</span>
+<a name="ln-797"></a>
+<a name="ln-798"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-799"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">lat_e</span><span class="p">,</span> <span class="n">lon_e</span><span class="p">,</span> <span class="n">depth</span>
+<a name="ln-800"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">lnpt</span><span class="p">,</span> <span class="n">dt_sample</span>
+<a name="ln-801"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">io_v_d</span>
+<a name="ln-802"></a>   <span class="n">nstb</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-803"></a>   <span class="n">nlen</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">lnpt</span>
+<a name="ln-804"></a>   <span class="n">dt</span> <span class="o">=</span> <span class="n">dt_sample</span>
+<a name="ln-805"></a>   <span class="n">tlen</span> <span class="o">=</span> <span class="n">dt</span><span class="o">*</span><span class="n">nlen</span>
+<a name="ln-806"></a>   <span class="n">df</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">tlen</span>
+<a name="ln-807"></a>
+<a name="ln-808"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">ir_max</span><span class="p">,</span> <span class="n">n_chan</span>
+<a name="ln-809"></a>   <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-810"></a>   <span class="k">if</span> <span class="p">(</span><span class="n">n_wave_weight</span><span class="p">.</span><span class="n">ne</span><span class="p">.</span><span class="n">n_chan</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-811"></a><span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;n_wave_chan n_chan&#39;</span><span class="p">,</span><span class="n">n_wave_weight</span><span class="p">,</span><span class="n">n_chan</span>
+<a name="ln-812"></a>      <span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="s1">&#39;Mismatch in amount of stations betweeen wavelet file and stations file&#39;</span>
+<a name="ln-813"></a>      <span class="k">stop</span>
+<a name="ln-814"></a><span class="k">   end if</span>
+<a name="ln-815"></a><span class="k">   </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-816"></a>   <span class="n">io_chan</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-817"></a><span class="c">!       </span>
+<a name="ln-818"></a><span class="c">!       Here we read the green functions of strong motion waves</span>
+<a name="ln-819"></a><span class="c">!</span>
+<a name="ln-820"></a>   <span class="n">df</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">((</span><span class="mf">2.0</span> <span class="o">**</span> <span class="n">lnpt</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
+<a name="ln-821"></a>   <span class="n">nlen</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">lnpt</span>
+<a name="ln-822"></a>   <span class="n">tlen</span> <span class="o">=</span> <span class="n">nlen</span> <span class="o">*</span> <span class="n">dt</span>
+<a name="ln-823"></a>   <span class="n">gf_real2</span><span class="p">(:,</span> <span class="p">:)</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-824"></a>
+<a name="ln-825"></a>   <span class="k">do </span><span class="n">ir</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ir_max</span>
+<a name="ln-826"></a>
+<a name="ln-827"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">no</span><span class="p">,</span> <span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lat_s</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">lon_s</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">io_mod</span><span class="p">(</span><span class="n">ir</span><span class="p">),</span> <span class="n">weig</span><span class="p">,</span> <span class="n">nos</span><span class="p">(</span><span class="n">ir</span><span class="p">)</span>
+<a name="ln-828"></a>
+<a name="ln-829"></a>      <span class="n">io_chan</span> <span class="o">=</span> <span class="n">io_chan</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-830"></a>      <span class="n">ll_g</span> <span class="o">=</span> <span class="n">io_chan</span><span class="o">+</span><span class="n">ll_in</span>
+<a name="ln-831"></a>      <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">sta_name</span><span class="p">(</span><span class="n">ir</span><span class="p">))</span><span class="o">//</span><span class="s1">&#39;_gf.txt&#39;</span>
+<a name="ln-832"></a>      <span class="n">filename</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<a name="ln-833"></a>
+<a name="ln-834"></a>      <span class="k">open</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="k">file</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
+<a name="ln-835"></a>      <span class="k">do </span><span class="n">i</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="mi">181</span>
+<a name="ln-836"></a>         <span class="k">read</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="o">*</span><span class="p">)(</span><span class="n">gf_real2</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">10</span><span class="p">,</span> <span class="n">ll</span><span class="p">),</span> <span class="n">ll</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nxs_sub</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nys_sub</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a name="ln-837"></a>      <span class="n">enddo</span>
+<a name="ln-838"></a>      <span class="k">close</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<a name="ln-839"></a>      
+<a name="ln-840"></a>      <span class="n">ll</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-841"></a>      <span class="n">ix</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nx_p</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mf">0.51</span><span class="p">)</span>
+<a name="ln-842"></a>      <span class="n">iy</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ny_p</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mf">0.51</span><span class="p">)</span>
+<a name="ln-843"></a><span class="c">!</span>
+<a name="ln-844"></a><span class="c">!       Here, we read the green functions</span>
+<a name="ln-845"></a><span class="c">!</span>
+<a name="ln-846"></a>      <span class="n">ll_g</span> <span class="o">=</span> <span class="n">ll_in</span><span class="o">+</span><span class="n">io_chan</span>
+<a name="ln-847"></a>      <span class="k">do </span><span class="n">i_s</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_seg</span>
+<a name="ln-848"></a>         <span class="k">do </span><span class="n">iys</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nys_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-849"></a>            <span class="k">do </span><span class="n">ixs</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nxs_sub</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-850"></a><span class="c">!</span>
+<a name="ln-851"></a><span class="c">!  effect of point sources of each subfault</span>
+<a name="ln-852"></a><span class="c">!</span>
+<a name="ln-853"></a>               <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-854"></a>                  <span class="n">omega</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">df</span><span class="o">*</span><span class="n">twopi</span>
+<a name="ln-855"></a>                  <span class="nb">time</span> <span class="o">=</span> <span class="n">point_sources</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">iy</span><span class="p">,</span> <span class="n">ixs</span><span class="p">,</span> <span class="n">iys</span><span class="p">,</span> <span class="n">i_s</span><span class="p">)</span>
+<a name="ln-856"></a>                  <span class="n">tsub</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">time</span> <span class="o">+</span> <span class="n">delay_seg</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span>
+<a name="ln-857"></a>                  <span class="n">a</span> <span class="o">=</span> <span class="o">-</span><span class="n">omega</span><span class="o">*</span><span class="n">tsub</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-858"></a><span class="c">!                  sour_sub(i) = cmplx(0.0, 0.0)</span>
+<a name="ln-859"></a>                  <span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="nb">cos</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="nb">sin</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+<a name="ln-860"></a><span class="c">!                  kahan_y = z0</span>
+<a name="ln-861"></a><span class="c">!                  kahan_t = z0</span>
+<a name="ln-862"></a><span class="c">!                  kahan_c = z0</span>
+<a name="ln-863"></a><span class="c">!                  do iy = 1, ny_p</span>
+<a name="ln-864"></a><span class="c">!                     do ix = 1, nx_p</span>
+<a name="ln-865"></a><span class="c">!                        h = point_sources(4, ix, iy, ixs, iys, i_s)</span>
+<a name="ln-866"></a><span class="c">!                        time = h/v_ref</span>
+<a name="ln-867"></a><span class="c">!                        tsub(1) = time+delay_seg(i_s)</span>
+<a name="ln-868"></a><span class="c">!                        a = -omega*tsub(1)</span>
+<a name="ln-869"></a><span class="c">!                        kahan_y = cmplx(cos(a), sin(a)) - kahan_c</span>
+<a name="ln-870"></a><span class="c">!                        kahan_t = sour_sub(i) + kahan_y</span>
+<a name="ln-871"></a><span class="c">!                        kahan_c = (kahan_t - sour_sub(i)) - kahan_y</span>
+<a name="ln-872"></a><span class="c">!                        sour_sub(i) = kahan_t</span>
+<a name="ln-873"></a><span class="c">!!                        sour_sub(i) = sour_sub(i)+cmplx(cos(a), sin(a))</span>
+<a name="ln-874"></a><span class="c">!                     end do</span>
+<a name="ln-875"></a><span class="c">!                  end do</span>
+<a name="ln-876"></a><span class="c">!                  sour_sub(i) = sour_sub(i) / npp</span>
+<a name="ln-877"></a>               <span class="k">end do</span>
+<a name="ln-878"></a><span class="k">               </span><span class="n">gf_real</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-879"></a>               <span class="n">gf_imag</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-880"></a>               <span class="n">ll</span> <span class="o">=</span> <span class="n">ll</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-881"></a>               <span class="n">green_stk</span><span class="p">(:,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a name="ln-882"></a>               <span class="n">gf_real</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">gf_real2</span><span class="p">(:,</span> <span class="n">ll</span><span class="p">)</span>
+<a name="ln-883"></a>               <span class="k">call </span><span class="n">fft</span><span class="p">(</span><span class="n">gf_real</span><span class="p">,</span> <span class="n">gf_imag</span><span class="p">,</span> <span class="n">lnpt</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">)</span>
+<a name="ln-884"></a>               <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">jfmax</span>
+<a name="ln-885"></a>                  <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="n">gf_real</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">gf_imag</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+<a name="ln-886"></a><span class="c">!</span>
+<a name="ln-887"></a><span class="c">! we eventually shift synthetics in time, in case the fault plane used has a delay</span>
+<a name="ln-888"></a><span class="c">!</span>
+<a name="ln-889"></a>                  <span class="n">omega</span> <span class="o">=</span> <span class="n">twopi</span><span class="o">*</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">df</span>
+<a name="ln-890"></a>                  <span class="n">w</span> <span class="o">=</span> <span class="o">-</span><span class="n">omega</span><span class="o">*</span><span class="p">(</span><span class="n">delay_seg</span><span class="p">(</span><span class="n">i_s</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="mf">0.0</span><span class="o">*</span><span class="n">dt</span><span class="p">)</span><span class="c">!9.0*dt - 13)</span>
+<a name="ln-891"></a>                  <span class="n">z</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="nb">cos</span><span class="p">(</span><span class="n">w</span><span class="p">),</span> <span class="nb">sin</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
+<a name="ln-892"></a>                  <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span> <span class="o">=</span> <span class="n">green_dip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ll_g</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span><span class="o">*</span><span class="n">z</span><span class="o">*</span><span class="k">block</span><span class="o">*</span><span class="n">sour_sub</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a name="ln-893"></a>               <span class="k">end do</span>
+<a name="ln-894"></a><span class="k">            end do</span>
+<a name="ln-895"></a><span class="k">         end do</span>
+<a name="ln-896"></a><span class="k">      end do</span>
+<a name="ln-897"></a><span class="k">   end do      </span>
+<a name="ln-898"></a><span class="k">   close</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<a name="ln-899"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+<a name="ln-900"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+<a name="ln-901"></a>   <span class="k">close</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
+<a name="ln-902"></a>   <span class="n">ll_out</span> <span class="o">=</span> <span class="n">ll_out</span><span class="o">+</span><span class="n">n_chan</span>
+<a name="ln-903"></a>   <span class="k">end subroutine </span><span class="n">get_dart_gf</span>
+<a name="ln-904"></a>
+<a name="ln-905"></a>
+<a name="ln-906"></a>   <span class="k">subroutine </span><span class="n">deallocate_gf</span><span class="p">()</span>
+<a name="ln-907"></a>   <span class="k">deallocate</span><span class="p">(</span><span class="n">green_stk</span><span class="p">)</span>
+<a name="ln-908"></a>   <span class="k">deallocate</span><span class="p">(</span><span class="n">green_dip</span><span class="p">)</span>
+<a name="ln-909"></a>   <span class="k">end subroutine </span><span class="n">deallocate_gf</span>
+<a name="ln-910"></a>
+<a name="ln-911"></a>
+<a name="ln-912"></a><span class="k">end module </span><span class="n">retrieve_gf</span>
+</pre></div>
+
+    </section>
+    </div>
+  </div>
+
+  
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Kinematic modelling was developed by </p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>
