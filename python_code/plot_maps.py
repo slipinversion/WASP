@@ -14,8 +14,8 @@ def set_map_cartopy(ax, margins, tectonic=None, countries=None):
     """
     ax.coastlines(resolution='10m', zorder=3)
     gl = ax.gridlines(linewidth=1, color='black', alpha=0.3, draw_labels=True)
-    gl.xlabels_bottom = False
-    gl.ylabels_right = False
+    gl.bottom_labels = False
+    gl.right_labels = False
     if tectonic:
         ax.add_feature(tectonic)
     if countries:

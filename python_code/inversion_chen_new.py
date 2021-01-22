@@ -61,6 +61,7 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     processing(tensor_info, data_type, data_prop)
     time2 = time.time() - time2
     print('Time spent processing traces: \n', time2)
+    #return #
     os.chdir(sol_folder)
     muestreo = data_prop['sampling']
     dt_str = muestreo['dt_strong']
@@ -392,8 +393,8 @@ def processing(tensor_info, data_type, data_prop):
     tele_files = glob.glob('*.BH*SAC') + glob.glob('*.BH*sac') + glob.glob('*_BH*sac') + glob.glob('*_BH*SAC')
     strong_files = glob.glob('*.HN*SAC') + glob.glob('*.HL*SAC')\
                    + glob.glob('*.HN*sac') + glob.glob('*.HL*sac')
-#    cgps_files = glob.glob('*.L[HX]*SAC') + glob.glob('*.L[HX]*sac')
-    cgps_files = glob.glob('*LY*sac')
+    cgps_files = glob.glob('*.L[HX]?.SAC') + glob.glob('*.L[HX]?.sac')
+#    cgps_files = glob.glob('*LY*sac')
     p1 = Process(target=proc.select_process_tele_body,
                  args=(tele_files, tensor_info, data_prop))
     p2 = Process(target=proc.select_process_surf_tele,

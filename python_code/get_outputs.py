@@ -288,8 +288,8 @@ def _get_observed_from_chen2(file, margin=10):
     index0 = max(index0, 0) 
     index1 = file['start_signal'] + file['duration']
     index1 = max(index1, index0 + 1)
-    print(file['file'])
-    print(index0, index1)
+    #print(file['file'])
+    #print(index0, index1)
     data = data[index0:index1]
     return data
 

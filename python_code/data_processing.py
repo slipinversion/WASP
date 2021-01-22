@@ -43,7 +43,6 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     :type tensor_info: dict
     :type data_prop: dict
     :type tele_files0: list
-
     .. rubric:: Example:
     
     >>> from obspy.core.utcdatetime import UTCDateTime
@@ -83,7 +82,6 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
         }
     >>> tele_files0 = glob.glob('*sac')
     >>> select_process_tele_body(tele_files0, tensor_info, data_prop)
-
     .. note::
         
         Currently, this code allows only to process files in sac format, where the 
@@ -528,7 +526,6 @@ def select_process_surf_tele(tele_files0, tensor_info):
         }
     >>> tele_files0 = glob.glob('*sac')
     >>> select_process_surf_tele(tele_files0, tensor_info)
-
     .. note::
         
         Currently, this code allows only to process files in sac format, where the 
@@ -650,7 +647,6 @@ def select_process_cgps(cgps_files, tensor_info, data_prop):
     :type tensor_info: dict
     :type data_prop: dict
     :type cgps_files: list
-
     .. rubric:: Example:
     
     >>> from obspy.core.utcdatetime import UTCDateTime
@@ -690,7 +686,6 @@ def select_process_cgps(cgps_files, tensor_info, data_prop):
         }
     >>> cgps_files0 = glob.glob('*sac')
     >>> select_process_cgps(cgps_files0, tensor_info, data_prop)
-
     .. note::
         
         Currently, this code allows only to process files in sac format.
@@ -762,7 +757,7 @@ def __select_cgps_files(cgps_files, tensor_info):
         if not __select_distance(tensor_info, station_lat, station_lon,
                                  max_distance=3, use_centroid=True):
             continue
-        
+        #print(stream[0].stats.station)
         indexes = np.isfinite(stream[0].data)        
         if np.max(stream[0].data[indexes]) == np.min(stream[0].data[indexes]):
             continue
@@ -937,7 +932,6 @@ def select_process_strong(strong_files0, tensor_info, data_prop):
     :type tensor_info: dict
     :type data_prop: dict
     :type strong_files0: list
-
     .. rubric:: Example:
     
     >>> from obspy.core.utcdatetime import UTCDateTime
@@ -977,9 +971,7 @@ def select_process_strong(strong_files0, tensor_info, data_prop):
         }
     >>> strong_files0 = glob.glob('*sac')
     >>> select_process_strong(strong_files0, tensor_info, data_prop)
-
     .. note::
-
         Currently, this code allows only to process files in sac format, where the 
         instrumental response is in a SACPZ file. Other data formats are not
         supported.
