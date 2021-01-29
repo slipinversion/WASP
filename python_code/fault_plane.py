@@ -17,7 +17,7 @@ def create_finite_fault(tensor_info, np_plane_info, data_type, water_level=0,
                         rupture_vel=None):
     """Module to create a fault plane and rise time function, given the
     information of a moment tensor and a nodal plane.
-    
+
     :param tensor_info: dictionary with hypocenter, centroid and moment tensor
      information.
     :param np_plane_info: dictionary with properties of a nodal plane
@@ -30,10 +30,10 @@ def create_finite_fault(tensor_info, np_plane_info, data_type, water_level=0,
     :type water_level: float, optional
     :type rupture_vel: bool, optional
     :returns: dictionaries with properties of the fault plane and rise time
-     function to be used.    
-     
+     function to be used.
+
     .. rubric:: Example:
-    
+
     >>> tensor_info = {
             'time_shift': 10.0,
             'depth': 25.0,
@@ -46,7 +46,7 @@ def create_finite_fault(tensor_info, np_plane_info, data_type, water_level=0,
     >>> np_plane_info = {'strike': 350, 'dip': 15, 'rake': 90}
     >>> data_type = ['strong_motion']
     >>> create_finite_fault(tensor_info, np_plane_info, data_type)
-            
+
     np_plane_info must have the strike, dip, rake of the nodal plane.
     """
     time_shift = tensor_info['time_shift']
@@ -73,12 +73,12 @@ def create_finite_fault(tensor_info, np_plane_info, data_type, water_level=0,
         tensor_info, plane_info, subfaults, hyp_location, rise_time)
     __save_plane_data(plane_info, subfaults, hyp_location, rise_time)
     return
-    
-    
+
+
 def point_sources_param(segments, tensor_info, rise_time):
     """We define the point sources of the fault segments, given properties of
     the fault segments, and hypocenter location given by the moment tensor.
-    
+
     :param tensor_info: dictionary with hypocenter, centroid and moment tensor
      information.
     :param segments: dictionary with info about the fault segments
@@ -87,9 +87,9 @@ def point_sources_param(segments, tensor_info, rise_time):
     :type np_plane_info: dict
     :type rise_time: dict
     :returns: array with data for all point sources for all fault segments.
-     
+
     .. rubric:: Example:
-    
+
     >>> import json
     >>> tensor_info = {
             'time_shift': 40.0,
@@ -104,11 +104,11 @@ def point_sources_param(segments, tensor_info, rise_time):
     >>> segments = segments_data['segments']
     >>> rise_time = segments_data['rise_time']
     >>> point_sources = point_sources_param(segments, tensor_info, rise_time)
-    
+
     .. note::
         If we detect a point source above ground level (negative depth),
         we throw error.
-        
+
     """
     event_lat = tensor_info['lat']
     event_lon = tensor_info['lon']
@@ -125,11 +125,11 @@ def point_sources_param(segments, tensor_info, rise_time):
     nx = int(nx_ps / 2.0 + 0.51)
     ny = int(ny_ps / 2.0 + 0.51)
     deg2rad = np.pi / 180.0
-    
+
     point_sources = [[]] * len(segments)
     ref_coords = [[]] * len(segments)
 #
-# first we define reference coordinates! 
+# first we define reference coordinates!
 #
     for i, segment in enumerate(segments):
         strike = segment["strike"]
@@ -172,7 +172,7 @@ def point_sources_param(segments, tensor_info, rise_time):
                 dep_ref = depth_0 + y * np.sin(dip2 * deg2rad)
                 lat_ref, lon_ref = __lat_lon(strike, dip, x, y, lat0, lon0)
                 ref_coords[j] = [lat_ref, lon_ref, dep_ref]
-#               
+#
 # now we define the point sources for the segments
 #
     point_sources = [[]] * len(segments)
@@ -244,7 +244,7 @@ def __lat_lon(strike, dip, x, y, lat0, lon0):
 
 def shear_modulous(point_sources, velmodel=None):
     r"""We give the shear modulous for each subfault.
-    
+
     :param point_sources: array with the information of point sources for all
      fault segments.
     :param velmodel: velocity model to be used
@@ -252,7 +252,7 @@ def shear_modulous(point_sources, velmodel=None):
     :type velmodel: dict, optional
     :returns: array with shear modulous for all subfaults, for all fault
      segments.
-     
+
     The shear modulous for a point source comes from the relationship
     :math:`\mu = 10^{10} v_s^2\rho` where :math:`\mu` is the shear modulous,
     :math:`v_s` the S-wave velocity, and :math:`\rho` density of the medium.
@@ -305,14 +305,14 @@ def __default_vel_of_eq(tensor_info):
     depth = tensor_info['depth']
     default_vel = 2.5
 #
-# for intermediate depth earthquakes (100-300 km), we guess 3.0 km/sec. 
-#   
+# for intermediate depth earthquakes (100-300 km), we guess 3.0 km/sec.
+#
     if depth > 100:
         default_vel = 3.0
 #
 # for deep earthquakes, we guess 3.6 km/sec. As they take place in
 # locations where body wave velocities are higher.
-#   
+#
     if depth > 300:
         default_vel = 3.6
 #
@@ -323,7 +323,7 @@ def __default_vel_of_eq(tensor_info):
     if time_shift / (1.2 * 10**-8 * moment_mag**(1/3)) > 3:
         default_vel = 1.5
     print('time_shift: {}'.format(time_shift))
-    
+
     return default_vel
 
 
@@ -350,15 +350,15 @@ def __fault_plane_properties(eq_time, tensor_info, plane_info, water_level):
     max_width = min(300.0, max_length, 2 * dist_hypo_surface)
     max_width = max(max_width, 30)
 #
-# now we find the number of grids in strike and dip direction, 
+# now we find the number of grids in strike and dip direction,
 # as well as their size
 #  2 sec P wave has a wave length of 40 km. So default grid size of subfault is
 #  a quarter of wavelength
 #
     size0 = np.sqrt(max_width * max_length / 225.0)
 #    min_size = 10 if time_shift > 10 else 5
-    delta_x = max(size0, 10.0)
-    delta_y = max(size0, 10.0)
+    delta_x = max(size0, 1.0)
+    delta_y = max(size0, 1.0)
     if dip > 60 and max_width < 75: # strike slip
         delta_y = min(5, delta_y)
     n_sub_x = int(min(int(max_length / delta_x), 45))
@@ -373,7 +373,7 @@ def __fault_plane_properties(eq_time, tensor_info, plane_info, water_level):
         delta_y = max(max_width / n_sub_y, 1.9 * dist_hypo_surface)
     else:
         delta_y = 0.99 * max_width / n_sub_y
-    
+
     fault_dimensions = __subfaults_properties(
             delta_x, delta_y, n_sub_x, n_sub_y)
     return fault_dimensions
@@ -406,10 +406,10 @@ def __rise_time_parameters(tensor_info, eq_time, fault_dimensions, data_type):
     if tensor_info['depth'] > 200:
         msou = int(1.5 * max(delta_x, delta_y) / 2)
         dta = 1.0
-    
+
     ta0 = dta
     msou = msou + 2#3
-        
+
     rise_time_param = {
             'ta0': ta0,
             'dta': dta,
@@ -481,15 +481,15 @@ def __hypocenter_location2(
     print('Distance in strike direction: {}'\
           '\nDistance in dip direction: {}'\
           '\ndelta_x: {}'.format(x, y, delta_x))
-    
+
     print('subfault distance in strike direction?: {}\n'.format(
             int(- x // delta_x)))
-    
+
     hyp_stk = int(- x // delta_x) + int(n_sub_x / 2.0) + 1
     hyp_stk = max(1, min(n_sub_x, hyp_stk))
     surface_dist = max(depth - water_level, 0.8 * depth)\
         / np.sin(dip * np.pi / 180.0)
-    hyp_dip = int(n_sub_y / 2.0) + 1 
+    hyp_dip = int(n_sub_y / 2.0) + 1
     if delta_y * n_sub_y / 2.0 > surface_dist:
         for j in range(hyp_dip):
             if delta_y * (j + 0.5) > 1.01 * surface_dist:
@@ -519,8 +519,8 @@ def __source_layer(thick, source_depth):
             source_layer = j
             break
     return source_layer
-    
-    
+
+
 def __plane_tensor_def(strike, dip, rake, rupture_vel):
     """
     """
@@ -531,8 +531,8 @@ def __plane_tensor_def(strike, dip, rake, rupture_vel):
             'rupture_vel': rupture_vel
     }
     return values
-    
-    
+
+
 def __subfaults_properties(delta_x, delta_y, n_sub_x, n_sub_y):
     """
     """
@@ -545,8 +545,8 @@ def __subfaults_properties(delta_x, delta_y, n_sub_x, n_sub_y):
             'ancho': delta_y * n_sub_y, #
     }
     return values
-    
-    
+
+
 def __point_sources_general(nx_ps, ny_ps, dx, dy):
     """
     """
@@ -557,8 +557,8 @@ def __point_sources_general(nx_ps, ny_ps, dx, dy):
             'dy': dy,           #
     }
     return values
-    
-    
+
+
 def __epicenter_location(hyp_stk, hyp_dip, nx_hyp, ny_hyp):
     """
     """
@@ -569,8 +569,8 @@ def __epicenter_location(hyp_stk, hyp_dip, nx_hyp, ny_hyp):
             'ny_hyp': ny_hyp      #
     }
     return values
-    
-    
+
+
 def __save_plane_data(plane_tensor, subfaults, epicenter_loc, rise_time):
     """Save fault plane properties to json file
     """
@@ -615,7 +615,7 @@ def __write_event_mult_in(
     hyp_stk = epicenter_loc['hyp_stk']
     hyp_dip = epicenter_loc['hyp_dip']
     depth = tensor_info['depth']
-    with open('Event_mult.in', 'w') as infile:            
+    with open('Event_mult.in', 'w') as infile:
         infile.write('{} {} {} {}\n'.format(year, month, day, hour))
         infile.write('{} {} {} {}\n'.format(strike, dip, rake, moment_mag))
         infile.write('{} {} {} {} {} {}\n'.format(
@@ -694,8 +694,8 @@ def event_mult_in_to_json():
                  dict3, f, sort_keys=True, indent=4,
                  separators=(',', ': '), ensure_ascii=False)
     return
-    
-    
+
+
 if __name__ == '__main__':
     import argparse
 
@@ -723,7 +723,7 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     else:
         tensor_info = tensor.get_tensor()
-    
+
     if args.event_to_json:
         if not os.path.isfile('Event_mult.in'):
             raise FileNotFoundError(
