@@ -1,11 +1,11 @@
 module regularization
    
 
-   use constants, only : max_seg, nnxy, dpi
-   use model_parameters, only : nxs_sub, nys_sub, nleft, nright, nup, ndown, rake_min, n_seg 
+   use constants, only : max_seg, max_subf, dpi
+   use model_parameters, only : nxs_sub, nys_sub, nleft, nright, nup, ndown, rake_min, segments 
    implicit none
-   real :: slip_field(nnxy, max_seg, 2)
-   integer :: nnn, nxys(max_seg)
+   real :: slip_field(max_subf, max_seg, 2)
+   integer :: subfaults, subfaults_segment(max_seg)
 
 
 contains
@@ -16,54 +16,54 @@ contains
 !   Laplacian regularization of slip vector field
 !
    implicit none
-   real, intent(in) :: slip(nnxy, max_seg), rake(nnxy, max_seg)
+   real, intent(in) :: slip(max_subf, max_seg), rake(max_subf, max_seg)
    real angle
-   integer i_s, i
+   integer segment, i
 !  
 !  we define the slip vector field
 !  
-   nnn = 0
-   do i_s = 1, n_seg
-      nxys(i_s) = nxs_sub(i_s)*nys_sub(i_s)
-      do i = 1, nxys(i_s)
-         angle = (rake(i, i_s)-rake_min)*dpi
-         slip_field(i, i_s, 1) = slip(i, i_s)*cos(angle)
-         slip_field(i, i_s, 2) = slip(i, i_s)*sin(angle)
+   subfaults = 0
+   do segment = 1, segments
+      subfaults_segment(segment) = nxs_sub(segment)*nys_sub(segment)
+      do i = 1, subfaults_segment(segment)
+         angle = (rake(i, segment)-rake_min)*dpi
+         slip_field(i, segment, 1) = slip(i, segment)*cos(angle)
+         slip_field(i, segment, 2) = slip(i, segment)*sin(angle)
       end do
-      nnn = nnn+nxys(i_s)
+      subfaults = subfaults+subfaults_segment(segment)
    end do
    end subroutine define_slip_field
 
    
-   subroutine modify_slip_field(nn_sub, d_sub, a_sub)
+   subroutine modify_slip_field(subfault, slip_subf, rake_subf)
 !
 !   Laplacian regularization of slip vector field
 !
    implicit none
-   integer, intent(in) :: nn_sub
-   real, intent(in) :: d_sub, a_sub
-   integer n_total, ll_s
+   integer, intent(in) :: subfault
+   real, intent(in) :: slip_subf, rake_subf
+   integer n_total, subfault_seg
    real angle
-   integer i_s, i_ss
+   integer segment, i
    n_total = 0
-   do i_ss = 1, n_seg
-      n_total = nxys(i_ss)+n_total
-      if (nn_sub .le. n_total) then
-         i_s = i_ss
-         ll_s = nn_sub
+   do i = 1, segments
+      n_total = subfaults_segment(i)+n_total
+      if (subfault .le. n_total) then
+         segment = i
+         subfault_seg = subfault
          exit
       end if
    end do
-   do i_ss = 1, i_s-1
-      ll_s = ll_s-nxys(i_ss)
+   do i = 1, segment-1
+      subfault_seg = subfault_seg-subfaults_segment(i)
    end do
-   angle = (a_sub-rake_min)*dpi
-   slip_field(ll_s, i_s, 1) = d_sub*cos(angle)
-   slip_field(ll_s, i_s, 2) = d_sub*sin(angle)
+   angle = (rake_subf-rake_min)*dpi
+   slip_field(subfault_seg, segment, 1) = slip_subf*cos(angle)
+   slip_field(subfault_seg, segment, 2) = slip_subf*sin(angle)
    end subroutine modify_slip_field
 
 
-   subroutine lap(err)
+   subroutine slip_laplace(err)
 !
 !   Laplacian regularization of slip vector field
 !
@@ -74,26 +74,23 @@ contains
    integer nxx, nyy, jj, nx, ny
    real d1, d2, d3, d4, error!, kahan_y, kahan_t, kahan_c
    real(8) :: err2
-   integer i_s
+   integer segment
    
    err2 = 0.d0
-!   kahan_y = 0.0
-!   kahan_t = 0.0
-!   kahan_c = 0.0
    do jj = 1, 2
-      do i_s = 1, n_seg
-         do n_sub = 1, nxys(i_s)
-            ny = int(n_sub/nxs_sub(i_s))+1
-            nx = n_sub-(ny-1)*nxs_sub(i_s)
+      do segment = 1, segments
+         do n_sub = 1, subfaults_segment(segment)
+            ny = int(n_sub/nxs_sub(segment))+1
+            nx = n_sub-(ny-1)*nxs_sub(segment)
             if (nx .eq. 0) then
-               nx = nxs_sub(i_s)
+               nx = nxs_sub(segment)
                ny = ny-1
             end if
-!                 write(*,*)"i_s", i_s, nx, ny, n_sub, jj
+!                 write(*,*)"segment", segment, nx, ny, n_sub, jj
 !       left
-            n_is = nleft(1, ny, nx, i_s)
-            nxx = nleft(2, ny, nx, i_s)
-            nyy = nleft(3, ny, nx, i_s)
+            n_is = nleft(1, ny, nx, segment)
+            nxx = nleft(2, ny, nx, segment)
+            nyy = nleft(3, ny, nx, segment)
             if (n_is .eq. 0) then
                d1 = 0.0
             else
@@ -102,9 +99,9 @@ contains
             end if
 !        write(*,*) n_is, nxx, nyy, ll,"left"
 !       right   
-            n_is = nright(1, ny, nx, i_s)
-            nxx = nright(2, ny, nx, i_s)
-            nyy = nright(3, ny, nx, i_s)
+            n_is = nright(1, ny, nx, segment)
+            nxx = nright(2, ny, nx, segment)
+            nyy = nright(3, ny, nx, segment)
             if (n_is .eq. 0) then
                d3 = 0.0
             else
@@ -113,9 +110,9 @@ contains
             end if
 !        write(*,*) n_is, nxx, nyy, ll,"right"
 !       up    
-            n_is = nup(1, ny, nx, i_s)
-            nxx = nup(2, ny, nx, i_s)
-            nyy = nup(3, ny, nx, i_s)
+            n_is = nup(1, ny, nx, segment)
+            nxx = nup(2, ny, nx, segment)
+            nyy = nup(3, ny, nx, segment)
             if (n_is .eq. 0) then
                d2 = 0.0
             else
@@ -124,9 +121,9 @@ contains
             end if
 !                    write(*,*) n_is, nxx, nyy, ll,"up"
 !       down
-            n_is = ndown(1, ny, nx, i_s)
-            nxx = ndown(2, ny, nx, i_s)
-            nyy = ndown(3, ny, nx, i_s)
+            n_is = ndown(1, ny, nx, segment)
+            nxx = ndown(2, ny, nx, segment)
+            nyy = ndown(3, ny, nx, segment)
             if (n_is .eq. 0) then
                d4 = 0.0
             else
@@ -135,7 +132,7 @@ contains
             end if
 !                   write(*,*) n_is, nxx, nyy, ll,"down"
 !
-            error = slip_field(n_sub, i_s, jj)-0.25*(d1+d2+d3+d4)
+            error = slip_field(n_sub, segment, jj)-0.25*(d1+d2+d3+d4)
             error = error*error
             err2 = err2+error
 !            kahan_y = error-kahan_c
@@ -145,80 +142,80 @@ contains
          end do
       end do
    end do
-   err2 = sqrt(err2/nnn)
+   err2 = sqrt(err2/subfaults)
    err = real(err2)
-   end subroutine lap
+   end subroutine slip_laplace
 
 
-   pure subroutine tlap(tt, err)
+   pure subroutine time_laplace(tt, err)
 !
 !   Laplacian regularization of rupture initiation time
 !
    implicit none
-   real, intent(in) :: tt(nnxy, max_seg) 
+   real, intent(in) :: tt(max_subf, max_seg) 
    real, intent(out) :: err
    integer n_sub
    integer n_is
    integer nxx, nyy, nx, ny
    real d1, d2, d3, d4, error!, kahan_y, kahan_t, kahan_c
-   real(8) :: err2
-   integer i_s, ll
+   real*8 :: err2
+   integer segment, ll
 
    err2 = 0.d0
 !   kahan_y = 0.0
 !   kahan_c = 0.0
 !   kahan_t = 0.0
 !   err = 0.0
-   do i_s = 1, n_seg
-      do n_sub = 1, nxys(i_s)
-         ny = int(n_sub/nxs_sub(i_s))+1
-         nx = n_sub-(ny-1)*nxs_sub(i_s)       
+   do segment = 1, segments
+      do n_sub = 1, subfaults_segment(segment)
+         ny = int(n_sub/nxs_sub(segment))+1
+         nx = n_sub-(ny-1)*nxs_sub(segment)       
          if (nx .eq. 0) then
-            nx = nxs_sub(i_s)
+            nx = nxs_sub(segment)
             ny = ny-1
          end if
 
 !       left
-         n_is = nleft(1, ny, nx, i_s)
-         nxx = nleft(2, ny, nx, i_s)
-         nyy = nleft(3, ny, nx, i_s)
+         n_is = nleft(1, ny, nx, segment)
+         nxx = nleft(2, ny, nx, segment)
+         nyy = nleft(3, ny, nx, segment)
          if (n_is .eq. 0) then
-            d1 = tt(n_sub, i_s)
+            d1 = tt(n_sub, segment)
          else
             ll = nxx+(nyy-1)*nxs_sub(n_is)
             d1 = tt(ll, n_is)
          end if
 !       right   
-         n_is = nright(1, ny, nx, i_s)
-         nxx = nright(2, ny, nx, i_s)
-         nyy = nright(3, ny, nx, i_s)
+         n_is = nright(1, ny, nx, segment)
+         nxx = nright(2, ny, nx, segment)
+         nyy = nright(3, ny, nx, segment)
          if (n_is .eq. 0) then
-            d3 = tt(n_sub, i_s)
+            d3 = tt(n_sub, segment)
          else
             ll = nxx+(nyy-1)*nxs_sub(n_is)
             d3 = tt(ll, n_is)
          end if
 !       up    
-         n_is = nup(1, ny, nx, i_s)
-         nxx = nup(2, ny, nx, i_s)
-         nyy = nup(3, ny, nx, i_s)
+         n_is = nup(1, ny, nx, segment)
+         nxx = nup(2, ny, nx, segment)
+         nyy = nup(3, ny, nx, segment)
          if (n_is .eq. 0) then
-            d2 = tt(n_sub, i_s)
+            d2 = tt(n_sub, segment)
          else
             ll = nxx+(nyy-1)*nxs_sub(n_is)
             d2 = tt(ll, n_is)
          end if
 !       down
-         n_is = ndown(1, ny, nx, i_s)
-         nxx = ndown(2, ny, nx, i_s)
-         nyy = ndown(3, ny, nx, i_s)
+         n_is = ndown(1, ny, nx, segment)
+         nxx = ndown(2, ny, nx, segment)
+         nyy = ndown(3, ny, nx, segment)
          if (n_is .eq. 0) then
-            d4 = tt(n_sub, i_s)
+            d4 = tt(n_sub, segment)
          else
             ll = nxx+(nyy-1)*nxs_sub(n_is)
             d4 = tt(ll, n_is)
          end if
-         error = tt(n_sub, i_s)-0.25*(d1+d2+d3+d4)
+         error = tt(n_sub, segment)-0.25*(d1+d2+d3+d4)
          error = error*error
          err2 = err2+error
 !         kahan_y = error-kahan_c
@@ -227,9 +224,9 @@ contains
 !         err = kahan_t
       end do
    end do
-   err2 = sqrt(err2/nnn)
+   err2 = sqrt(err2/subfaults)
    err = real(err2)
-   end subroutine tlap
+   end subroutine time_laplace
 
 
 end module regularization

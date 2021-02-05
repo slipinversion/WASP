@@ -1,26 +1,27 @@
 program run_modelling
 
 
-   use constants, only : max_seg, nt1, nnxy
+   use constants, only : max_seg, max_subfaults2, max_subf
    use model_parameters, only : get_faults_data, get_model_space, get_special_boundaries, subfault_positions, &
                             &   write_model
-   use modelling_inputs, only : get_annealing_param, n_iter, io_re, cooling_rate, t_stop, t_mid, t0, io_data, idum
+   use modelling_inputs, only : get_annealing_param, n_iter, io_re, cooling_rate, t_stop, t_mid, t0, idum
    use get_stations_data, only : get_data
    use retrieve_gf, only : get_gf, deallocate_gf
    use save_forward, only : write_forward
    use rise_time, only : get_source_fun, deallocate_source
    use static_data, only : initial_gps
    use random_gen, only : start_seed
-   use annealing, only : initial_model, print_summary, annealing_iter, annealing_iter2, &
+   use annealing, only : initial_model, print_summary, &
                      &   annealing_iter3, annealing_iter4, n_threads
    implicit none
    integer :: i
-   real :: slip(nnxy, max_seg), rake(nnxy, max_seg), rupt_time(nnxy, max_seg)
-   real :: tl(nnxy, max_seg), tr(nnxy, max_seg)
-   real :: er, t
+   real :: slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg)
+   real :: t_rise(max_subf, max_seg), t_fall(max_subf, max_seg)
+   real :: t
    logical :: static, strong, cgps, dart, body, surf, auto, get_coeff
    character(len=10) :: input
 
+   write(*,'(/A/)')"CHEN-JI'S WAVELET KINEMATIC MODELLING METHOD"
    static = .False.
    get_coeff = .True.
    strong = .False.
@@ -50,14 +51,15 @@ program run_modelling
    call get_data(strong, cgps, body, surf, dart)
    call get_source_fun()
    call get_gf(strong, cgps, body, surf, dart)
-   call initial_model(slip, rake, rupt_time, tl, tr)
+   call initial_model(slip, rake, rupt_time, t_rise, t_fall)
    if (static) call initial_gps(slip, rake)
-   call print_summary(slip, rake, rupt_time, tl, tr, static, get_coeff)
+   call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, get_coeff)
    t = t_mid
    if (io_re .eq. 0) t = t0
+   write(*,*)'Start simmulated annealing...'
    if (static) then
       do i = 1, n_iter
-         call annealing_iter4(slip, rake, rupt_time, tl, tr, er, t)
+         call annealing_iter4(slip, rake, rupt_time, t_rise, t_fall, t)
          write(*,*)'iter: ', i
          if (t .lt. t_stop) then
             t = t*0.995
@@ -67,7 +69,7 @@ program run_modelling
       end do
    else
       do i = 1, n_iter
-         call annealing_iter3(slip, rake, rupt_time, tl, tr, er, t)
+         call annealing_iter3(slip, rake, rupt_time, t_rise, t_fall, t)
          write(*,*)'iter: ', i
          if (t .lt. t_stop) then
             t = t*0.995
@@ -77,10 +79,11 @@ program run_modelling
       end do
    end if
    get_coeff = .False.
-   call print_summary(slip, rake, rupt_time, tl, tr, static, get_coeff)
-   call write_forward(slip, rake, rupt_time, tl, tr, strong, cgps, body, surf, dart)
+   call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, get_coeff)
+   call write_forward(slip, rake, rupt_time, t_rise, t_fall, strong, cgps, body, surf)
    if (static) call initial_gps(slip, rake)
-   call write_model(slip, rake, rupt_time, tl, tr)
+   call write_model(slip, rake, rupt_time, t_rise, t_fall)
+   write(*,'(/A/)')"END CHEN-JI'S WAVELET KINEMATIC MODELLING METHOD"
    call deallocate_source()
    call deallocate_gf()
 

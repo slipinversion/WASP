@@ -1,12 +1,12 @@
 module wavelets
 
 
-   use constants, only : pi, twopi, inptd, nnsta
+   use constants, only : pi, twopi, wave_pts2
    use wavelet_param, only : jmin, jmax, lnpt, nlen
    implicit none
-   complex :: rwt1(inptd, 12), rwt2(inptd, 12), c1, c2
+   complex :: rwt1(wave_pts2, 12), rwt2(wave_pts2, 12), c1, c2
    integer :: kkk(4200, 15)
-   real :: cos_fft(4200, 15), sin_fft(4200, 15)
+   real :: cos_fft(4200), sin_fft(4200)!, 15), sin_fft(4200, 15)
 
 
 contains
@@ -22,10 +22,10 @@ contains
 ! we split between this routine and wavelet_syn routine to hopefully reduce
 ! computation time
 !
-   real :: cr(inptd), cz(inptd), u(inptd)
+   real :: cr(wave_pts2), cz(wave_pts2), u(wave_pts2)
    integer lcc, kmax, is, j, k, i
    
-   complex fre(inptd)
+   complex fre(wave_pts2)
    complex cc
 !
    do i = 1, nlen
@@ -71,11 +71,11 @@ contains
 !       In order to normalized the amplitude, we move the coeffficient
 !       sqrt(T/kmax)
 !                         Jichen 1997, 1, 20
-   real, intent(out) :: u(inptd)
-   real, intent(inout) :: cr(inptd), cz(inptd)
+   real, intent(out) :: u(wave_pts2)
+   real, intent(inout) :: cr(wave_pts2), cz(wave_pts2)
    integer lcc, kmax, is, lb, i, i1, i2, j, k
         
-   complex fre(inptd)
+   complex fre(wave_pts2)
    complex cc
 
    lcc = 2**(lnpt-1)
@@ -127,9 +127,6 @@ contains
    real, intent(inout) :: xr(*), xi(*)
    integer k, i, ib, nb, lx, l, lb, lbh, ist, jh, j1, j
    real wkr, wki, qr, qi, holdr, holdi, flx
-!
-! we store in memory the values of 'k', so as to not need to initialize them time and again.
-!
    LX = 2**N
    FLX = real(LX)
    DO L = 1, N
@@ -137,8 +134,8 @@ contains
       LB = LX/NB
       LBH = LB/2
       DO IB = 1, NB           ! 2 ** (l-1) operaciones
-         WKR = cos_fft(ib, n)
-         WKI = -sin_fft(ib, n)
+         WKR = cos_fft(ib)
+         WKI = -sin_fft(ib)
          IST = LB*(IB-1)
          DO J = IST+1, IST+LBH
             JH = J+LBH
@@ -185,9 +182,9 @@ contains
       NB = 2**(L-1)
       LB = LX/NB
       LBH = LB/2
-      DO IB = 1, NB           ! 2 ** (l-1) operaciones
-         WKR = cos_fft(ib, n)
-         WKI = sin_fft(ib, n)
+      DO IB = 1, NB           ! 2 ** n operations
+         WKR = cos_fft(ib)
+         WKI = sin_fft(ib)
          IST = LB*(IB-1)
          DO J = IST+1, IST+LBH
             JH = J+LBH
@@ -219,7 +216,7 @@ contains
 ! in the method of the cfft. as the code spent a large amount of time in said part of cfft, we decided to
 ! load such data to memory to reduce computation time
 !
-   integer i, n, nb, nnb, ib, k, kk(4200, 15)
+   integer i, n, nb, nnb, ib, k!, kk(4200, 15)
    real*8 :: omega
 
    do n = 2, 12
@@ -227,10 +224,9 @@ contains
       nb = 2 ** (n-1)
       nnb = 2 ** n
       do ib = 1, nb
-         kk(ib, n) = k
-         omega = twopi*k/nnb
-         cos_fft(ib, n) = cos(omega)
-         sin_fft(ib, n) = sin(omega)
+         omega = twopi*dble(k)/dble(nnb)
+         cos_fft(ib) = cos(omega)
+         sin_fft(ib) = sin(omega)
          do i = 2, n
             if (k .lt. 2**(n-i)) exit
             k = k-2**(n-i)
@@ -255,10 +251,6 @@ contains
    implicit none
    real*8 :: omega1, omega2
    integer j, is, kmax
-!
-! we store these 2 constants to memory to reduce the amount of times we call wave(,)
-! so as to improve performance of code.
-!
    c1 = wave(twopi, 2)
    c2 = wave(pi, 2)
 !

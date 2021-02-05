@@ -1,26 +1,30 @@
 module model_parameters
 
 
-   use constants, only : max_seg, nnpx, nnpy, nnxs, nnys, nnxy, nt1
+   use constants, only : max_seg, max_stk_psources, max_dip_psources, max_stk_subfaults, &
+               &     max_dip_subfaults, max_subf, max_subfaults2
    use modelling_inputs, only : t_latest
    implicit none
-   real :: slip0(nnxy, max_seg), rake0(nnxy, max_seg), rupt_time0(nnxy, max_seg)
-   real :: tl0(nnxy, max_seg), tr0(nnxy, max_seg)
-   integer :: n_seg, nxs_sub(max_seg), nys_sub(max_seg), nx_p, ny_p, nxs0, nys0
-   real :: dip_seg(max_seg), stk_seg(max_seg), delay_seg(max_seg)
-   real :: point_sources(7, nnpx, nnpy, nnxs, nnys, max_seg)
-   real :: cniu(nnxy, max_seg)
+   real :: slip0(max_subf, max_seg), rake0(max_subf, max_seg), rupt_time0(max_subf, max_seg)
+   real :: t_rise0(max_subf, max_seg), t_fall0(max_subf, max_seg)
+   integer :: segments, nxs_sub(max_seg), nys_sub(max_seg), nx_p, ny_p, nxs0, nys0
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
+   real :: point_sources(7, max_stk_psources, max_dip_psources, max_stk_subfaults, max_dip_subfaults, max_seg)
+   real :: shear(max_subf, max_seg)
    real :: c_depth, dxs, dys, v_ref, v_min, v_max, tbl, tbr
    real :: ta0, dta
-   real :: time_min(nnxy, max_seg), time_max(nnxy, max_seg), rake_min
-   integer :: msou, jfmax
-   real :: beg(nt1), dp(nt1)
-   integer :: np(nt1)
+   real :: time_min(max_subf, max_seg), time_max(max_subf, max_seg), rake_min
+   real :: time_ref(max_subf, max_seg)
+   integer :: msou
+   real :: beg(max_subfaults2), dp(max_subfaults2)
+   integer :: np(max_subfaults2)
 !
 ! for regularization
 !
-   integer :: nleft(3, nnys, nnxs, max_seg), nright(3, nnys, nnxs, max_seg), & 
-   & nup(3, nnys, nnxs, max_seg), ndown(3, nnys, nnxs, max_seg)
+   integer :: nleft(3, max_dip_subfaults, max_stk_subfaults, max_seg), &
+   & nright(3, max_dip_subfaults, max_stk_subfaults, max_seg), & 
+   & nup(3, max_dip_subfaults, max_stk_subfaults, max_seg), &
+   & ndown(3, max_dip_subfaults, max_stk_subfaults, max_seg)
 
 
 contains
@@ -29,26 +33,26 @@ contains
    subroutine get_faults_data()
    implicit none
    integer n_s, i_s, io_x, io_y, ixs, iys, io_v_d, nxy, k, nxys(max_seg), &
-   &  i_seg, ix, iy, ll, io_seg, kxy, kpxy, nx_c, ny_c
+   &  segment, ix, iy, ll, io_seg, kxy, kpxy, nx_c, ny_c
    real dist, t_ref, t_max, t_min, delta, dip_s, stk_s
 !
 !     Input Fault position to memory
 !
+   write(*,*)'Read and store fault segments data to memory...'
    open(12, file='Fault.time', status='old')
    read(12,*) nxs0, nys0, c_depth
-   read(12,*) n_seg, dxs, dys, nx_p, ny_p, v_min, v_max, tbl, tbr
+   read(12,*) segments, dxs, dys, nx_p, ny_p, v_min, v_max, tbl, tbr
    read(12,*) ta0, dta, msou, v_ref, io_v_d
-   do i_seg = 1, n_seg
-      write(*,*) i_seg, stk_seg(1), stk_seg(2)
-      read(12,*) io_seg, dip_seg(i_seg), stk_seg(i_seg)
-      write(*,*) i_seg, io_seg, stk_seg(1), stk_seg(2)
-      read(12,*) nxs_sub(i_seg), nys_sub(i_seg), delay_seg(i_seg)
-      nxy = nxs_sub(i_seg) * nys_sub(i_seg)
+   do segment = 1, segments
+      read(12,*) io_seg, dip(segment), strike(segment)
+      read(12,*) nxs_sub(segment), nys_sub(segment), delay_seg(segment)
+      nxy = nxs_sub(segment) * nys_sub(segment)
       do ll = 1, nxy
-         read(12,*) slip0(ll, i_seg), rake0(ll, i_seg), rupt_time0(ll, i_seg), tl0(ll, i_seg), tr0(ll, i_seg)
+         read(12,*) slip0(ll, segment), rake0(ll, segment), &
+         & rupt_time0(ll, segment), t_rise0(ll, segment), t_fall0(ll, segment)
 !  magic
-         slip0(ll, i_seg) = int(slip0(ll, i_seg))
-         rake0(ll, i_seg) = int(rake0(ll, i_seg))
+         slip0(ll, segment) = int(slip0(ll, segment))
+         rake0(ll, segment) = int(rake0(ll, segment))
 !
       end do
    end do
@@ -57,25 +61,25 @@ contains
 !     Input Fault model to memory
 !
    open(12, file='Fault.pos', status='old')
-   do i_seg = 1, n_seg
+   do segment = 1, segments
       read(12,*) io_seg, dip_s, stk_s
-      if ((abs(dip_s-dip_seg(i_seg)) .gt. 1.e-2).or. &
-      &  (abs(stk_s-stk_seg(i_seg)) .gt. 1.e-2)) then
-         write(*,*)'the value in Fault.pos is not matched with that in Fault.das'
-         write(*,*) i_seg
-         write(*,*) dip_s, dip_seg(i_seg)
-         write(*,*) stk_s, stk_seg(i_seg)
+      if ((abs(dip_s-dip(segment)) .gt. 1.e-2).or. &
+      &  (abs(stk_s-strike(segment)) .gt. 1.e-2)) then
+         write(*,*)'Fault mechanism in Fault.pos is not matched with that in Fault.das'
+         write(*,*) segment
+         write(*,*) dip_s, dip(segment)
+         write(*,*) stk_s, strike(segment)
       end if
 
       kxy = 0
-      do IYS = 1, NYS_sub(i_seg)
-         do IXS = 1, NXS_sub(i_seg)
+      do IYS = 1, NYS_sub(segment)
+         do IXS = 1, NXS_sub(segment)
             kxy = kxy+1
             kpxy = 0
             do IY = 1, ny_p
                do IX = 1, nx_p
                   kpxy = kpxy+1
-                  read(12,*)(point_sources(k, ix, iy, ixs, iys, i_seg), k = 1, 7)
+                  read(12,*)(point_sources(k, ix, iy, ixs, iys, segment), k = 1, 7)
                end do
             end do
          end do
@@ -88,26 +92,29 @@ contains
    nx_c = max(int(nx_p/2.0+0.51), 1)
    ny_c = max(int(ny_p/2.0+0.51), 1)
    kpxy = (ny_c-1)*nx_p+nx_c
-   do i_seg = 1, n_seg
-      do iys = 1, nys_sub(i_seg)
-         do ixs = 1, nxs_sub(i_seg)
-            kxy = (iys-1)*nxs_sub(i_seg)+ixs
-            dist = point_sources(4, nx_c, ny_c, ixs, iys, i_seg)
+   do segment = 1, segments
+      do iys = 1, nys_sub(segment)
+         do ixs = 1, nxs_sub(segment)
+            kxy = (iys-1)*nxs_sub(segment)+ixs
+            dist = point_sources(4, nx_c, ny_c, ixs, iys, segment)
             t_ref = dist/v_ref
             t_max = dist/v_min
-            if (t_max .gt. t_latest) t_max = t_latest
             t_min = dist/v_max
+!            if (t_ref .gt. t_latest) t_ref = t_latest
+!            if (t_min .gt. t_latest) t_min = t_latest
+            if (t_max .gt. t_latest) t_max = t_latest
             delta = t_min-t_ref
             if (tbl .lt. delta) then
-               time_min(kxy, i_seg) = delta
+               time_min(kxy, segment) = delta
             else
-               time_min(kxy, i_seg) = tbl
+               time_min(kxy, segment) = tbl
             end if
-            delta = t_max-t_ref
+!            time_ref(kxy, segment) = time_min(kxy, segment) + t_ref
+            delta = t_max - t_ref
             if (tbr .gt. delta) then
-               time_max(kxy, i_seg) = delta
+               time_max(kxy, segment) = delta
             else
-               time_max(kxy, i_seg) = tbr
+               time_max(kxy, segment) = tbr
             end if
          end do
       end do
@@ -117,37 +124,38 @@ contains
 !
    open(12, file='Niu_model', status='old')
    read(12,*) n_s
-   if (n_s.ne.n_seg) then
+   if (n_s.ne.segments) then
       write(*,*)'Amount of fault segments is different between mu file and Fault file'
       stop
    end if
    do i_s = 1, n_s
       read(12,*) io_seg, io_x, io_y
       nxys(i_s) = io_x*io_y
-      read(12,*)(cniu(k, i_s), k = 1, nxys(i_s))
+      read(12,*)(shear(k, i_s), k = 1, nxys(i_s))
    end do 
    close(12)
+!   write(*,*)shear(:nxys(1), 1)
    end subroutine get_faults_data
 
 
-   subroutine write_model(dd, aa, tt, tl, tr)
-   real :: dd(nnxy, max_seg), aa(nnxy, max_seg), tt(nnxy, max_seg)
-   real :: tl(nnxy, max_seg), tr(nnxy, max_seg)
+   subroutine write_model(slip, rake, tt, tl, tr)
+   real :: slip(max_subf, max_seg), rake(max_subf, max_seg), tt(max_subf, max_seg)
+   real :: tl(max_subf, max_seg), tr(max_subf, max_seg)
    real :: latitude_ep, longitude_ep, t_ref, moment_sol
-   integer :: i_seg, iys, ixs, iy, ix, i_g, kp
+   integer :: segment, iys, ixs, iy, ix, kp
    latitude_ep = 0.0
    longitude_ep = 0.0
-   do i_seg = 1, n_seg
-      do IYS = 1, NYS_sub(i_seg)
-         do IXS = 1, NXS_sub(i_seg)
+   do segment = 1, segments
+      do IYS = 1, NYS_sub(segment)
+         do IXS = 1, NXS_sub(segment)
             do IY = 1, ny_p
                do IX = 1, nx_p
 !
 ! we have found the epicenter
 !
-                  if (abs(point_sources(4, ix, iy, ixs, iys, i_seg)) .le. 1e-3) then 
-                     latitude_ep = point_sources(1, ix, iy, ixs, iys, i_seg)
-                     longitude_ep = point_sources(2, ix, iy, ixs, iys, i_seg)
+                  if (abs(point_sources(4, ix, iy, ixs, iys, segment)) .le. 1e-3) then 
+                     latitude_ep = point_sources(1, ix, iy, ixs, iys, segment)
+                     longitude_ep = point_sources(2, ix, iy, ixs, iys, segment)
                   end if
                end do
             end do
@@ -157,44 +165,45 @@ contains
 
 
    open(13, file='Solucion.txt')
-   write(13,*)'#Total number of fault_segments=', n_seg
-   do i_g = 1, n_seg
-      write(13,131)'#Fault_segment =', i_g, ' nx(Along-strike)=', &
-     &  nxs_sub(i_g), ' Dx = ', dxs, 'km ny(downdip)= ', nys_sub(i_g), &
+   write(13,*)'#Total number of fault_segments=', segments
+   do segment = 1, segments
+      write(13,131)'#Fault_segment =', segment, ' nx(Along-strike)=', &
+     &  nxs_sub(segment), ' Dx = ', dxs, 'km ny(downdip)= ', nys_sub(segment), &
      & ' Dy = ', dys, 'km'
 131           format(a, i4, a, i3, a, f5.2, a, i3, a, f5.2, a)
-      write(13,132)'#Boundary of Fault_segment ', i_g, &
+      write(13,132)'#Boundary of Fault_segment ', segment, &
      & '. EQ in cell (', nxs0, ',', nys0, '). Lon:', longitude_ep, &
      & '   Lat:', latitude_ep
 132           format(a, i4, a, i2, a, i2, a, f10.4, a, f10.4)
       write(13,*)'#Lon.  Lat.  Depth'
-      write(13,*) point_sources(2, 1, 1, 1, 1, i_g), &! ix, iy, ixs, iys, i_g),
-     &  point_sources(1, 1, 1, 1, 1, i_g), point_sources(3, 1, 1, 1, 1, i_g)
-      write(13,*) point_sources(2, 1, ny_p, 1, nys_sub(i_g), i_g),  &
-     &  point_sources(1, 1, ny_p, 1, nys_sub(i_g), i_g),  &
-     &  point_sources(3, 1, ny_p, 1, nys_sub(i_g), i_g) 
+      write(13,*) point_sources(2, 1, 1, 1, 1, segment), &! ix, iy, ixs, iys, segment),
+     &  point_sources(1, 1, 1, 1, 1, segment), point_sources(3, 1, 1, 1, 1, segment)
+      write(13,*) point_sources(2, 1, ny_p, 1, nys_sub(segment), segment),  &
+     &  point_sources(1, 1, ny_p, 1, nys_sub(segment), segment),  &
+     &  point_sources(3, 1, ny_p, 1, nys_sub(segment), segment) 
       write(13,*) &
-     &  point_sources(2, nx_p, ny_p, nxs_sub(i_g), nys_sub(i_g), i_g), &
-     &  point_sources(1, nx_p, ny_p, nxs_sub(i_g), nys_sub(i_g), i_g), &
-     &  point_sources(3, nx_p, ny_p, nxs_sub(i_g), nys_sub(i_g), i_g)
-      write(13,*) point_sources(2, nx_p, 1, nxs_sub(i_g), 1, i_g), &
-     &  point_sources(1, nx_p, 1, nxs_sub(i_g), 1, i_g), &
-     &  point_sources(3, nx_p, 1, nxs_sub(i_g), 1, i_g)
-      write(13,*) point_sources(2, 1, 1, 1, 1, i_g),  &
-     &  point_sources(1, 1, 1, 1, 1, i_g), point_sources(3, 1, 1, 1, 1, i_g)
+     &  point_sources(2, nx_p, ny_p, nxs_sub(segment), nys_sub(segment), segment), &
+     &  point_sources(1, nx_p, ny_p, nxs_sub(segment), nys_sub(segment), segment), &
+     &  point_sources(3, nx_p, ny_p, nxs_sub(segment), nys_sub(segment), segment)
+      write(13,*) point_sources(2, nx_p, 1, nxs_sub(segment), 1, segment), &
+     &  point_sources(1, nx_p, 1, nxs_sub(segment), 1, segment), &
+     &  point_sources(3, nx_p, 1, nxs_sub(segment), 1, segment)
+      write(13,*) point_sources(2, 1, 1, 1, 1, segment),  &
+     &  point_sources(1, 1, 1, 1, 1, segment), point_sources(3, 1, 1, 1, 1, segment)
       write(13,*)'#Lat. Lon. depth slip rake strike dip t_rup t_ris t_fal mo'
       kp = 0
       ix = int(nx_p / 2) + 1
       iy = int(ny_p / 2) + 1
-      do iys = 1, nys_sub(i_g)
-         do ixs = 1, nxs_sub(i_g)
+      do iys = 1, nys_sub(segment)
+         do ixs = 1, nxs_sub(segment)
             kp = kp + 1
-            t_ref = point_sources(5, ix, iy, ixs, iys, i_g)
-            moment_sol = dd(kp, i_g) * cniu(kp, i_g) * dxs * dys * (10.0 ** 10.0)
-            write(13, 133) point_sources(1, ix, iy, ixs, iys, i_g), &
-         &  point_sources(2, ix, iy, ixs, iys, i_g), point_sources(3, ix, iy, ixs, iys, i_g), &
-         &  dd(kp, i_g), aa(kp, i_g), stk_seg(i_g), dip_seg(i_g), &
-         &  tt(kp, i_g) + t_ref, tl(kp, i_g), tr(kp, i_g), moment_sol
+            t_ref = point_sources(5, ix, iy, ixs, iys, segment)
+            t_ref = min(t_ref, t_latest)
+            moment_sol = slip(kp, segment) * shear(kp, segment) * dxs * dys * (10.0 ** 10.0)
+            write(13, 133) point_sources(1, ix, iy, ixs, iys, segment), &
+         &  point_sources(2, ix, iy, ixs, iys, segment), point_sources(3, ix, iy, ixs, iys, segment), &
+         &  slip(kp, segment), rake(kp, segment), strike(segment), dip(segment), &
+         &  tt(kp, segment) + t_ref, tl(kp, segment), tr(kp, segment), moment_sol
 133  format(f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, e14.6)
          end do
       end do
@@ -209,15 +218,15 @@ contains
 !  boundary conditions? or what?
 !
    integer :: nx0, ny0
-   parameter(nx0 = nnxs*2, ny0 = nnys*2)
-   integer :: io_surf, nblock, npa, k, i_seg, io_right, io_left, io_up, io_down 
+   parameter(nx0 = max_stk_subfaults*2, ny0 = max_dip_subfaults*2)
+   integer :: io_surf, nblock, npa, k, segment, io_right, io_left, io_up, io_down 
    real :: delt_x, delt_y, zmed_max, zmed_min, zleft_max, zleft_min
    real :: zright_max, zright_min, zup_max, zup_min, zdown_max, zdown_min
    real :: angle_max, angle_min, vel_max, vel_min
    real :: ddx1, ddx2, ddy1, ddy2
    integer :: io_seg, nmed, nleft2, nright2, nup2, ndown2, nangle, npv, nb, nsour
    integer :: nx, ny, i, j, k_s, i_ss, i_x, i_y
-   real :: surface(1000, 4), xyb(nx0, ny0, 3), xr(5), u0(nt1, 4)
+   real :: surface(1000, 4), xyb(nx0, ny0, 3), xr(5), u0(max_subfaults2, 4)
    open(17, file='bound.in', status='old')
    read(17,*) io_surf
    if (io_surf .eq. 1) then
@@ -230,7 +239,7 @@ contains
    end if
    npa = 0
    k = 0
-   do i_seg = 1, n_seg
+   do segment = 1, segments
       read(17,*) io_seg
       read(17,*) delt_x, delt_y
       read(17,*) io_left, io_right, io_up, io_down
@@ -242,8 +251,8 @@ contains
       read(17,*) angle_max, angle_min, nangle
       read(17,*) vel_max, vel_min, npv
       read(17,*) nb, nsour
-      nx = nxs_sub(i_seg)
-      ny = nys_sub(i_seg)
+      nx = nxs_sub(segment)
+      ny = nys_sub(segment)
       rake_min = angle_min
 !
 !  check whether the contrains is frighting eath other
@@ -267,8 +276,8 @@ contains
 
 !  First:  Give the range of mediate part of space
 
-      do i = 2, nxs_sub(i_seg)-1
-         do j = 2, nys_sub(i_seg)-1
+      do i = 2, nxs_sub(segment)-1
+         do j = 2, nys_sub(segment)-1
             xyb(i, j, 1) = zmed_min
             xyb(i, j, 2) = zmed_max
             xyb(i, j, 3) = nmed
@@ -277,7 +286,7 @@ contains
 !
 !     Second: Give the value range of left and right part
 !
-      do j = 1, nys_sub(i_seg)
+      do j = 1, nys_sub(segment)
          if (io_left .eq. 1) then
             xyb(1, j, 1) = zleft_min
             xyb(1, j, 2) = zleft_max
@@ -288,19 +297,19 @@ contains
             xyb(1, j, 3) = nmed
          end if
          if (io_right .eq. 1) then
-            xyb(nxs_sub(i_seg), j, 1) = zright_min
-            xyb(nxs_sub(i_seg), j, 2) = zright_max
-            xyb(nxs_sub(i_seg), j, 3) = nright2
+            xyb(nxs_sub(segment), j, 1) = zright_min
+            xyb(nxs_sub(segment), j, 2) = zright_max
+            xyb(nxs_sub(segment), j, 3) = nright2
          else
-            xyb(nxs_sub(i_seg), j, 1) = zmed_min
-            xyb(nxs_sub(i_seg), j, 2) = zmed_max
-            xyb(nxs_sub(i_seg), j, 3) = nmed
+            xyb(nxs_sub(segment), j, 1) = zmed_min
+            xyb(nxs_sub(segment), j, 2) = zmed_max
+            xyb(nxs_sub(segment), j, 3) = nmed
          end if
       end do
 !
 !  finally: Give the value range of up and down part
 !
-      do i = 2, nxs_sub(i_seg)-1
+      do i = 2, nxs_sub(segment)-1
          if (io_up .eq. 1) then
             xyb(i, 1, 1) = zup_min
             xyb(i, 1, 2) = zup_max
@@ -311,24 +320,24 @@ contains
             xyb(i, 1, 3) = nmed
          end if
          if (io_down .eq. 1) then
-            xyb(i, nys_sub(i_seg), 1) = zdown_min
-            xyb(i, nys_sub(i_seg), 2) = zdown_max
-            xyb(i, nys_sub(i_seg), 3) = ndown2
+            xyb(i, nys_sub(segment), 1) = zdown_min
+            xyb(i, nys_sub(segment), 2) = zdown_max
+            xyb(i, nys_sub(segment), 3) = ndown2
          else
-            xyb(i, nys_sub(i_seg), 1) = zmed_min
-            xyb(i, nys_sub(i_seg), 2) = zmed_max
-            xyb(i, nys_sub(i_seg), 3) = nmed
+            xyb(i, nys_sub(segment), 1) = zmed_min
+            xyb(i, nys_sub(segment), 2) = zmed_max
+            xyb(i, nys_sub(segment), 3) = nmed
          end if
       end do
 !
 !  Recheck the range of mediate part
 !
-      do i = 2, nxs_sub(i_seg)-1
-         do j = 2, nys_sub(i_seg)-1
+      do i = 2, nxs_sub(segment)-1
+         do j = 2, nys_sub(segment)-1
             xr(1) = (i-1)*delt_x+zleft_max
-            xr(2) = (nxs_sub(i_seg)-i)*delt_x+zright_max
+            xr(2) = (nxs_sub(segment)-i)*delt_x+zright_max
             xr(3) = (j-1)*delt_y+zup_max
-            xr(4) = (nys_sub(i_seg)-j)*delt_y+zdown_max
+            xr(4) = (nys_sub(segment)-j)*delt_y+zdown_max
             xr(5) = xyb(i, j, 2)
             call bbsort(xr, 1, 5)
             xyb(i, j, 2) = xr(1)
@@ -340,7 +349,7 @@ contains
       if (io_surf .eq. 1) then
          do k_s = 1, nblock
             i_ss = int(surface(k_s, 1)+0.1)
-            if (i_ss .eq. i_seg) then
+            if (i_ss .eq. segment) then
                i_y = 1
                i_x = int(surface(k_s, 2)+0.1)
                xyb(i_x, i_y, 1) = surface(k_s, 3)
@@ -351,9 +360,9 @@ contains
 !
 !  Change xy_range to xyb    
 !
-      npa = npa+4*nxs_sub(i_seg)*nys_sub(i_seg)
-      do j = 1, nys_sub(i_seg)
-         do i = 1, nxs_sub(i_seg)
+      npa = npa+4*nxs_sub(segment)*nys_sub(segment)
+      do j = 1, nys_sub(segment)
+         do i = 1, nxs_sub(segment)
             k = k+1
             u0(k, 1) = xyb(i, j, 1)
             u0(k, 2) = xyb(i, j, 2)
@@ -412,8 +421,8 @@ contains
 
    subroutine get_special_boundaries()
    implicit none
-   integer :: nm, nn, iss, ixs, iys, ll, i_g, kxy
-   real :: dd(nnxy, max_seg), aa(nnxy, max_seg)
+   integer :: nm, nn, iss, ixs, iys, ll, segment, kxy
+   real :: dd(max_subf, max_seg), aa(max_subf, max_seg)
 !
 !  special boundary
 !
@@ -422,8 +431,8 @@ contains
    do nn = 1, nm
       read(12,*) iss, ixs, iys
       ll = 0
-      do i_g = 1, iss-1
-         ll = ll+nxs_sub(i_g)*nys_sub(i_g)
+      do segment = 1, iss-1
+         ll = ll+nxs_sub(segment)*nys_sub(segment)
       end do
       kxy = ixs+(iys-1)*nxs_sub(iss)
       ll = ll+ixs+(iys-1)*nxs_sub(iss)
@@ -450,7 +459,7 @@ contains
 !
 !  We detect adjacent subfaults and their relative location
 !  
-   do i_s = 1, n_seg
+   do i_s = 1, segments
       do ix = 1, nxs_sub(i_s)
          do iy = 1, nys_sub(i_s)
             nup(1, iy, ix, i_s) = i_s
@@ -469,7 +478,7 @@ contains
       end do
    end do
    open(22, file='continue', status='old')
-   do I_s = 1, n_seg 
+   do I_s = 1, segments 
 !       
       read(22,*)
       read(22,*) n_is, nyy
@@ -508,7 +517,7 @@ contains
    do k = 1, nn_use
       read(22,'(a)')aaaa
 ! 1  format(a)
-      write(*,'(a)')aaaa
+!      write(*,'(a)')aaaa
       read(22,*) i_s, ix, iy
       read(22,*) io_change, n_is, nxx, nyy
       if (io_change .eq. 1) then

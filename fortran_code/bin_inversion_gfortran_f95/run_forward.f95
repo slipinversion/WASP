@@ -1,8 +1,8 @@
 program run_forward
 
 
-   use constants, only : max_seg, nt1, nnxy
-   use model_parameters, only : get_faults_data, slip0, rake0, rupt_time0, tl0, tr0, write_model
+   use model_parameters, only : get_faults_data, slip0, rake0, rupt_time0, &
+       &  t_rise0, t_fall0, write_model
    use modelling_inputs, only : get_annealing_param
    use get_stations_data, only : get_data
    use retrieve_gf, only : get_gf
@@ -31,11 +31,11 @@ program run_forward
    end do
    call get_annealing_param()
    call get_faults_data()
-   call get_gf(strong, cgps, body, surf, dart)
    call get_data(strong, cgps, body, surf, dart)
-   call write_forward(slip0, rake0, rupt_time0, tl0, tr0, strong, cgps, body, surf, dart)
+   call get_gf(strong, cgps, body, surf, dart)
+   call write_forward(slip0, rake0, rupt_time0, t_rise0, t_fall0, strong, cgps, body, surf)
    if (static) call initial_gps(slip0, rake0)
-   call write_model(slip0, rake0, rupt_time0, tl0, tr0)
+   call write_model(slip0, rake0, rupt_time0, t_rise0, t_fall0)
 
 
 end program run_forward
