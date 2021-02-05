@@ -24,16 +24,16 @@ def __get_planes_json():
 def __read_planes_info():
     """
     """
-    
+
     segments, rise_time = __get_planes_json()
     n_segments = len(segments)
-    
+
     with open('Fault.time', 'r') as subfaults_file:
         lines = [line.split() for line in subfaults_file]
-    
-    nx_ps = int(lines[1][3])
-    ny_ps = int(lines[1][4])
-    
+
+    strike_ps = int(lines[1][3])
+    dip_ps = int(lines[1][4])
+
     with open('Fault.pos', 'r') as point_sources_file:
         lines2 = [line.split() for line in point_sources_file]
 #
@@ -42,14 +42,14 @@ def __read_planes_info():
     point_sources = [[]] * n_segments
     line = 0
     for i_segment, segment in enumerate(segments):
-        n_sub_y = segment['n_sub_y']
-        n_sub_x = segment['n_sub_x']
-        matrix = np.zeros((n_sub_y, n_sub_x, ny_ps, nx_ps, 7))
+        dip_subfaults = segment['dip_subfaults']
+        stk_subfaults = segment['stk_subfaults']
+        matrix = np.zeros((dip_subfaults, stk_subfaults, dip_ps, strike_ps, 7))
         line = line + 1
-        for iys in range(n_sub_y):
-            for ixs in range(n_sub_x):
-                for j in range(ny_ps):
-                    for i in range(nx_ps):
+        for iys in range(dip_subfaults):
+            for ixs in range(stk_subfaults):
+                for j in range(dip_ps):
+                    for i in range(strike_ps):
                         array = [float(val) for val in lines2[line]]
                         matrix[iys, ixs, j, i, :] = np.array(array)
                         line = line + 1
@@ -60,13 +60,13 @@ def __read_planes_info():
 def __unpack_plane_data(plane_info):
     """Auxiliary routine. We extract information from a fault segment.
     """
-    n_sub_stk = plane_info['n_sub_x']
-    n_sub_dip = plane_info['n_sub_y']
-    delta_x = plane_info['delta_x']
-    delta_y = plane_info['delta_y']
+    stk_subfaults = plane_info['stk_subfaults']
+    dip_subfaults = plane_info['dip_subfaults']
+    delta_strike = plane_info['delta_strike']
+    delta_dip = plane_info['delta_dip']
     hyp_stk = plane_info['hyp_stk'] - 1
     hyp_dip = plane_info['hyp_dip'] - 1
-    return n_sub_stk, n_sub_dip, delta_x, delta_y, hyp_stk, hyp_dip
+    return stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip
 
 
 if __name__ == '__main__':

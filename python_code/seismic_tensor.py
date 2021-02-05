@@ -9,9 +9,10 @@ import numpy as np
 from obspy.core.utcdatetime import UTCDateTime
 import json
 import os
+import xml.etree.ElementTree as ET
 
 
-def get_tensor(cmt_file=None, timedelta=None):
+def get_tensor(cmt_file=None, quake_file=None, timedelta=None):
     """From a cmt tensor file we get tensor information in a dictionary.
     
     :param cmt_file: location of text file to be used
@@ -22,11 +23,14 @@ def get_tensor(cmt_file=None, timedelta=None):
     if cmt_file:
         tensor_info = read_gcmt_file(cmt_file)
         tensor_info = modify_tensor(tensor_info)
-        tensor_info['timedelta']\
-            = UTCDateTime.utcnow() - tensor_info['date_origin']
-        if timedelta:
-            tensor_info['timedelta'] = int(timedelta) * 60
-    else:
+        delta = UTCDateTime.utcnow() - tensor_info['date_origin']
+        tensor_info['timedelta'] = delta#delta.total_seconds()
+    if quake_file:
+        tensor_info = read_quake_file(quake_file)
+        tensor_info = modify_tensor(tensor_info)
+        delta = UTCDateTime.utcnow() - tensor_info['date_origin']
+        tensor_info['timedelta'] = delta#.total_seconds()
+    if not cmt_file and not quake_file:
         if not os.path.isfile('tensor_info.json'):
             raise RuntimeError('No file named tensor_info.json located in '\
                                'folder {}'.format(os.getcwd()))
@@ -71,32 +75,18 @@ def read_gcmt_file(cmt_file):
         new_line = lines[0]
         code, year = lines[0][0].split('W')
         lines[0] = [code, year] + new_line[1:]
-        
-    print(lines[0])
     
-    year, month, day, hour, minute, second0, lat, lon, hyp_depth\
+    year, month, day, hour, minute, second, lat, lon, hyp_depth\
         = lines[0][1:10]
-    second0 = float(second0)
-    if second0 - int(second0) > 0:
-        second, msec = str(second0).split('.')
-    else:
-        second = str(second0).split('.')[0]
-        msec = '000'
-    month = str(month).zfill(2)
-    day = str(day).zfill(2)
-    hour = str(hour).zfill(2)
-    minute = str(minute).zfill(2)
-    second = str(second).zfill(2)
-    if len(msec) == 1:
-        msec = str(100 * int(msec))
-    else:
-        msec = str(10 * int(msec))
-    msec = msec.zfill(3)
-    datetime = '{}-{}-{}T{}:{}:{}'.format(
-        year, month, day, hour, minute, second)
-    print(lines[2])
+    year = int(year)
+    month = int(month)
+    day = int(day)
+    hour = int(hour)
+    minute = int(minute)
+    second = int(float(second))
+    origin_time = UTCDateTime(year, month, day, hour, minute, second)
+    date_time = origin_time.isoformat()
     time_shift = max(float(lines[2][2]), 5)
-    print(lines[3])
     half_duration = float(lines[3][2])
 
     centroid_lat = float(lines[4][1])
@@ -117,10 +107,88 @@ def read_gcmt_file(cmt_file):
         'mrt': mrt,
         'mrp': mrp,
         'mtp': mtp,
-        'datetime': datetime,
+        'datetime': date_time,
+        'date_origin': origin_time,
         'lat': lat,
         'lon': lon,
         'depth': hyp_depth,
+        'time_shift': time_shift,
+        'half_duration': half_duration,
+        'centroid_lat': centroid_lat,
+        'centroid_lon': centroid_lon,
+        'centroid_depth': centroid_depth
+    }
+
+    return input_dict
+
+
+def read_quake_file(quake_file):
+    """We read the moment tensor information from a QuakeMl moment tensor file,
+    and store its content in a python dictionary
+    
+    :param cmt_file: location of text file to be used
+    :type cmt_file: string
+    """
+    tree = ET.parse(quake_file)
+    root = tree.getroot()
+    tensor = next(elem for elem in root.iter() if 'momentTensor' in elem.tag)
+
+    MRR = next(elem for elem in tensor.iter() if 'Mrr' in elem.tag)
+    mrr = int(next(child.text for child in MRR)) * 10 ** 7
+    MTT = next(elem for elem in tensor.iter() if 'Mtt' in elem.tag)
+    mtt = int(next(child.text for child in MTT)) * 10 ** 7
+    MPP = next(elem for elem in tensor.iter() if 'Mpp' in elem.tag)
+    mpp = int(next(child.text for child in MPP)) * 10 ** 7
+    MRT = next(elem for elem in tensor.iter() if 'Mrt' in elem.tag)
+    mrt = int(next(child.text for child in MRT)) * 10 ** 7
+    MRP = next(elem for elem in tensor.iter() if 'Mrp' in elem.tag)
+    mrp = int(next(child.text for child in MRP)) * 10 ** 7
+    MTP = next(elem for elem in tensor.iter() if 'Mtp' in elem.tag)
+    mtp = int(next(child.text for child in MTP)) * 10 ** 7
+    time_shift = next(elem.text for elem in tensor.iter() if 'riseTime' in elem.tag)
+    M0 = next(elem for elem in tensor.iter() if 'scalarMoment' in elem.tag)
+    m0 = float(next(child.text for child in M0)) * 10 ** 7
+    half_duration = 1.2 * 10**-8 * m0**(1/3)
+
+    origins = [elem for elem in root.iter() if 'origin' in elem.tag]
+    first_origin = []
+    second_origin = []
+    for origin in origins:
+        values = ['depthType' in elem.tag for elem in origin.iter()]
+        if not any(values):
+            first_origin = origin
+        else:
+            second_origin = origin
+
+    Event_Lat = next(elem for elem in first_origin.iter() if 'latitude' in elem.tag)
+    event_lat = float(next(child.text for child in Event_Lat))
+    Event_Lon = next(elem for elem in first_origin.iter() if 'longitude' in elem.tag)
+    event_lon = float(next(child.text for child in Event_Lon))
+    Depth = next(elem for elem in first_origin.iter() if 'depth' in elem.tag)
+    depth = float(next(child.text for child in Depth)) / 1000
+    Centroid_Lat = next(elem for elem in second_origin.iter() if 'latitude' in elem.tag)
+    centroid_lat = float(next(child.text for child in Centroid_Lat))
+    Centroid_Lon = next(elem for elem in second_origin.iter() if 'longitude' in elem.tag)
+    centroid_lon = float(next(child.text for child in Centroid_Lon))
+    Centroid_Depth = next(elem for elem in second_origin.iter() if 'depth' in elem.tag)
+    centroid_depth = float(next(child.text for child in Centroid_Depth)) / 1000
+    Time = next(elem for elem in first_origin.iter() if 'time' in elem.tag)
+    time = next(child.text for child in Time)
+    origin_time = UTCDateTime(time)
+    date_time = origin_time.isoformat()
+
+    input_dict = {
+        'mrr': mrr,
+        'mtt': mtt,
+        'mpp': mpp,
+        'mrt': mrt,
+        'mrp': mrp,
+        'mtp': mtp,
+        'datetime': date_time,
+        'date_origin': origin_time,
+        'lat': event_lat,
+        'lon': event_lon,
+        'depth': depth,
         'time_shift': time_shift,
         'half_duration': half_duration,
         'centroid_lat': centroid_lat,
@@ -137,19 +205,13 @@ def modify_tensor(tensor_info):
     :param tensor_info: dictionary with moment tensor information
     :type tensor_info: dict
     """
-    datetime = tensor_info['datetime']
+    date_time = tensor_info['datetime']
     tensor_info = {
         key: float(value) for (key, value) in tensor_info.items()\
         if __is_number(value)}
     
-    chunk1, chunk2 = datetime.split('T')
-    year, month, day = chunk1.split('-')[:3]
-    hour, minute, second = chunk2.split(':')
-
-    tensor_info['date_origin'] = UTCDateTime(
-        int(year), int(month), int(day), int(hour), int(minute),
-        int(second))
-    tensor_info['datetime'] = datetime
+    tensor_info['datetime'] = date_time
+    tensor_info['date_origin'] = UTCDateTime(date_time)
 
     mzz = tensor_info['mrr']
     mxx = tensor_info['mtt']
@@ -278,14 +340,23 @@ def __is_number(string):
         return True
     except ValueError:
         return False
+    except TypeError:
+        return False
 
 
 if __name__ == '__main__':
-    import sys
-    cmt_file = sys.argv[1]
-    tensor_info = read_gcmt_file(cmt_file)
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-gcmt", "--gcmt_tensor",
+                        help="location of GCMT moment tensor file")
+    args = parser.parse_args()
+
+    tensor_info = read_gcmt_file(args.gcmt_tensor)
     tensor_info = modify_tensor(tensor_info)
+    delta = datetime.utcnow() - tensor_info['date_origin']
+    tensor_info['timedelta'] = delta.total_seconds()
     moment_mag = tensor_info['moment_mag']
     moment_mag = 2 * np.log10(moment_mag) / 3 - 10.7
-    print(moment_mag)
+    print(tensor_info)
     write_tensor(tensor_info)
