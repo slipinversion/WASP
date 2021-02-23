@@ -3,7 +3,7 @@ program run_modelling
 
    use constants, only : max_seg, max_subfaults2, max_subf
    use model_parameters, only : get_faults_data, get_model_space, get_special_boundaries, subfault_positions, &
-                            &   write_model
+                            &   write_model, deallocate_ps
    use modelling_inputs, only : get_annealing_param, n_iter, io_re, cooling_rate, t_stop, t_mid, t0, idum
    use get_stations_data, only : get_data
    use retrieve_gf, only : get_gf, deallocate_gf
@@ -86,6 +86,7 @@ program run_modelling
    write(*,'(/A/)')"END CHEN-JI'S WAVELET KINEMATIC MODELLING METHOD"
    call deallocate_source()
    call deallocate_gf()
+   call deallocate_ps()
 
 
 end program run_modelling

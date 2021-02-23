@@ -9,7 +9,7 @@ module model_parameters
    real :: t_rise0(max_subf, max_seg), t_fall0(max_subf, max_seg)
    integer :: segments, nxs_sub(max_seg), nys_sub(max_seg), nx_p, ny_p, nxs0, nys0
    real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
-   real :: point_sources(7, max_stk_psources, max_dip_psources, max_stk_subfaults, max_dip_subfaults, max_seg)
+   real, allocatable :: point_sources(:, :, :, :, :, :)
    real :: shear(max_subf, max_seg)
    real :: c_depth, dxs, dys, v_ref, v_min, v_max, tbl, tbr
    real :: ta0, dta
@@ -35,6 +35,7 @@ contains
    integer n_s, i_s, io_x, io_y, ixs, iys, io_v_d, nxy, k, nxys(max_seg), &
    &  segment, ix, iy, ll, io_seg, kxy, kpxy, nx_c, ny_c
    real dist, t_ref, t_max, t_min, delta, dip_s, stk_s
+   allocate(point_sources(7, max_stk_psources, max_dip_psources, max_stk_subfaults, max_dip_subfaults, max_seg))
 !
 !     Input Fault position to memory
 !
@@ -546,6 +547,12 @@ contains
    end do
    close(22)
    end subroutine subfault_positions
+ 
+
+   subroutine deallocate_ps()
+   implicit none
+   deallocate(point_sources)
+   end subroutine deallocate_ps
 
 
 end module model_parameters
