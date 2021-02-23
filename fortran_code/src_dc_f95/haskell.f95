@@ -18,13 +18,15 @@ module haskell
 
    use constants, only : one, two, nlay
    use vel_model_data, only : new_thick, mu
+   use layer, only : kd, mu2, exa, exb, ra, rb, Ca, Cb, Ya, Xa, Yb, Xb, r, &
+             & r1, y, y1, ka, kb
    implicit none
 
 
 contains
    
 
-   subroutine layerParameter(k, lay, ka, kb, kd, mu2, ra, rb, r, r1)
+   subroutine layerParameter(k, lay)!, kd, mu2, ra, rb, r, r1)
 !***************************************************************
 ! compute some parameters for this layer
 !	IN:
@@ -40,9 +42,9 @@ contains
    real*8, intent(in) :: k
    real*8 k2
    complex*16 kka, kkb
-   real*8, intent(out) :: kd, mu2
-   complex*16, intent(out) :: ra,rb,r,r1
-   complex*16, intent(in) :: ka(nlay),kb(nlay)
+!   real*8, intent(out) :: kd, mu2
+!   complex*16, intent(out) :: ra,rb,r,r1
+!   complex*16, intent(in) :: ka(nlay),kb(nlay)
    k2 = k*k
    kka = ka(lay)/k2
    kkb = kb(lay)/k2
@@ -81,15 +83,15 @@ contains
    end subroutine sh_ch
 
 
-   subroutine haskellMatrix(a, exa, exb, mu2, Ca, Cb, Ya, Yb, Xa, Xb, r, r1)
+   subroutine haskellMatrix(a)!, exa, exb, mu2, Ca, Cb, Ya, Yb, Xa, Xb, r, r1)
 !***************************************************************
 ! compute 4x4 P-SV Haskell a for the layer, the layer parameter
 ! is passed in by common /layer/.
 !***************************************************************
    IMPLICIT NONE
    complex*16 a(5,5)
-   real*8 exa,exb,mu2
-   complex*16 Ca,Cb,Ya,Xa,Yb,Xb,r,r1
+!   real*8 exa,exb,mu2
+!   complex*16 Ca,Cb,Ya,Xa,Yb,Xb,r,r1
 
    Ca = Ca*exb
    Xa = Xa*exb
@@ -125,7 +127,7 @@ contains
    end subroutine haskellMatrix
 
 
-   subroutine compoundMatrix(a, exa, exb, Ca, Cb, Ya, Yb, Xa, Xb, kd, mu2, ra, rb, r, r1)
+   subroutine compoundMatrix(a)!, exa, exb, Ca, Cb, Ya, Yb, Xa, Xb, kd, mu2, ra, rb, r, r1)
 !***************************************************************
 ! The upper-left 5x5 is the 6x6 compound matrix of the P-SV Haskell matrix,
 !	a(ij,kl) = A|_kl^ij, ij=12,13,14,23,24,34,
@@ -139,10 +141,10 @@ contains
    real*8 ex
    complex*16, intent(out) :: a(7,7)
    complex*16 CaCb, CaXb, CaYb, XaCb, XaXb, YaCb, YaYb, r2, r3
-   real*8, intent(in) :: kd,mu2
-   real*8, intent(out) :: exa,exb
-   complex*16, intent(in) :: ra,rb,r,r1
-   complex*16, intent(out) :: Ca,Cb,Ya,Xa,Yb,Xb
+!   real*8, intent(in) :: kd,mu2
+!   real*8, intent(out) :: exa,exb
+!   complex*16, intent(in) :: ra,rb,r,r1
+!   complex*16, intent(out) :: Ca,Cb,Ya,Xa,Yb,Xb
 
    call sh_ch(Ca,Ya,Xa,exa,ra,kd)
    call sh_ch(Cb,Yb,Xb,exb,rb,kd)
@@ -198,14 +200,14 @@ contains
    end subroutine compoundMatrix
 
 
-   subroutine eVector(e, ra, rb, r1, mu2)
+   subroutine eVector(e)!, ra, rb, r1, mu2)
 !***************************************************************
 ! The first 5 members are E|_12^ij, ij=12,13,23,24,34.
 ! The last two are the first column of SH E matrix.
 !***************************************************************
    IMPLICIT NONE
-   real*8 mu2
-   complex*16 ra, rb, r1
+!   real*8 mu2
+!   complex*16 ra, rb, r1
    complex*16 e(7)
 ! For p-sv, compute E|_(12)^(ij), ij=12, 13, 23, 24, 34.
    e(1) = ra*rb-one
@@ -219,7 +221,7 @@ contains
    end subroutine eVector
 
 
-   subroutine initialG(g, ra, rb, r, r1, mu2)
+   subroutine initialG(g)!, ra, rb, r, r1, mu2)
 !***************************************************************
 ! Initialize the g row-vector. The first 5 elements are the
 ! inverse(E)|_{ij}^{12}, ij=12,13,23,24,34.
@@ -228,8 +230,8 @@ contains
 !***************************************************************
    IMPLICIT NONE
    complex*16 g(7), delta
-   real*8 mu2
-   complex*16 ra, rb, r, r1
+!   real*8 mu2
+!   complex*16 ra, rb, r, r1
 ! p-sv, see EQ 33 on ZR/p623, constant omitted.
    delta  = r*(one-ra*rb)-one
    g(1) = mu2*(delta-r1)

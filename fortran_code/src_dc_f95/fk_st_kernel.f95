@@ -34,6 +34,7 @@ module fk_st_kernel
    use constants, only : nlay, zero, one, two, epsilon
    use vel_model_data, only : n_layers_new, src, rcv, mu, xi, new_thick
    use fk_source, only : si
+   use layer, only : kd, mu2, exa, exb, ra, rb, Ca, Cb, Ya, Xa, Yb, Xb, r, r1, y, y1
    use st_haskell, only : layerParameter, haskellMatrix, compoundMatrix, eVector, initialG
    use prop, only : propagateG, initialZ, propagateZ, initialB, propagateB
    implicit none
@@ -42,14 +43,14 @@ module fk_st_kernel
 contains
 
 
-   subroutine kernel(k, u, ka, kb)
+   subroutine kernel(k, u)!, ka, kb)
    IMPLICIT NONE
-   real*8 kd,exa,exb,mu2
+!   real*8 kd,exa,exb,mu2
    integer stype,updn
    integer :: i, j
-   real*8 ::k, y, y1
-   complex*16 :: ka(nlay), kb(nlay)
-   complex*16 :: ra, rb, r, r1 
+   real*8 :: k!, y, y1
+!   complex*16 :: ka(nlay), kb(nlay)
+!   complex*16 :: ra, rb, r, r1 
    complex u(3,3)
    complex*16 rayl, love, dum
    complex*16 a(5,5), b(7,7), c(7,7), e(7), g(7), z(3,5), ss(3,6)
@@ -69,23 +70,23 @@ contains
    call initialB(b, e, g)
 ! propagation - start from the bottom
    do j = n_layers_new, 1, -1
-      call layerParameter(k, j, kd, mu2, y, y1)
+      call layerParameter(k, j)!, kd, mu2, y, y1)
       if ( j.EQ.n_layers_new .AND. new_thick(j).LT.epsilon ) then ! half space
-         call initialG(g, mu2, y, y1)
+         call initialG(g)!, mu2, y, y1)
       else if ( j.EQ.1 .AND. new_thick(1).LT.epsilon ) then 
-         call eVector(e, mu2, y, y1)
+         call eVector(e)!, mu2, y, y1)
          exit
       else
-         call compoundMatrix(c, exa, exb, kd, mu2, y, y1)
+         call compoundMatrix(c)!, exa, exb, kd, mu2, y, y1)
          call propagateG(c, g)
       endif
       if ( j.EQ.src ) then
-         call separatS(ss, mu2, ra, rb, r, r1)
+         call separatS(ss)!, mu2, ra, rb, r, r1)
          call initialZ(ss, g, z)
       endif
       if ( j.LT.src ) then
          if ( j.GE.rcv ) then
-            call haskellMatrix(a, exa, exb, kd, mu2, y, y1) 
+            call haskellMatrix(a)!, exa, exb, kd, mu2, y, y1) 
             call propagateZ(a, z)
          else
             call propagateB(c, b)
@@ -124,7 +125,7 @@ contains
    end subroutine kernel
 
 
-   subroutine separatS(ss, mu2, ra, rb, r, r1)
+   subroutine separatS(ss)!, mu2, ra, rb, r, r1)
    IMPLICIT NONE
    complex*16 ra, rb, r, r1
    real*8 mu2
@@ -139,7 +140,6 @@ contains
       ss = si
       return
    endif
-   write(0,*)'wtf'
 !
 ! down-going (updn=1) or up-going(updn=-1) matrix: E*diag(...)*inv(E), without the 1/2 factor
 !

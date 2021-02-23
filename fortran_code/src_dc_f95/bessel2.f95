@@ -4,8 +4,8 @@ module bessel2
    use constants, only : pi, twopi, ndis
    use retrieve_gf, only : dist_max, lnpt, dt
    implicit none
-   integer, parameter :: dmax=3000, fmax=300000
-   real :: aj0s(dmax, fmax), aj1s(dmax, fmax), aj2s(dmax, fmax)
+   integer, parameter :: dmax=2000, fmax=500000
+   real, allocatable :: aj0s(:, :), aj1s(:, :), aj2s(:, :)
 
 
 contains
@@ -16,6 +16,10 @@ contains
    real :: aj0, aj1, aj2, x(ndis)
    real :: k, dk, z, pmax, omega, dw
    integer :: i, n, ix, kc, nfft2, nfft, nd_max
+   allocate(aj0s(dmax, fmax))
+   allocate(aj1s(dmax, fmax))
+   allocate(aj2s(dmax, fmax))
+   write(0,*)'Load bessel functions to memory...'
    dk = 0.2
    dk = dk*pi/dist_max
    if(dk.gt.0.03)dk=0.03
@@ -45,6 +49,12 @@ contains
    enddo
 
    end subroutine load_bessel
+
+   subroutine deallocate_bessel()
+   deallocate(aj0s)
+   deallocate(aj1s)
+   deallocate(aj2s)
+   end subroutine deallocate_bessel 
 
 
 end module bessel2

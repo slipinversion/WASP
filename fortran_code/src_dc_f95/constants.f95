@@ -1,11 +1,8 @@
 module constants
 
    implicit none
-   integer, parameter :: nnpy = 25, nnpx = 25, nnxs = 50, nnys = 20
-   integer, parameter :: mpx = nnpx*nnxs, mpy = nnpy * nnys, nnxy = nnxs * nnys
-   integer, parameter :: l2 = 10
-   integer, parameter :: npth = 2 ** l2, inptd = 2 * npth
-   integer, parameter :: nnsta = 200
+   integer, parameter :: max_dip_psources = 25, max_stk_psources = 25
+   integer, parameter :: max_stk_subfaults = 50, max_dip_subfaults = 20
    integer, parameter :: max_seg = 5
    integer, parameter :: npuse = 513, block_stg = npuse * 130
    real*8, parameter :: zero=0.d0, one=1.d0, two=2.d0
