@@ -96,11 +96,80 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     """
     segments = segments_data['segments']
     _plot_vel_model(vel_model, point_sources)
-    _plot_moment_rate_function(segments, shear, point_sources)
+    _plot_moment_rate_function(segments_data, shear, point_sources)
     _PlotRiseTime(segments, point_sources, solution)
     _PlotRuptTime(segments, point_sources, solution)
     _PlotSlipDistribution(segments, point_sources, solution)
     _PlotMap(tensor_info, segments, point_sources, solution, default_dirs)
+
+
+def plot_beachballs(tensor_info, data_type):
+    """Main routine. Allows to coordinate execution of different plotting
+    routines.
+
+    :param tensor_info: dictionary with moment tensor information
+    :param segments: list of dictionaries with properties of fault segments
+    :param default_dirs: dictionary with default directories to be used
+    :type default_dirs: dict
+    :type tensor_info: dict
+    :type segments: list
+
+    .. rubric:: Example:
+
+    First, we load necessary modules.
+
+    >>> import json
+    >>> import get_outputs # Allows us to get properties of inverted model
+    >>> import management as mng # Allows us to load location of plotting files
+    >>> import fault_plane as pf
+    >>> import plane_management as pl_mng
+
+    Next, we load necessary data for plots.
+
+    >>> vel_model = json.load(open('velmodel_data.json')) # Assume vel_model stored in file 'velmodel_data.json'
+    >>> segments, rise_time, point_sources = pl_mng.__read_planes_info() # Loads point sources and segments information
+    >>> solution = get_outputs.read_solution_static_format(segments, point_sources)
+    >>> shear = pf.shear_modulous(point_sources, velmodel=vel_model)
+    >>> tensor_info = {
+            'moment_mag': 7 * 10 ** 27,
+            'date_origin': UTCDateTime(2014, 04, 01, 23, 46, 47)
+            'lat': -19.5,
+            'lon': -70.5,
+            'depth': 25,
+            'time_shift': 44,
+            'half_duration': 40,
+            'centroid_lat': -21,
+            'centroid_lon': -70,
+            'centroid_depth': 35
+        }
+
+    Next, we plot solution
+
+    >>> default_dirs = mng.default_dirs()
+    >>> plot_ffm_sol(tensor_info, segments, point_sources, shear, solution,
+    >>>              vel_model, default_dirs)
+
+    .. note::
+
+        To plot the results of the FFM modelling, we need to run this code
+        in a folder whih contains files Solucion.txt, Fault.time, Fault.pos,
+        Event_mult.in, and some among the files synm.tele, synm.str_low,
+        synm.str and synm.cgps.
+
+    .. note::
+
+        When running this code manually, it is good idea to check if
+        the information among files Solucion.txt, Fault.pos, Fault.time,
+        and Event_mult.in is consistent.
+
+    """
+    if 'tele_body' in data_type:
+        if not os.path.isfile('tele_waves.json'):
+            raise FileNotFoundError(
+                    errno.ENOENT, os.strerror(errno.ENOENT), 'tele_waves.json')
+        traces_info = json.load(open('tele_waves.json'))
+        plot_beachball(tensor_info, files=traces_info, phase='P')
+        plot_beachball(tensor_info, files=traces_info, phase='SH')
 
 
 def plot_misfit(used_data_type, forward=False):
@@ -116,8 +185,6 @@ def plot_misfit(used_data_type, forward=False):
             raise FileNotFoundError(
                     errno.ENOENT, os.strerror(errno.ENOENT), 'tele_waves.json')
         traces_info = json.load(open('tele_waves.json'))
-#        _plot_beachballs(tensor_info, segments, files=traces_info, phase='P')
-#        _plot_beachballs(tensor_info, segments, files=traces_info, phase='SH')
         traces_info = get_outputs.get_data_dict(
                 traces_info, syn_file='synm.tele')
         values = [['BHZ'], ['SH']]
@@ -133,9 +200,8 @@ def plot_misfit(used_data_type, forward=False):
                 traces_info, syn_file='synm.str_low')
         values = [['BHZ'], ['SH']]
         for components in values:
-            print(components)
             plot_waveform_fits(traces_info, components, 'surf_tele',
-                               start_margin='custom', forward=forward)
+                               forward=forward)
     if 'strong_motion' in used_data_type:
         if not os.path.isfile('strong_motion_waves.json'):
             raise FileNotFoundError(
@@ -143,11 +209,11 @@ def plot_misfit(used_data_type, forward=False):
                     'strong_motion_waves.json')
         traces_info = json.load(open('strong_motion_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.str')#, observed=False)
+                traces_info, syn_file='synm.str')
         values = [['HLZ', 'HNZ'], ['HLE', 'HNE'], ['HLN', 'HNN']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'strong_motion',
-                               forward=forward, start_margin=10)
+                               forward=forward)
     if 'cgps' in used_data_type:
         if not os.path.isfile('cgps_waves.json'):
             raise FileNotFoundError(
@@ -158,7 +224,7 @@ def plot_misfit(used_data_type, forward=False):
         values = [['LXZ', 'LHZ', 'LYZ'], ['LXE', 'LHE', 'LYE'], ['LXN', 'LHN', 'LYN']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'cgps',
-                                forward=forward, start_margin=10)
+                               forward=forward)
     return
 
 
@@ -602,13 +668,14 @@ def __redefine_lat_lon(segments, point_sources):
     return segments_lats, segments_lons
 
 
-def _plot_moment_rate_function(segments, shear, point_sources):
+def _plot_moment_rate_function(segments_data, shear, point_sources):
     r"""We plot moment rate function
     """
     print('Creating Moment Rate Plot...')
+    segments = segments_data['segments']
     plane_info = segments[0]
     dt = 0.01
-    model = load_ffm_model.load_ffm_model()
+    model = load_ffm_model.load_ffm_model(segments_data, point_sources)
     slip = model['slip']
     trup = model['trup']
     tl = model['trise']
@@ -663,7 +730,7 @@ def _plot_moment_rate_function(segments, shear, point_sources):
         for i in range(nmax):
             time = i * dt
             mr[i] = mr[i]\
-                + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
+                 + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
 
     time = np.arange(nmax) * dt
     with open('STF.txt', 'w') as outf:
@@ -749,17 +816,18 @@ def _PlotSnapshotSlip(tensor_info, segments, point_sources, solution):
     return
 
 
-def plot_beachball(tensor_info, segments, files=None, phase=None):
+def plot_beachball(tensor_info, files=None, phase=None):
     """Here we plot the beachball for the event. Optionally, we add the
     location of teleseismic data used in the FFM modelling.
     """
+    np1_plane, np2_plane = tensor.planes_from_tensor(tensor_info)
+    np1_plane = np1_plane['plane_info']
 #
 # Get the focal mechanism
 #
-    plane_info = segments[0]
-    strike = plane_info['strike']
-    dip = plane_info['dip']
-    rake = plane_info['rake']
+    strike = np1_plane['strike']
+    dip = np1_plane['dip']
+    rake = np1_plane['rake']
     fm = [strike, dip, rake]
 #
 # Plot the beach ball
@@ -792,97 +860,6 @@ def plot_beachball(tensor_info, segments, files=None, phase=None):
     plt.gca().axis('off')
     name_plot = '{}_azimuthcover.png'.format(phase) if phase else 'Tensor.png'
     plt.savefig(name_plot)
-    plt.close()
-    return
-
-
-def _plot_waveforms(files, components, type_str, tensor_info,
-                    start_margin=10, test=False, forward=False):
-    """We plot the observed and synthetic data for a set of stations and
-    channels.
-    """
-    files = [file for file in files if file['component'] in components]
-    files = sorted(files, key=lambda k: k['azimuth'])
-    azimuth = [file['azimuth'] for file in files]
-    fig = plt.figure(figsize=(13, 9))
-    numrows_phase = len(files) // 4 + 1
-    gs = gridspec.GridSpec(max(4, numrows_phase), 4)
-    for file in files:
-        dt = file['dt']
-        nstart = file['start_signal']
-        margin = int(start_margin / dt) if nstart > int(start_margin / dt) else 0
-        obs = np.array(file['observed'])
-        if nstart >= 0:
-            obs = np.concatenate((np.zeros(nstart), obs))
-        if type_str in ['tele_body', 'strong_motion', 'cgps']:
-            obs = obs[nstart - margin:]
-        if type_str == 'cgps':
-            obs = obs - obs[10]
-        if type_str == 'surf_tele':
-            if nstart >= 0: obs = obs[nstart:]
-            else: obs = np.concatenate((np.zeros(-nstart), obs))
-
-        obs = obs if not forward else 0 * obs
-        syn = np.array(file['synthetic'])
-        syn = np.concatenate((np.zeros(margin), syn))
-        length = min(len(obs), len(syn), file['duration'])
-        length = min(length, int(950 / dt))\
-            if not type_str in ['surf_tele'] else length
-        obs = np.array(obs[:length])
-        syn = np.array(syn[:length])
-        dt = file['dt']
-        az = file['azimuth']
-        dist = file['distance']
-        name = file['name']
-        time = np.arange(-margin, length - margin) * dt\
-            if not type_str=='dart' else np.arange(-margin, length - margin)
-        jj = azimuth.index(az)
-        weight = file['trace_weight']
-        alpha = 1 if weight > 0 else 0.1
-        ax = fig.add_subplot(gs[jj % numrows_phase, jj // numrows_phase])
-        ax.plot(time, obs, 'k', linewidth=0.8, alpha=alpha)
-        ax.plot(time, syn, 'r', linewidth=0.8, alpha=alpha)
-#        if 'BHZ' in components or 'SH' in components:
-        min_val = min(np.min(obs), np.min(syn))
-        max_val = max(np.max(obs), np.max(syn))
-        ax.vlines(0, min_val, max_val)
-        ax.text(
-            0.1, 0.9, '{:0.1f}'.format(az), ha='center',
-            va='center', transform=ax.transAxes)
-        ax.text(
-            0.1, 0.1, '{:0.1f}'.format(dist), ha='center',
-            va='center', transform=ax.transAxes)
-        ax.text(
-            0.9, 0.9, name, ha='center', va='center', transform=ax.transAxes)
-        ax.set_xlim([np.min(time), np.max(time)])
-        ax.set_ylim([min_val, max_val])
-        ax.xaxis.set_major_locator(
-            ticker.MaxNLocator(nbins=3, min_n_ticks=3))
-        ax.yaxis.set_major_locator(
-            ticker.MaxNLocator(nbins=3, min_n_ticks=3))
-
-    if type_str == 'cgps':
-        if 'LXZ' in components: plot_name = 'LXZ_cgps_waves.png'
-        if 'LXN' in components: plot_name = 'LXN_cgps_waves.png'
-        if 'LXE' in components: plot_name = 'LXE_cgps_waves.png'
-
-    if type_str == 'strong_motion':
-        if 'HNZ' in components: plot_name = 'HNZ_strong_motion_waves.png'
-        if 'HNN' in components: plot_name = 'HNN_strong_motion_waves.png'
-        if 'HNE' in components: plot_name = 'HNE_strong_motion_waves.png'
-
-    if type_str == 'tele_body':
-        if 'P' in components: plot_name = 'P_body_waves.png'
-        if 'SH' in components: plot_name = 'SH_body_waves.png'
-
-    if type_str == 'surf_tele':
-        if 'P' in components: plot_name = 'Rayleigh_surf_waves.png'
-        if 'SH' in components: plot_name = 'Love_surf_waves.png'
-
-    if type_str == 'dart':
-        plot_name = 'Dart_waves.png'
-
-    plt.savefig(plot_name, bbox_inches='tight')
     plt.close()
     return
 
@@ -1151,7 +1128,10 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     else:
         tensor_info = tensor.get_tensor()
-    segments, rise_time, point_sources = pl_mng.__read_planes_info()
+    segments_data = json.load(open('segments_data.json'))
+    segments = segments_data['segments']
+    rise_time = segments_data['rise_time']
+    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
     if args.ffm_solution:
         solution = get_outputs.read_solution_static_format(segments)
         if not os.path.isfile('velmodel_data.json'):
@@ -1159,13 +1139,12 @@ if __name__ == '__main__':
         else:
             vel_model = json.load(open('velmodel_data.json'))
         shear = pf.shear_modulous(point_sources, velmodel=vel_model)
-        plot_ffm_sol(tensor_info, segments, point_sources, shear, solution,
+        plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                      vel_model, default_dirs)
 
     traces_info, stations_gps = [None, None]
     if args.gps:
-        names, lats, lons, observed, synthetic, error\
-                = get_outputs.retrieve_gps()
+        names, lats, lons, observed, synthetic, error = get_outputs.retrieve_gps()
         stations_gps = zip(names, lats, lons, observed, synthetic, error)
     if args.strong:
         traces_info = json.load(open('strong_motion_waves.json'))
@@ -1173,9 +1152,11 @@ if __name__ == '__main__':
         solution = get_outputs.read_solution_static_format(segments)
         _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
                  files_str=traces_info, stations_gps=stations_gps)
-        input_model = load_ffm_model.load_ffm_model(option='Fault.time')
+        input_model = load_ffm_model.load_ffm_model(
+                segments_data, point_sources, option='Fault.time')
         _PlotSlipDist_Compare(segments, point_sources, input_model, solution)
         _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
                            solution)
 
+    plot_beachballs(tensor_info, used_data)
     plot_misfit(used_data)#, forward=True)

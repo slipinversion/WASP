@@ -14,6 +14,10 @@ def plot_waveforms(axes, times, waveforms, color='blue', custom=None):
     """
     """
     for ax, time, waveform in zip(axes, times, waveforms):
+        if waveform is None:
+            continue
+        if len(waveform) == 0:
+            continue
         ax.plot(time, waveform, color=color, linewidth=0.6)
         min_time, max_time = ax.get_xlim()
         min_time = np.minimum(np.min(time), min_time)
@@ -37,20 +41,28 @@ def add_metadata(axes, **kwargs):
     """
     if 'names' in kwargs:
         for ax, name in zip(axes, kwargs['names']):
+            if name is None:
+                continue
             ax.text(
                 0.9, 0.9, name, ha='center', va='center', transform=ax.transAxes)
     if 'distances' in kwargs:
         for ax, dist in zip(axes, kwargs['distances']):
+            if dist is None:
+                continue
             ax.text(
                 0.1, 0.1, '{:0.1f}'.format(dist), ha='center',
                 va='center', transform=ax.transAxes)
     if 'azimuths' in kwargs:
         for ax, az in zip(axes, kwargs['azimuths']):
+            if az is None:
+                continue
             ax.text(
                 0.1, 0.9, '{:0.1f}'.format(az), ha='center',
                 va='center', transform=ax.transAxes)
     if 'weights' in kwargs:
         for ax, weight in zip(axes, kwargs['weights']):
+            if weight is None:
+                continue
             alpha = 1 if weight > 0 else 0.1
             lines = ax.get_lines()
             for line in lines:
@@ -63,7 +75,6 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     """
     """
     files = [file for file in files if file['component'] in components]
-#    plot_spectra(files, 0.02)
     files = sorted(files, key=lambda k: k['azimuth'])
     sampling = [file['dt'] for file in files]
     names = [file['name'] for file in files]
@@ -72,16 +83,17 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     weights = [file['trace_weight'] for file in files]
     obs_waveforms = [file['observed'] for file in files]
     syn_waveforms = [file['synthetic'] for file in files]
+    zipped = zip(obs_waveforms, syn_waveforms)
+    syn_waveforms = [syn_waveform[:len(obs_waveform)]\
+                     for obs_waveform, syn_waveform in zipped]
     zipped = zip(sampling, syn_waveforms)
     syn_times = [dt * np.arange(0, len(synthetic)) for dt, synthetic in zipped]
     start_waveform = []
     for file in files:
         dt = file['dt']
         nstart = file['start_signal']
-        if not start_margin=='custom':
-            margin = int(start_margin / dt)# if nstart > int(start_margin / dt) else 0
-        else:
-            margin = min(nstart, 0)
+        margin = int(start_margin / dt)
+        margin = min(nstart, margin)
         start_waveform = start_waveform + [margin]
     zipped = zip(sampling, start_waveform, obs_waveforms)
     obs_times = [dt * np.arange(-start, len(observed) - start)\

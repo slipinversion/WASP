@@ -204,7 +204,8 @@ def read_solution_fsp_format(file_name, custom=False):
 ##########################
 
 
-def get_data_dict(traces_info, syn_file=None, observed=True, margin=10):
+def get_data_dict(traces_info, syn_file=None, observed=True, checker=False,
+                  obs_file=None, margin=10):
     """Fills dictionary with synthetic data at station and channel
 
     :param traces_info: list of dictionaries with stations and channels metadata
@@ -223,16 +224,24 @@ def get_data_dict(traces_info, syn_file=None, observed=True, margin=10):
         lines0 = [i for i, line in enumerate(lines) if len(line) > 2]
         for file in traces_info:
             name = file['name']
-            component = file['component']
-            component = __get_component(component)
+            channel = file['component']
+            channel = __get_channel(channel)
             index = next(i for i in lines0 if lines[i][2]==name\
-                 and lines[i][3] in component)
+                 and lines[i][3] in channel)
             npts = int(lines[index][0])
             synthetic = [float(real) for real, imag in lines[index + 1:index + npts]]
             file['synthetic'] = np.array(synthetic)
     if observed:
-        for file in traces_info:
-            file['observed'] = _get_observed_from_chen2(file, margin=margin)
+        if obs_file:
+            for file in traces_info:
+                file['observed'] = _get_observed_from_chen(file, obs_file)
+        else:
+            for file in traces_info:
+                file['observed'] = _get_observed_from_chen2(file, margin=margin)
+                derivative = False if not 'derivative' in file else file['derivative']
+                file['observed'] = np.diff(file['observed'])\
+                    if derivative else file['observed']
+
     else:
         for file in traces_info:
             file['observed'] = [0 for i in range(1024)]
@@ -244,14 +253,14 @@ def _get_synthetic_from_chen(file, syn_file):
     station
     """
     name = file['name']
-    component = file['component']
-    component = __get_component(component)
+    channel = file['component']
+    channel = __get_channel(channel)
     with open(syn_file, 'r') as infile:
         lines = [line.split() for line in infile]
 
     lines0 = [i for i, line in enumerate(lines) if len(line) > 2]
     index = next(i for i in lines0 if lines[i][2]==name\
-                 and lines[i][3] in component)
+                 and lines[i][3] in channel)
     npts = int(lines[index][0])
     synthetic = [float(real) for real, imag in lines[index + 1:index + npts]]
     return np.array(synthetic)
@@ -262,8 +271,8 @@ def _get_observed_from_chen(file, obse_file):
     station
     """
     name = file['name']
-    component = file['component']
-    component = __get_component(component)
+    channel = file['component']
+    channel = __get_channel(channel)
     with open(obse_file, 'r') as infile:
         lines = [line.split() for line in infile]
 
@@ -271,8 +280,9 @@ def _get_observed_from_chen(file, obse_file):
                     if not __is_number(line[0])]
     indexes = [i for i in lines0\
                if (len(lines[i]) > 1 and lines[i][1] == name)]
-    index = next(i for i in indexes if lines[i + 1][1] in component)
+    index = next(i for i in indexes if lines[i + 1][1] in channel)
     npts = int(lines[index + 3][1])
+    npts = min(file['duration'], npts)
     observed = [float(real[0]) for real in lines[index + 6:index + 5 + npts]]
     return np.array(observed)
 
@@ -288,8 +298,6 @@ def _get_observed_from_chen2(file, margin=10):
     index0 = max(index0, 0)
     index1 = file['start_signal'] + file['duration']
     index1 = max(index1, index0 + 1)
-    #print(file['file'])
-    #print(index0, index1)
     data = data[index0:index1]
     return data
 
@@ -317,20 +325,20 @@ def _old_get_observed_from_chen(file, obse_file, properties_file):
     return np.array(observed[start:])
 
 
-def __get_component(component):
+def __get_channel(channel):
     """Auxiliary routine
     """
-    if component in ['P', 'BHZ']: component = ['P', 'BHZ']
-    if component in ['SH', None, 'BH1', 'BH2', 'BHE', 'BHN']:
-        component = ['SH']
-    if component in ['HNZ', 'HLZ']: component = ['HNZ', 'HLZ']
-    if component in ['HNE', 'HLE']: component = ['HNE', 'HLE']
-    if component in ['HNN', 'HLN']: component = ['HNN', 'HLN']
-    if component in ['LXZ', 'LHZ', 'LYZ']: component = ['LXZ', 'LHZ', 'LYZ']
-    if component in ['LXE', 'LHE', 'LYE']: component = ['LXE', 'LHE', 'LYE']
-    if component in ['LXN', 'LHN', 'LYN']: component = ['LXN', 'LHN', 'LYN']
-    if component in ['dart']: component = ['dart']
-    return component
+    if channel in ['P', 'BHZ']: channel = ['P', 'BHZ']
+    if channel in ['SH', None, 'BH1', 'BH2', 'BHE', 'BHN']:
+        channel = ['SH']
+    if channel in ['HNZ', 'HLZ', 'BNZ']: channel = ['HNZ', 'HLZ', 'BNZ']
+    if channel in ['HNE', 'HLE', 'BNE']: channel = ['HNE', 'HLE', 'BNE']
+    if channel in ['HNN', 'HLN', 'BNN']: channel = ['HNN', 'HLN', 'BNN']
+    if channel in ['LXZ', 'LHZ', 'LYZ']: channel = ['LXZ', 'LHZ', 'LYZ']
+    if channel in ['LXE', 'LHE', 'LYE']: channel = ['LXE', 'LHE', 'LYE']
+    if channel in ['LXN', 'LHN', 'LYN']: channel = ['LXN', 'LHN', 'LYN']
+    if channel in ['dart']: channel = ['dart']
+    return channel
 
 
 def retrieve_gps(syn_name='synm.static'):

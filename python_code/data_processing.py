@@ -107,10 +107,11 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
 
     data_folder = os.path.abspath(os.getcwd())
     
-    logger1.info('Pick phases')
+    logger1.info('Get theoretical arrivals of P and S waves')
     model = TauPyModel(model="ak135f_no_mud")
     __picker(tensor_info, tele_files1, depth, model)
-    logger1.info('time until pick phases: {}'.format(time.time() - time1))
+    logger1.info('time spent getting theoretic arrivals: {}'.format(
+        time.time() - time1))
     logger1.info('Remove response for selected teleseismic traces')
     response_files = glob.glob('SACPZ*') + glob.glob('SAC_PZs*')
     __remove_response_body(tele_files1, response_files, tensor_info, data_prop,
@@ -376,7 +377,7 @@ def process_body_waves(tele_files, phase, data_prop, tensor_info):
         factor = dt * tr.stats.sampling_rate
         if abs(int(round(factor)) - factor) > 10 ** - 2: continue
         tr.decimate(int(round(factor)), no_filter=True)
-        tr.data = tr.data - np.mean(tr.data)
+        tr.data = tr.data - tr.data[0]#tr.data)
         if phase == 'SH': tr.detrend(type='linear')
         tr.data = 10 ** 6 * tr.data
         if np.max(np.abs(tr.data)) > 5 * 10 ** 5: continue
@@ -558,7 +559,7 @@ def select_process_surf_tele(tele_files0, tensor_info):
     data_folder = os.path.abspath(os.getcwd())
     
     os.chdir(data_folder)
-    logger1.info('Pick phases')
+    logger1.info('Get theoretical arrivals of P and S waves')
     model = TauPyModel(model="ak135f_no_mud")
     __picker(tensor_info, tele_files1, depth, model)
     logger1.info('Remove instrumental response for surface waves')
@@ -771,15 +772,16 @@ def __select_cgps_files(cgps_files, tensor_info):
     event_lon = tensor_info['lon']
     date_origin = tensor_info['date_origin']
     depth = tensor_info['depth']
-    max_dist_lat = (4.0 * time_shift + 50) / 111.11#3.0
-    max_dist_lon = (2.0 * time_shift + 100) / 111.11#3.0
+    moment = tensor_info['moment_mag']
+    moment_mag = 2*(np.log10(moment) - 16.1)/3
+    length = 10**(-2.31 + 0.57*moment_mag)
+    distance = 2 + length / 2 / 111.12
 
     for i, (stream, sac) in enumerate(zip(streams, cgps_files)):
         station_lat = stream[0].stats.sac.stla
         station_lon = stream[0].stats.sac.stlo
         if station_lat == None or station_lon == None:
             continue
-        # syn_len = 2 * time_shift# + 7 * depth / 50
         syn_len = 2 * time_shift + 7 * depth / 50
         start = date_origin
         starttime = stream[0].stats.starttime
@@ -789,7 +791,7 @@ def __select_cgps_files(cgps_files, tensor_info):
         if end - start < syn_len:
             continue
         if not __select_distance(tensor_info, station_lat, station_lon,
-                                 max_distance=3, use_centroid=True):
+                                 max_distance=distance, use_centroid=True):
             continue
         #print(stream[0].stats.station)
         indexes = np.isfinite(stream[0].data)        
@@ -821,7 +823,7 @@ def __select_cgps_files(cgps_files, tensor_info):
             and len(indexes3) >= 5 and max([len(gap) for gap in gaps]) >= 4:
                 continue
             else:
-                for gap in gaps:
+                for gap in gaps[:-1]:
                     begin = gap[0] - 1
                     end = gap[-1] + 1
                     stream[0].data = __linear_fill(stream[0].data, begin, end)
@@ -861,20 +863,21 @@ def new_process_cgps(tensor_info, stations_str, data_prop, logger=None):
     """
     start = tensor_info['date_origin']
     filtro_strong = data_prop['strong_filter']
-    # filtro_strong['low_freq'] = 0.005
     lat_ep = tensor_info['lat']
-    lon_ep = tensor_info['lon']          
+    lon_ep = tensor_info['lon']
+    sampling = data_prop['sampling']
+    dt_cgps = sampling['dt_cgps']       
        
     high_freq = min(filtro_strong['high_freq'], 0.5)
 
     streams = [read(sac) for sac in stations_str]
     
     for st, sac in zip(streams, stations_str):
-        # if int(1 / st[0].stats.delta) > 1:
-            # ratio = int(1 / st[0].stats.delta)
-            # st[0].decimate(ratio)
-        if st[0].stats.delta > 1.1:
-            st[0].interpolate(sampling_rate=1)
+        if dt_cgps > st[0].stats.delta:
+            ratio = int(dt_cgps / st[0].stats.delta)
+            st[0].decimate(ratio)
+        if st[0].stats.delta > dt_cgps:
+            st[0].resample(sampling_rate=1/dt_cgps)
         sacheader = SACTrace.from_obspy_trace(st[0])
         sacheader.t9 = high_freq
         sacheader.write(sac, byteorder='little')
@@ -887,9 +890,7 @@ def new_process_cgps(tensor_info, stations_str, data_prop, logger=None):
         sacheader.o = start - start_time
         sacheader.write(sac, byteorder='little')
     
-    dt = data_prop['sampling']['dt_cgps']
-    
-    _filter_decimate(stations_str, filtro_strong, dt, corners=4, passes=2,
+    _filter_decimate(stations_str, filtro_strong, dt_cgps, corners=4, passes=2,
                      decimate=False, filter='lowpass', logger=logger)
     return
 
@@ -1082,6 +1083,10 @@ def __select_str_files(strong_files, tensor_info):
     centroid_lon = tensor_info['centroid_lon']
     depth = tensor_info['depth']
     strong_files2 = []
+    moment = tensor_info['moment_mag']
+    moment_mag = 2*(np.log10(moment) - 16.1)/3
+    length = 10**(-2.31 + 0.57*moment_mag)
+    distance = 2 + length / 2 / 111.12
     
     for sac in strong_files:
         select_stat = True
@@ -1095,7 +1100,7 @@ def __select_str_files(strong_files, tensor_info):
         if end - start < syn_len:
             continue
         if not __select_distance(tensor_info, station_lat, station_lon,
-                                 max_distance=1.5, use_centroid=True):
+                                 max_distance=distance, use_centroid=True):
             continue
         strong_files2 = strong_files2 + [sac]
     
@@ -1353,13 +1358,7 @@ if __name__ == '__main__':
         tele_files = glob.glob('*BH*SAC') + glob.glob('*BH*sac')
         select_process_tele_body(tele_files, tensor_info, data_prop)
     if args.surface:
-        names = ['SFJD', 'PFO', 'KIP']
-        tele_files0 = glob.glob('*BH*SAC') + glob.glob('*BH*sac')
-        tele_files = []
-        for name in names:
-            tele_files = tele_files\
-                         + [file for file in tele_files0 if name in file]
-        # print(tele_files)
+        tele_files = glob.glob('*BH*SAC') + glob.glob('*BH*sac')
         select_process_surf_tele(tele_files, tensor_info)
     if args.strong:
         strong_files = glob.glob('*.HN*SAC') + glob.glob('*.HL*SAC')\

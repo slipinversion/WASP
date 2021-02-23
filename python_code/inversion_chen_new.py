@@ -232,11 +232,14 @@ def forward_modelling(tensor_info, data_type, default_dirs,
     len_stk = 5 if not option == 'point_source' else 8
     len_dip = 5 if not option == 'point_source' else 1
     segments_data = json.load(open('segments_data.json'))
+    segments = segments_data['segments']
+    rise_time = segments_data['rise_time']
+    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
 #
 # Get input model
 #
-    model = load_ffm_model(segments_data,
-            option=option, max_slip=max_slip, len_stk=len_stk, len_dip=len_dip)
+    model = load_ffm_model(segments_data, point_sources, option=option,
+                           max_slip=max_slip, len_stk=len_stk, len_dip=len_dip)
     if not os.path.isfile('velmodel_data.json'):
         raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), 'velmodel_data.json')
@@ -246,10 +249,10 @@ def forward_modelling(tensor_info, data_type, default_dirs,
     logger = ml.create_log('forward_model',
                 os.path.join('logs', 'forward_model.log'))
     logger.info('Write input files')
-    segments, rise_time, point_sources = pl_mng.__read_planes_info()
+    # segments, rise_time, point_sources = pl_mng.__read_planes_info()
     shear = pf.shear_modulous(point_sources, velmodel=velmodel)
-    dx = segments_data[0]['delta_x']
-    dy = segments_data[0]['delta_y']
+    dx = segments[0]['delta_strike']
+    dy = segments[0]['delta_dip']
     slip = model['slip']
     zipped = zip(slip, shear)
     moment_sub = [dx * dy * slip_seg * shear_seg\
@@ -303,6 +306,10 @@ def checkerboard(tensor_info, data_type, default_dirs, max_slip=200,
         if os.path.isfile(file):
             copy2(file, folder_name)
     os.chdir(folder_name)
+    segments_data = json.load(open('segments_data.json'))
+    segments = segments_data['segments']
+    rise_time = segments_data['rise_time']
+    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
     forward_modelling(tensor_info, data_type, default_dirs,
                       option=option, max_slip=max_slip)
     data_prop = json.load(open('sampling_filter.json'))
@@ -326,7 +333,8 @@ def checkerboard(tensor_info, data_type, default_dirs, max_slip=200,
                            os.path.join('logs', 'checkerboard_ffm.log'))
     if option2 == 'FFM modelling':
         inversion(tensor_info, data_type, default_dirs, logger)
-        execute_plot(tensor_info, data_type, default_dirs, plot_input=True)
+        execute_plot(tensor_info, data_type, segments_data, default_dirs,
+                     plot_input=True)
     ml.close_log(logger)
     
     
@@ -553,7 +561,7 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=N
     plot.plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                       velmodel, default_dirs)
     plot.plot_misfit(data_type)
-    # plot.plot_beachballs(tensor_info, segments, data_type)
+    # plot.plot_beachballs(tensor_info, data_type)
     traces_info, stations_gps = [None, None]
     if 'strong_motion' in data_type:
         traces_info = json.load(open('strong_motion_waves.json'))
@@ -565,7 +573,8 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=N
                       default_dirs, files_str=traces_info,
                       stations_gps=stations_gps)
     if plot_input:
-        input_model = load_ffm_model(segments_data, option='Fault.time')
+        input_model = load_ffm_model(segments_data, point_sources,
+                                     option='Fault.time')
         plot._PlotSlipDist_Compare(segments, point_sources,
                                    input_model, solution)
         plot._PlotComparisonMap(tensor_info, segments, point_sources,
@@ -659,7 +668,7 @@ if __name__ == '__main__':
         if len(data_type) == 0:
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
-        manual_modelling(tensor_info, data_type, default_dirs)#, data_folder=data_folder)
+        manual_modelling(tensor_info, data_type, default_dirs)
     if args.option == 'forward':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -691,7 +700,7 @@ if __name__ == '__main__':
         if len(data_type) == 0:
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
-        checkerboard(tensor_info, data_type, default_dirs)
+        checkerboard(tensor_info, data_type, default_dirs, add_error=True)
     if args.option == 'checker_noise':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor

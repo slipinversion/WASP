@@ -179,19 +179,13 @@ def strong_motion_traces(files, tensor_info, data_prop):
     origin_time = tensor_info['date_origin']
     headers = [SACTrace.read(file) for file in files]
     dt_strong = headers[0].delta
-    dt_strong = round(dt_strong, 1)
+    dt_strong = round(dt_strong, 2)
     values = [mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)\
         for header in headers]
     distances = [value[0] for value in values]
     zipped = zip(distances, headers)
-    arrivals = [np.sqrt(dist**2 + depth**2) / 5 + header.b for dist, header in zipped]
+    arrivals = [np.sqrt(dist**2 + depth**2) / 5 for dist in distances]
     filter0 = data_prop['strong_filter']
-    seismic_moment = tensor_info['moment_mag']
-#    outliers = strong_outliers(files, tensor_info)
-    if seismic_moment < 2 * 10 ** 26:
-        outliers = strong_outliers2(files, distances, tensor_info)
-    else:
-        outliers = strong_outliers(files, tensor_info)
     duration = duration_strong_motion(
             distances, arrivals, tensor_info, dt_strong)
     n0, n1 = data_prop['wavelet_scales']
@@ -220,15 +214,8 @@ def strong_motion_traces(files, tensor_info, data_prop):
         for weight, header in zip(weights, headers)]
     
     zipped = zip(files, headers, weights, streams, arrivals)
-    stat_list = ['KUSD', 'GMLD', 'CESE', 'DIDI', 'YKAV', 'FOCM', 'AKS', 'DATC',
-                 'GOMA', 'KRBN']
         
     for file, header, weight, stream, arrival in zipped:
-        # if not header.kstnm in stat_list:
-        #     continue
-        # weight = near_field_weight(tensor_info, header.stla, header.stlo)
-        # weight = 0 if header.kstnm in black_list\
-        # and header.kcmpnm in black_list[header.kstnm] else weight
         start = origin_time - stream[0].stats.starttime
         distance, azimuth, back_azimuth = mng._distazbaz(
                 header.stla, header.stlo, event_lat, event_lon)
@@ -271,12 +258,12 @@ def cgps_traces(files, tensor_info, data_prop):
     origin_time = tensor_info['date_origin']
     headers = [SACTrace.read(file) for file in files]
     dt_cgps = headers[0].delta
-    dt_cgps = round(dt_cgps, 1)
+    dt_cgps = round(dt_cgps, 2)
     values = [mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)\
         for header in headers]
     distances = [value[0] for value in values]
     zipped = zip(distances, headers)
-    arrivals = [np.sqrt(dist**2 + depth**2) / 5 + header.b for dist, header in zipped]
+    arrivals = [np.sqrt(dist**2 + depth**2) / 5 for dist in distances]
     duration = duration_strong_motion(distances, arrivals, tensor_info, dt_cgps)
     filter0 = data_prop['strong_filter']
     n0, n1 = data_prop['wavelet_scales']
@@ -340,12 +327,12 @@ def static_data(tensor_info, unit='cm'):
                 # if len(trace) < 200:
                     # continue
                 baseline0 = np.mean(trace[:20])
-                baseline1 = np.mean(trace[-25:-5])
+                baseline1 = np.mean(trace[-70:-20])
                 # baseline1 = np.mean(trace[-100:])
                 baseline = baseline1 - baseline0
-                variance = np.std(trace[-25:-5])
+                variance = np.std(trace[-70:-20])
                 # variance = np.std(trace[-100:])
-                weight = 1.0 if not comp[-1] == 'Z' else 0.5#max(0.1, 2 * norm.cdf(abs(baseline) / variance) - 1)
+                weight = 1.0 if not comp[-1] == 'Z' else 0.5
                 index = 0 if comp[-1] == 'Z' else 1 if comp[-1] == 'N' else 2
                 observed[index] = str(baseline)
                 weights[index] = str(weight)
@@ -398,77 +385,6 @@ def static_data(tensor_info, unit='cm'):
                  info_traces, f, sort_keys=True, indent=4,
                  separators=(',', ': '), ensure_ascii=False)
     return info_traces
-
-
-def strong_outliers(files, tensor_info):
-    """Routine which seeks to detect data with poorly removed strong motion
-    baselines.
-    
-    :param files: list of waveform files in sac format
-    :param tensor_info: dictionary with moment tensor information
-    :type files: list
-    :type tensor_info: dict
-    """
-    ratios = []
-    inv_ratios = []
-    for file in files:
-        stream = read(file)
-        ratio = np.std(stream[0].data)#lf_ratio(stream, time_shift)
-        ratios = ratios + [ratio]
-        inv_ratios = inv_ratios + [max(1 / ratio, 10 ** -10)]
-#
-# modified z_score
-#
-    outliers = []
-    mad_ratios = np.median(abs(ratios - np.median(ratios)))
-    cutoff = 6.785# if tensor_info['moment_mag'] >= 8 * 10 ** 25 else 1
-    for file, ratio in zip(files, ratios):
-        mad = 0.6785 * np.abs(ratio - np.median(ratios)) / mad_ratios
-        outliers = outliers + [file] if mad > cutoff else outliers
-#    mad_ratios2 = max(
-#        np.median(abs(inv_ratios - np.median(inv_ratios))), 10 ** -10)
-#    for file, inv_ratio in zip(files, inv_ratios):
-#        mad = 0.6785 * np.abs(inv_ratio - np.median(inv_ratios)) / mad_ratios2
-#        outliers = outliers + [file] if mad > 6.7 else outliers
-    return outliers
-
-
-def strong_outliers2(files, distances, tensor_info):
-    """Routine which seeks to detect data with poorly removed strong motion
-    baselines.
-    
-    :param files: list of waveform files in sac format
-    :param distances: list of distances from stations to the event hypocenter
-    :param tensor_info: dictionary with moment tensor information
-    :type files: list
-    :type distances: list
-    :type tensor_info: dict
-    """
-    ratios = []
-    inv_ratios = []
-    depth = tensor_info['depth']
-    for file, dist in zip(files, distances):
-        dist2 = np.sqrt(dist ** 2 + depth ** 2)
-        stream = read(file)
-        ratio = np.std(stream[0].data) * dist2
-        ratios = ratios + [ratio]
-        inv_ratios = inv_ratios + [max(1 / ratio, 10 ** -10)]
-#
-# modified z_score
-#
-    outliers = []
-    mad_ratios = max(np.median(abs(ratios - np.median(ratios))), 10 ** -10)
-    cutoff = 6.785# if tensor_info['moment_mag'] >= 8 * 10 ** 25 else 1
-    for file, ratio in zip(files, ratios):
-        mad = 0.6785 * np.abs(ratio - np.median(ratios)) / mad_ratios
-        outliers = outliers + [file] if mad > cutoff else outliers
-#    mad_ratios2 = max(
-#        np.median(abs(inv_ratios - np.median(inv_ratios))), 10 ** -10)
-#    for file, inv_ratio in zip(files, inv_ratios):
-#        mad = 0.6785 * np.abs(inv_ratio - np.median(inv_ratios)) / mad_ratios2
-#        outliers = outliers + [file] if mad > 6.7 else outliers
-    return outliers
-
 
 
 def __failsafe(filtro, header, cgps=False):
@@ -566,7 +482,7 @@ def filling_data_dicts(tensor_info, data_type, data_prop, data_folder):
         if not os.path.isfile('cgps_waves.json'):
             cgps_traces(cgps_data, tensor_info, data_prop)
     if 'gps' in data_type:
-        static_data(tensor_info, unit='mm')
+        static_data(tensor_info, unit='cm')
 
 
 def get_traces_files(data_type):
@@ -585,8 +501,8 @@ def get_traces_files(data_type):
         sh_traces_files = glob.glob(os.path.join('LONG', '*.SH.*tmp'))
         traces_files = p_traces_files + sh_traces_files
     if data_type == 'strong_motion':
-        # traces_files = glob.glob(os.path.join('STR', '*.H[LN][ENZ]*.VEL.tmp'))
-        traces_files = glob.glob(os.path.join('STR', '*.VEL.tmp'))
+        traces_files = glob.glob(os.path.join('STR', '*.H[LN][ENZ]*.VEL.tmp'))
+        # traces_files = glob.glob(os.path.join('STR', '*.VEL.tmp'))
         traces_files = traces_files + glob.glob(os.path.join('STR', '*.BN[ENZ]*.VEL.tmp'))
     if data_type == 'cgps':
         traces_files = glob.glob(os.path.join('cGPS', '*.L[HXY]*tmp'))
@@ -649,7 +565,7 @@ def __wavelets_dart(n_begin, n_end):
     :type n_begin: int
     :type n_end: int
     """
-    wavelet_weight = ['0'] * 2 + ['2'] * 6# + ['0'] * 2
+    wavelet_weight = ['0'] * 2 + ['2'] * 6
     wavelet_weight = ' '.join(wavelet_weight[n_begin - 1:n_end])
     wavelet_weight = ''.join([wavelet_weight, '\n'])
     return wavelet_weight
@@ -737,7 +653,7 @@ def duration_strong_motion(distances, arrivals, tensor_info, dt_strong):
     max_arrival = max([arrival for arrival in arrivals])
     syn_len = 4 * time_shift + 7 * depth / 50
     syn_len = min(
-            int((min(syn_len, max_len) + max_arrival) / dt_strong), 950)
+            int((min(syn_len, max_len) + 2 * max_arrival) / dt_strong), 950)
     return syn_len
 
 
@@ -757,7 +673,6 @@ def duration_dart(distances, arrivals, tensor_info, dt_dart):
     time_shift = float(tensor_info['time_shift'])
     max_dist = max(distances)
     max_arrival = 0
-   # max_arrival = max([arrival for arrival in arrivals])
     max_len = 300
     syn_len = 4 * time_shift + 15 * max_dist / 111.11 + 7 * depth / 50
     syn_len = min(
