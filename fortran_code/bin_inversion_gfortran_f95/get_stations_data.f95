@@ -196,6 +196,16 @@ contains
    filename = trim(filename)
    call get_waveforms(filename, ir_max, ll_in, ll_out, cgps) 
 
+   open(25, file='cgps_wavelet')
+   do ir = 1, ir_max
+      write(25, *)ir
+      ll_g = ir + ll_in
+      do k = 1, nlen
+         write(25, *)wave_obs(k, ll_g)
+      enddo
+   enddo
+   close(25)
+
    do ir = 1, ir_max
 
       io_chan = io_chan+1
@@ -270,7 +280,7 @@ contains
    
    filename = 'Obser.tele'
    filename = trim(filename)
-   call get_waveforms(filename, nstaon, ll_in, ll_out, cgps) 
+   call get_waveforms(filename, nstaon, ll_in, ll_out, cgps)
 
    do ir = 1, nstaon
       read(9,*) nos, earth, sttyp, sta_name3(ir), fname, &
@@ -496,13 +506,11 @@ contains
    logical :: cgps
    character(len=40) string
    character(len=20) filename
-   
-!   call fourier_coefs(lnpt)
-!   call meyer_yamada()
   
    filename = trim(filename)
    open(13, file=filename, status='old')
    do ir = 1, ir_max
+      write(43, *)ir
       ll_g = ir+ll_in
       read(13,*)
       read(13,*)
@@ -522,6 +530,10 @@ contains
             if (cgps) obser(i) = mean
          end if
       end do
+      do i = 1,nlen
+         cr(i) = obser(i)
+         cz(i) = 0.0
+      enddo
 
       call wavelet_obs(cr, cz, obser)
       amp_max = 0.0
@@ -558,12 +570,12 @@ contains
    integer :: k, j, ll_in, ir, ir_max, ll_g, n_begin, n_delt, length
    do ir = 1, ir_max
       ll_g = ir+ll_in
-      if (weight(ll_g) .gt. 10**-3) then
+      if (weight(ll_g) .gt. (10**-3)) then
          do j = jmin, jmax
             n_begin = 2**(j-1)
             n_delt = nlen/n_begin
             length = int(t_max(ll_g)/n_delt+0.5)-1
-            if (wavelet_weight(j, ll_g) .gt. 10**-3) then
+            if (wavelet_weight(j, ll_g) .gt. (10**-3)) then
                used_data = used_data + length
             endif
          end do
