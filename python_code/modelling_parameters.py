@@ -12,9 +12,10 @@ import plane_management as pl_mng
 import argparse
 import os
 import seismic_tensor as tensor
+import numpy as np
 
 
-def modelling_prop(tensor_info, data_type=None, moment_mag=None):
+def modelling_prop(tensor_info, segments_data, data_type=None, moment_mag=None):
     r"""We write a file which is a very important input for performing
     FFM modelling using simmulated annealing.
 
@@ -33,9 +34,9 @@ def modelling_prop(tensor_info, data_type=None, moment_mag=None):
 
     syn_len = int(2.5 * time_shift)
     factor = 1 / len(data_type2)
-    moment_weight = 0.01 * factor
-    slip_weight = 0.1 * factor
-    time_weight = 0.1 * factor
+    moment_weight = 0.1# * factor
+    slip_weight = 0.15# * factor
+    time_weight = 0.15# * factor
     dictionary = {
             'initial_temperature': 0.01,
             'seismic_moment': moment_mag,
@@ -44,7 +45,7 @@ def modelling_prop(tensor_info, data_type=None, moment_mag=None):
             'time_weight': time_weight,
             'max_source_dur': syn_len,
             'iterations': 250,
-            'cooling_rate': 0.971
+            'cooling_rate': 0.970
     }
 
     with open('annealing_prop.json','w') as f:
@@ -53,24 +54,30 @@ def modelling_prop(tensor_info, data_type=None, moment_mag=None):
                  separators=(',', ': '), ensure_ascii=False)
 
     moment_mag = tensor_info['moment_mag']
-    segments, rise_time = pl_mng.__get_planes_json()
-    if moment_mag < 8 * 10**25:
-        dmax = 500.0
-    elif moment_mag < 10 ** 28:
-        dmax = 1500.0
-    elif moment_mag < 7 * 10**28:
-        dmax = 2000.0
-    elif moment_mag < 4 * 10**29:
-        dmax = 4000.0
-    else:
-        dmax = 8000.0
+    segments = segments_data['segments']
+    rise_time = segments_data['rise_time']
+#
+# After Blaser et al (2010)
+#
+    seismic_moment = moment_mag
+    moment_mag = 2.0*(np.log10(seismic_moment))/3.0 - 10.7
+    length = 10**(-2.31 + 0.57*moment_mag - 0.2)
+    width = 10**(-1.56 + 0.41*moment_mag - 0.17)
+    avg_slip = seismic_moment / length / width / (3*10**21)
+    peak_slip = 2 * avg_slip
+    peak_slip = int(peak_slip / 100) * 100
     step = 20
-    nstep = min(int(dmax / step) + 1, 51)
+    nstep = min(int(peak_slip / step) + 1, 51)
 
     dictionary2 = {
-            'min_slip': 0,
-            'max_slip': dmax,
-            'slip_step': nstep
+        'min_slip': 0,
+        'max_upper_slip': peak_slip,
+        'max_lower_slip': peak_slip,
+        'max_left_slip': peak_slip,
+        'max_right_slip': peak_slip,
+        'max_center_slip': peak_slip,
+        'max_slip_delta': peak_slip,
+        'slip_step': nstep
     }
 
     segments2 = []
@@ -91,9 +98,9 @@ def modelling_prop(tensor_info, data_type=None, moment_mag=None):
         segments2 = segments2 + [dictionary3]
 
     with open('model_space.json','w') as f:
-         json.dump(
-                 segments2, f, sort_keys=True, indent=4,
-                 separators=(',', ': '), ensure_ascii=False)
+        json.dump(
+            segments2, f, sort_keys=True, indent=4, separators=(',', ': '),
+            ensure_ascii=False)
     return dictionary, segments2
 
 

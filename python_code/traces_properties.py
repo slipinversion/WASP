@@ -19,7 +19,7 @@ def nyquist_frequency(dt):
     return 1 / 2 / dt
     
 
-def sampling(tensor_info, dt_cgps):
+def sampling(tensor_info, dt_cgps=None):
     """Automatic setting for data sampling
     
     :param tensor_info: dictionary with moment tensor information
@@ -46,6 +46,7 @@ def sampling(tensor_info, dt_cgps):
     else:
         dt_strong = 0.8
     dt_strong = dt_strong if depth < 500 else 0.8
+    dt_cgps = dt_strong if not dt_cgps else dt_cgps
     return {'dt_tele': dt_tele, 'dt_strong': dt_strong, 'dt_cgps': dt_cgps}
 
 

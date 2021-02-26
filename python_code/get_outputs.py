@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Script with routines for retrieving both the kinematic model which solves
-the inverse problem, and the synthetic waveforms produced by such model, 
+the inverse problem, and the synthetic waveforms produced by such model,
 """
 
 
@@ -20,7 +20,7 @@ from obspy import read
 
 def read_solution_static_format(segments):
     """We read a solution file in static format.
-    
+
     :param segments: dictionary with properties of the fault segments
     :type segments: dict
     """
@@ -39,7 +39,7 @@ def read_solution_static_format(segments):
                 errno.ENOENT, os.strerror(errno.ENOENT), 'Solucion.txt')
     with open('Solucion.txt', 'r') as input_file:
         jk = [line.split() for line in input_file]
-    
+
     faults_data = [index + 1 for index, line in enumerate(jk)\
                    if set(['#Lat.', 'Lon.', 'depth', 'slip']) <= set(line)]
     headers = [index for index, line in enumerate(jk)\
@@ -63,24 +63,24 @@ def read_solution_static_format(segments):
         trise_fault = np.array([float(line[8]) for line in jk[start:end]])
         tfall_fault = np.array([float(line[9]) for line in jk[start:end]])
         moment_fault = np.array([float(line[-1]) for line in jk[start:end]])
-        n_sub_stk, n_sub_dip, delta_x, delta_y, hyp_stk, hyp_dip\
+        stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
             = pl_mng.__unpack_plane_data(segment)
 #
 # Reshape the rupture process
 #
-        if not slip_fault.size == n_sub_stk * n_sub_dip:
+        if not slip_fault.size == stk_subfaults * dip_subfaults:
             raise RuntimeError(
                     'Inconsistency between Fault.time and Solucion.txt.'\
                     ' Different size of fault segment')
-        lat_fault.shape = n_sub_dip, n_sub_stk
-        lon_fault.shape = n_sub_dip, n_sub_stk
-        depth_fault.shape = n_sub_dip, n_sub_stk
-        slip_fault.shape = n_sub_dip, n_sub_stk
-        rake_fault.shape = n_sub_dip, n_sub_stk
-        trup_fault.shape = n_sub_dip, n_sub_stk
-        trise_fault.shape = n_sub_dip, n_sub_stk
-        tfall_fault.shape = n_sub_dip, n_sub_stk
-        moment_fault.shape = n_sub_dip, n_sub_stk
+        lat_fault.shape = dip_subfaults, stk_subfaults
+        lon_fault.shape = dip_subfaults, stk_subfaults
+        depth_fault.shape = dip_subfaults, stk_subfaults
+        slip_fault.shape = dip_subfaults, stk_subfaults
+        rake_fault.shape = dip_subfaults, stk_subfaults
+        trup_fault.shape = dip_subfaults, stk_subfaults
+        trise_fault.shape = dip_subfaults, stk_subfaults
+        tfall_fault.shape = dip_subfaults, stk_subfaults
+        moment_fault.shape = dip_subfaults, stk_subfaults
         lat = lat + [lat_fault]
         lon = lon + [lon_fault]
         depth = depth + [depth_fault]
@@ -107,9 +107,9 @@ def read_solution_static_format(segments):
 
 def read_solution_fsp_format(file_name, custom=False):
     """We read a solution file in fsp format
-    
+
     :param file_name: string with location of solution file in fsp format
-    :param custom: 
+    :param custom:
     :type file_name: string
     :type custom: bool, optional
     """
@@ -127,7 +127,7 @@ def read_solution_fsp_format(file_name, custom=False):
                 errno.ENOENT, os.strerror(errno.ENOENT), file_name)
     with open(file_name, 'r') as input_file:
         jk = [line.split() for line in input_file]
-    
+
     tensor_info = {
             'lat': float(jk[5][5]),
             'lon': float(jk[5][8]),
@@ -135,10 +135,10 @@ def read_solution_fsp_format(file_name, custom=False):
     }
     n_segments = int(jk[14][8])
     subfaults_data = {
-            'n_sub_x': int(jk[12][5]),
-            'n_sub_y': int(jk[12][8]),
-            'delta_x': float(jk[13][5]),
-            'delta_y': float(jk[13][9]),
+            'stk_subfaults': int(jk[12][5]),
+            'dip_subfaults': int(jk[12][8]),
+            'delta_strike': float(jk[13][5]),
+            'delta_dip': float(jk[13][9]),
             'strike': float(jk[7][5])
     }
 
@@ -183,7 +183,7 @@ def read_solution_fsp_format(file_name, custom=False):
                 rake = rake + [rake0]
                 trup = trup + [trup0]
                 trise = trise + [trise0]
-                width = width + [width0] 
+                width = width + [width0]
             line0 = line0 + subfaults_seg + 1
 
     solution = {
@@ -204,9 +204,10 @@ def read_solution_fsp_format(file_name, custom=False):
 ##########################
 
 
-def get_data_dict(traces_info, syn_file=None, observed=True, margin=10):
+def get_data_dict(traces_info, syn_file=None, observed=True, checker=False,
+                  obs_file=None, margin=10):
     """Fills dictionary with synthetic data at station and channel
-    
+
     :param traces_info: list of dictionaries with stations and channels metadata
     :param syn_file: string with location of file with synthetic data
     :param observed: whether to add observed waveform or not
@@ -223,16 +224,24 @@ def get_data_dict(traces_info, syn_file=None, observed=True, margin=10):
         lines0 = [i for i, line in enumerate(lines) if len(line) > 2]
         for file in traces_info:
             name = file['name']
-            component = file['component']
-            component = __get_component(component)
+            channel = file['component']
+            channel = __get_channel(channel)
             index = next(i for i in lines0 if lines[i][2]==name\
-                 and lines[i][3] in component)
+                 and lines[i][3] in channel)
             npts = int(lines[index][0])
             synthetic = [float(real) for real, imag in lines[index + 1:index + npts]]
             file['synthetic'] = np.array(synthetic)
     if observed:
-        for file in traces_info:
-            file['observed'] = _get_observed_from_chen2(file, margin=margin)
+        if obs_file:
+            for file in traces_info:
+                file['observed'] = _get_observed_from_chen(file, obs_file)
+        else:
+            for file in traces_info:
+                file['observed'] = _get_observed_from_chen2(file, margin=margin)
+                derivative = False if not 'derivative' in file else file['derivative']
+                file['observed'] = np.diff(file['observed'])\
+                    if derivative else file['observed']
+
     else:
         for file in traces_info:
             file['observed'] = [0 for i in range(1024)]
@@ -244,14 +253,14 @@ def _get_synthetic_from_chen(file, syn_file):
     station
     """
     name = file['name']
-    component = file['component']
-    component = __get_component(component)
+    channel = file['component']
+    channel = __get_channel(channel)
     with open(syn_file, 'r') as infile:
         lines = [line.split() for line in infile]
 
     lines0 = [i for i, line in enumerate(lines) if len(line) > 2]
     index = next(i for i in lines0 if lines[i][2]==name\
-                 and lines[i][3] in component)
+                 and lines[i][3] in channel)
     npts = int(lines[index][0])
     synthetic = [float(real) for real, imag in lines[index + 1:index + npts]]
     return np.array(synthetic)
@@ -262,17 +271,18 @@ def _get_observed_from_chen(file, obse_file):
     station
     """
     name = file['name']
-    component = file['component']
-    component = __get_component(component)
+    channel = file['component']
+    channel = __get_channel(channel)
     with open(obse_file, 'r') as infile:
         lines = [line.split() for line in infile]
-    
+
     lines0 = [i for i, line in enumerate(lines)\
                     if not __is_number(line[0])]
     indexes = [i for i in lines0\
                if (len(lines[i]) > 1 and lines[i][1] == name)]
-    index = next(i for i in indexes if lines[i + 1][1] in component)
+    index = next(i for i in indexes if lines[i + 1][1] in channel)
     npts = int(lines[index + 3][1])
+    npts = min(file['duration'], npts)
     observed = [float(real[0]) for real in lines[index + 6:index + 5 + npts]]
     return np.array(observed)
 
@@ -285,18 +295,16 @@ def _get_observed_from_chen2(file, margin=10):
     data = st[0].data
     dt = file['dt']
     index0 = file['start_signal'] - int(margin // dt)
-    index0 = max(index0, 0) 
+    index0 = max(index0, 0)
     index1 = file['start_signal'] + file['duration']
     index1 = max(index1, index0 + 1)
-    #print(file['file'])
-    #print(index0, index1)
     data = data[index0:index1]
     return data
 
 
 def _old_get_observed_from_chen(file, obse_file, properties_file):
     """Fills dictionary with observed data at station and channel
-    
+
     :param file: dictionary with properties of the fault segments
     :param syn_file: dictionary with moment tensor information
     :type file: dict
@@ -308,45 +316,45 @@ def _old_get_observed_from_chen(file, obse_file, properties_file):
     start = file['start_signal']
     with open(obse_file, 'r') as infile:
         lines = [line.split() for line in infile]
-    
+
     lines0 = [i for i, line in enumerate(lines) if len(line) > 2]
-    indexes = [i for i in lines0 if lines[i][2] == name]    
+    indexes = [i for i in lines0 if lines[i][2] == name]
     index = next(i for i in indexes if lines[i][3] in component)
     npts = int(lines[index][0])
     observed = [float(real[0]) for real in lines[index + 1:index + npts]]
     return np.array(observed[start:])
 
 
-def __get_component(component):
+def __get_channel(channel):
     """Auxiliary routine
     """
-    if component in ['P', 'BHZ']: component = ['P', 'BHZ']
-    if component in ['SH', None, 'BH1', 'BH2', 'BHE', 'BHN']:
-        component = ['SH']
-    if component in ['HNZ', 'HLZ']: component = ['HNZ', 'HLZ']
-    if component in ['HNE', 'HLE']: component = ['HNE', 'HLE']
-    if component in ['HNN', 'HLN']: component = ['HNN', 'HLN']
-    if component in ['LXZ', 'LHZ', 'LYZ']: component = ['LXZ', 'LHZ', 'LYZ']
-    if component in ['LXE', 'LHE', 'LYE']: component = ['LXE', 'LHE', 'LYE']
-    if component in ['LXN', 'LHN', 'LYN']: component = ['LXN', 'LHN', 'LYN']
-    if component in ['dart']: component = ['dart']
-    return component
-    
-    
+    if channel in ['P', 'BHZ']: channel = ['P', 'BHZ']
+    if channel in ['SH', None, 'BH1', 'BH2', 'BHE', 'BHN']:
+        channel = ['SH']
+    if channel in ['HNZ', 'HLZ', 'BNZ']: channel = ['HNZ', 'HLZ', 'BNZ']
+    if channel in ['HNE', 'HLE', 'BNE']: channel = ['HNE', 'HLE', 'BNE']
+    if channel in ['HNN', 'HLN', 'BNN']: channel = ['HNN', 'HLN', 'BNN']
+    if channel in ['LXZ', 'LHZ', 'LYZ']: channel = ['LXZ', 'LHZ', 'LYZ']
+    if channel in ['LXE', 'LHE', 'LYE']: channel = ['LXE', 'LHE', 'LYE']
+    if channel in ['LXN', 'LHN', 'LYN']: channel = ['LXN', 'LHN', 'LYN']
+    if channel in ['dart']: channel = ['dart']
+    return channel
+
+
 def retrieve_gps(syn_name='synm.static'):
     """Get inverted and observed GPS data with station location
-    
+
     :param syn_name: name of data with synthetic GPS data
     :type syn_name: strong, optional
     """
     obs_data = json.load(open('static_data.json'))
-    
+
     lats = [data['location'][0] for data in obs_data]
     lons = [data['location'][1] for data in obs_data]
     names = [data['name'] for data in obs_data]
     observed = [data['observed'] for data in obs_data]
     error = [data['data_error'] for data in obs_data]
-        
+
     with open(syn_name, 'r') as inf:
         lines = [line.split() for line in inf]
 

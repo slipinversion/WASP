@@ -77,7 +77,7 @@ def load_ffm_model(option='Solucion.txt', max_slip=1000, len_stk=4, len_dip=4):
             tfall = tfall + [tfall_fault]
 
     if option == 'point_source':
-        ta0 = rise_time['ta0']
+        min_rise = rise_time['min_rise']
         for i_segment, (segment, point_source_seg, start, end)\
         in enumerate(zip(segments, point_sources, faults_data, headers)):
             rake_value = segment['rake']
@@ -90,8 +90,8 @@ def load_ffm_model(option='Solucion.txt', max_slip=1000, len_stk=4, len_dip=4):
             slip_fault = np.array([float(line[0]) for line in jk[start:end]])
             rake_fault = np.array([rake_value for line in jk[start:end]])
             trup_fault = point_source_seg[:, :, ny, nx, 4]
-            trise_fault = np.array([ta0 for line in jk[start:end]])
-            tfall_fault = np.array([ta0 for line in jk[start:end]])
+            trise_fault = np.array([min_rise for line in jk[start:end]])
+            tfall_fault = np.array([min_rise for line in jk[start:end]])
             n_sub_stk, n_sub_dip, delta_x, delta_y, hyp_stk, hyp_dip\
                 = pl_mng.__unpack_plane_data(segment)
 #
@@ -116,7 +116,7 @@ def load_ffm_model(option='Solucion.txt', max_slip=1000, len_stk=4, len_dip=4):
 
 
     if option == 'Checkerboard':
-        ta0 = rise_time['ta0']
+        min_rise = rise_time['min_rise']
         i = 0
         for segment, point_source_seg, start, end\
         in zip(segments, point_sources, faults_data, headers):
@@ -130,8 +130,8 @@ def load_ffm_model(option='Solucion.txt', max_slip=1000, len_stk=4, len_dip=4):
             slip_fault = np.array([float(line[0]) for line in jk[start:end]])
             rake_fault = np.array([rake_value for line in jk[start:end]])
             trup_fault = point_source_seg[:, :, ny, nx, 4]
-            trise_fault = np.array([ta0 for line in jk[start:end]])
-            tfall_fault = np.array([ta0 for line in jk[start:end]])
+            trise_fault = np.array([min_rise for line in jk[start:end]])
+            tfall_fault = np.array([min_rise for line in jk[start:end]])
             n_sub_stk, n_sub_dip, delta_x, delta_y, hyp_stk, hyp_dip\
                 = pl_mng.__unpack_plane_data(segment)
 #
@@ -159,7 +159,7 @@ def load_ffm_model(option='Solucion.txt', max_slip=1000, len_stk=4, len_dip=4):
 
 
     if option == 'Patches':
-        ta0 = rise_time['ta0']
+        min_rise = rise_time['min_rise']
         for i_segment, (segment, point_source_seg, start, end)\
         in enumerate(zip(segments, point_sources, faults_data, headers)):
             rake_value = segment['rake']
@@ -177,8 +177,8 @@ def load_ffm_model(option='Solucion.txt', max_slip=1000, len_stk=4, len_dip=4):
                 * (np.ones((n_sub_dip, n_sub_stk))\
                 + 0.2 * np.random.randn(n_sub_dip, n_sub_stk))
             trup_fault = np.maximum(trup_fault, 0)
-            trise_fault = np.array([2 * ta0 for line in jk[start:end]])
-            tfall_fault = np.array([2 * ta0 for line in jk[start:end]])
+            trise_fault = np.array([2 * min_rise for line in jk[start:end]])
+            tfall_fault = np.array([2 * min_rise for line in jk[start:end]])
 
 #
 # Reshape the rupture process

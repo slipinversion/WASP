@@ -17,16 +17,19 @@ module st_haskell
 
    use constants, only : nlay, two, one
    use vel_model_data, only : n_layers_new, mu, xi, new_thick
+   use layer, only : kd, mu2, exa, exb, ra, rb, Ca, Cb, Ya, Xa, Yb, Xb, r, &
+             & r1, y, y1
+   implicit none
 
 
 contains
 
 
-   subroutine layerParameter(k, lay, kd, mu2, y, y1)
+   subroutine layerParameter(k, lay)!, kd, mu2, y, y1)
    IMPLICIT NONE
    integer, intent(in) :: lay
    real*8, intent(in) :: k
-   real*8, intent(out) :: kd, mu2, y, y1
+!   real*8, intent(out) :: kd, mu2, y, y1
    mu2 = two*mu(lay)
    kd  = k*new_thick(lay)
    y   = xi(lay)
@@ -34,12 +37,12 @@ contains
    end subroutine layerParameter
 
 
-   subroutine haskellMatrix(a, exa, exb, kd, mu2, y, y1)
+   subroutine haskellMatrix(a)!, exa, exb, kd, mu2, y, y1)
 !***************************************************************
 ! p-sv haskell matrix, scaled by exp(-2kd) to suppress overflow.
 !***************************************************************
    IMPLICIT NONE
-   real*8 C, S, x, y2, exa, exb, kd, mu2, y, y1
+   real*8 C, S, x, y2!, exa, exb, kd, mu2, y, y1
    complex*16 a(5,5)
 
    C = exb*(one+exa)/two
@@ -74,12 +77,12 @@ contains
    end subroutine haskellMatrix
 
 
-   subroutine compoundMatrix(a, exa, exb, kd, mu2, y, y1)
+   subroutine compoundMatrix(a)!, exa, exb, kd, mu2, y, y1)
 !***************************************************************
 ! p-sv compound matrix scaled by exb*exb; sh haskell matrix scaled by exb
 !***************************************************************
    IMPLICIT NONE
-   real*8 C, S, C2, S2, CS, exa, exb, x, x2, y2, kd, mu2, y, y1
+   real*8 C, S, C2, S2, CS, x, x2, y2!, exa, exb, x, x2, y2, kd, mu2, y, y1
    complex*16 a(7,7)
 
    exb = dexp(-kd)
@@ -133,12 +136,12 @@ contains
    end subroutine compoundMatrix
 
 
-   subroutine eVector(e, mu2, y, y1)
+   subroutine eVector(e)!, mu2, y, y1)
 !***************************************************************
 ! e(1:5) = E_12^ij; e(6:7) is the 1st column of E_sh.
 !***************************************************************
    IMPLICIT NONE
-   real*8     mu2, y, y1
+!   real*8     mu2, y, y1
    complex*16 e(7)
 ! for p-sv, they are E|_(12)^(ij), ij=12, 13, 23, 24, 34.
    e(1) =-(one+y)
@@ -152,14 +155,14 @@ contains
    end subroutine eVector
 
 
-   subroutine initialG(g, mu2, y, y1)
+   subroutine initialG(g)!, mu2, y, y1)
 !**************************************************************
 ! Initialize the g row-vector. The first 5 elements are the
 ! inverse(E)|_{ij}^{12}, ij=12,13,23,24,34.
 ! The last two are the 5th row of E^-1, see Eq. 34 and Eq. A9 in ZR.
 !**************************************************************
    IMPLICIT NONE
-   real*8     mu2, y, y1
+!   real*8     mu2, y, y1
    complex*16 g(7)
 ! p-sv
    g(1) =-mu2*y1

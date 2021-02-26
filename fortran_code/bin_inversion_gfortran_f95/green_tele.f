@@ -71,7 +71,7 @@ c
      * xmean, gdp, rpz, hcru, hsou
       real low_freq, high_freq, lat_sta(100), lon_sta(100)
       real fmax, eang, rang, ttvl, lat_p, lon_p, dis, az_s, baz_s
-      real ta0, dta
+      real ta0, dta, high_freq2
       integer love, mmm, iud, idata, llove
       DIMENSION EANG(100),HCRU(100),MMM(100),HSOU(100)
       DIMENSION IUD(100),IDATA(100)
@@ -91,6 +91,7 @@ c
 c 203  format(I2,1X,A5,1X,A4,1X,A6,1X,A13,1X,F5.2,1X,F6.2,1X,F5.2,1X
 c     *   ,F3.1,1X,I1,1X,2(F4.1,1X),I1,1X,I2,1X,I1)
 C
+      write(*,'(/A/)')'PROGRAM TO COMPUTE TELESEISMIC BODY WAVE GF'
       pi=4.0*atan(1.0)
       pi2 = 2.0 * pi
       pi4 = 4.0 * pi
@@ -106,6 +107,7 @@ C
       close(1)
       
 c
+      write(*,*)'Get fault segments data...'
       OPEN(22,FILE='Fault.time')
       READ(22,*)NXS0,NYS0,c_depth,lnpt_use
       READ(22,*)n_seg,DXS,DYS,nx_p,ny_p
@@ -113,8 +115,6 @@ c
       do i_seg=1,n_seg
          read(22,*)io_seg, dip_sub(i_seg),stk_sub(i_seg)
          read(22,*)nxs_sub(i_seg),nys_sub(i_seg),delay_sub(i_seg)
-         write(*,*)io_seg, dip_sub(i_seg),stk_sub(i_seg)
-         write(*,*)nxs_sub(i_seg),nys_sub(i_seg),delay_sub(i_seg)
          do iys=1,nys_sub(i_seg)
             do ixs=1,nxs_sub(i_seg)
                read(22,*)dd(i_seg,ixs,iys),aa(i_seg,ixs,iys)
@@ -144,8 +144,9 @@ c
       enddo
       close(22)
 
+      write(*,*)'Get vel_model...'
       open(15,file='vel_model',status='old')
-      lnpt=lnpt_use-1
+      lnpt=lnpt_use!-1
       aw=0.01
       read(15,*) jo
       do j=1,jo
@@ -153,11 +154,12 @@ c
       enddo
       nsyn=2**lnpt
       jf=1+nsyn/2
-      df=1./((nsyn-1)*dt)
+      df=1.0/(nsyn*dt)!df=1./((nsyn-1)*dt)
 
-      jf_final=nsyn+1
+!      jf_final=nsyn+1
+      jf_final = jf
       nsyn_final=2**lnpt_use
-      df_final=1.0/(nsyn_final-1)/dt
+      df_final=1.0/(nsyn_final*dt)!df_final=1.0/(nsyn_final-1)/dt
 
       depth = c_depth
 
@@ -175,7 +177,6 @@ c
          enddo
          r=ta0+(iso-1)*dta
          nls=int(r/dt+0.5)+1
-         write(*,*)'io_v_d',io_v_d
          if(io_v_d.eq.0)then
             do i=1,nls
                cr(i)=(1.0-cos(2.*pi*(i-1)*dt/r))/r
@@ -218,6 +219,7 @@ c
 c	Here, for every station, we define the green functions for every
 c	subfault, plus the time delay of the station and subfault.
 c	      
+      write(*,*)'Begin to compute response for each channel...'
       DO IR=1,NSTAON
          read(9,*)NOS(IR),EARTH(IR),STTYP(IR),STNAME(IR),FNAME(IR),RANG
      * (IR),AZ(IR),lat_sta(ir),lon_sta(ir),EANG(IR),TTVL(IR),MMM(IR),
@@ -233,9 +235,13 @@ C   Because the response of upper mantle and Pnl is not enough clear
 C   to be used to study the detail of earthquake, Such data will not use
 C
          if (love.eq.0) then
+            write(*,*)'Compute P response for station ', STNAME(IR)
+            high_freq2 = high_freq
             fname4 = trim(stname(ir))//'.GRE'
             fname5 = trim(stname(ir))//'.TDE'
          else
+            write(*,*)'Compute SH response for station ', STNAME(IR)
+            high_freq2 = high_freq / 2.0
             fname4 = trim(stname(ir))//'SH.GRE'
             fname5 = trim(stname(ir))//'SH.TDE'
          endif
@@ -261,7 +267,7 @@ C
 
          IF(MM.EQ.0) THEN
          
-            WRITE(*,313) STNAME(IR),FNAME4
+!            WRITE(*,313) STNAME(IR),FNAME4
  313        FORMAT(1X,A6,1X,'  FAR ',A14,A14)
             IF(LOVE.GT.0) THEN
                CALL INTERP(DIST,DTDPSH,61,RANG(IR),RK)
@@ -304,6 +310,9 @@ c	   CALL FFT(CR,CI,LNPT_use,-1.)
 c
 c         END IF
 
+c
+c Seismic source?
+c
          CALL ABOTM(PMD,PMU,SVMU,RPZ)
          GDP=DP*RPZ
          iflag=0
@@ -336,12 +345,12 @@ c
             D2=2.0*D
             COS2D=COS(D2)
             SIN2D=SIN(D2)
-c            AAZ=(AZ(IR)-stk_sub(i_seg))*deg_arc
-c            COSAAZ=COS(AAZ)
-c            SINAAZ=SIN(AAZ)
-c            AAZ=2.0*AAZ
-c            COS2AAZ=COS(AAZ)
-c            SIN2AAZ=SIN(AAZ)
+            AAZ=(AZ(IR)-stk_sub(i_seg))*deg_arc
+            COSAAZ=COS(AAZ)
+            SINAAZ=SIN(AAZ)
+            AAZ=2.0*AAZ
+            COS2AAZ=COS(AAZ)
+            SIN2AAZ=SIN(AAZ)
             THEA=stk_sub(i_seg)*deg_arc
             SINTHEA=SIN(THEA)
             COSTHEA=COS(THEA)
@@ -351,31 +360,21 @@ c            SIN2AAZ=SIN(AAZ)
                   kxy=(iys-1)*nxs_sub(i_seg)+1
                   kpxy=(iy-1)*nx_p+1
                   zdepth=fau_mod(i_seg,kxy,kpxy,3)
-                  lat_p = fau_mod(i_seg,kxy,kpxy,1)
-                  lon_p = fau_mod(i_seg,kxy,kpxy,2)
-                  call distaz(lat_sta(ir),lon_sta(ir),lat_p,lon_p,
-     *            dis,az_s,baz_s)
-                  aaz=(az_s-stk_sub(i_seg))*deg_arc
-                  cosaaz=cos(aaz)
-                  sinaaz=sin(aaz)
-                  aaz=2.0*aaz
-                  cos2aaz=cos(aaz)
-                  sin2aaz=sin(aaz)
                   if(zdepth .le.0.1)then
                      write(*,*)iys,iy
                      write(*,*)"ohoh, the subfault is in air"
                      stop
                   endif
-                  CALL RTDK(LOVE,RK,ZDEPTH,NBS) ! aca tenemos un culpable!
+                  CALL RTDK(LOVE,RK,ZDEPTH,NBS) 
 c		
 c		shear modulous
 c		
                   niu=bta(nbs)*bta(nbs)*ro(nbs)*(1.e+10)
                   niu=niu/(pi4*ro(nbs))
 
-                  DO I=1,JF
+                  DO I=1,JF_final
 c	a trick to remove the dc offset
-                     z=cmplx(0.0,-pi2*df*(i-1)*5.0)
+                     z=cmplx(0.0,-pi2*df_final*(i-1)*20.0)
                      Z=FINST(I)*niu*cexp(z)
 c	
 c	Green functions in frequency domain, with added instrumental response
@@ -393,7 +392,7 @@ c
                      END IF
                   enddo
 c
-                  DO I=1,JF
+                  DO I=1,JF_final
                      CR(I)=REAL(ww(I))
                      CI(I)=AIMAG(ww(I))
                   enddo
@@ -401,31 +400,32 @@ c
 c	Back to time domain
 c
    
-                  CALL REALTR(CR,CI,LNPT)
-                  CALL FFT(CR,CI,LNPT,1.)
-                  nb=int(5.0/dt)-1
+                  CALL REALTR(CR,CI,LNPT_use)
+                  CALL FFT(CR,CI,LNPT_use,1.)
+                  nb=int(20.0/dt)-1
                   xmean=0.0
                   do i=1,nb
                      xmean=xmean+cr(i)
                   enddo
                   xmean=xmean/nb
                
-                  do i=1,nsyn
+                  do i=1,nsyn_final
                      cr(i)=cr(i)-xmean
                   enddo
-                  do i=1,nsyn_final
+                  do i=1,ldim
                      ci(i)=0.0
                      if(i.gt.nsyn)cr(i)=0.0
                   enddo
 c	
-c	Back to frequency domain. Besides, now we write the green functions in
-c	binary files. So that reading back the data can be made faster.
+c	Back to frequency domain.
 c
                   call bandpassfilter(cr,ldim,dt,2,2, 
-     &            low_freq,high_freq)
+     &            low_freq,10.0)
+                  call bandpassfilter(cr,ldim,dt,2,2, 
+     &            0.0,high_freq2)
                   CALL FFT(CR,CI,LNPT_use,-1.)
                   do i=1,jf_final
-                     w=pi2*df_final*(i-1)*5.0
+                     w=pi2*df_final*(i-1)*20.0
                      Z=cmplx(0.0,w)
                      ww(i)=cmplx(cr(i),ci(i))*cexp(z)
                   enddo
@@ -433,37 +433,39 @@ c
                   WRITE(12,REC=LL)i_seg,iys,iy,JF_final,DT,DF_final, 
      &                     (WW(I),I=1,JF_final)
      
-                  DO I=1,JF
+                  DO I=1,JF_final
                      CR(I)=REAL(ws(I))
                      CI(I)=AIMAG(ws(I))
                   enddo
-                  CALL REALTR(CR,CI,LNPT)
-                  CALL FFT(CR,CI,LNPT,1.)
+                  CALL REALTR(CR,CI,LNPT_use)
+                  CALL FFT(CR,CI,LNPT_use,1.)
                   xmean=0.0
                   do i=1,nb
                      xmean=xmean+cr(i)
                   enddo
                   xmean=xmean/nb
                  
-                  do i=1,nsyn
+                  do i=1,nsyn_final
                      cr(i)=cr(i)-xmean
                   enddo
-                  do i=1,nsyn_final
+                  do i=1,ldim
                      ci(i)=0.0
                      if(i.gt.nsyn)cr(i)=0.0
                   enddo
+                  call bandpassfilter(cr,ldim,dt,2,2,  
+     &            low_freq,10.0)
                   call bandpassfilter(cr,ldim,dt,2,2, 
-     &            low_freq,high_freq)
+     &            0.0,high_freq2)
                   CALL FFT(CR,CI,LNPT_use,-1.)
                   do i=1,jf_final
-                     w=pi2*df_final*(i-1)*5.0
+                     w=pi2*df_final*(i-1)*20.0
                      Z=cmplx(0.0,w)
                      ws(i)=cmplx(cr(i),ci(i))*cexp(z)
                   enddo
                   LL=LL+1
-                  write(*,*)'parameters of GF', jf_final,lnpt_use, 
-     &            nsyn_final
-                  write(*,*)'nonzero values of GF', jf,lnpt,nsyn
+!                  write(*,*)'parameters of GF', jf_final,lnpt_use, 
+!     &            nsyn_final
+!                  write(*,*)'nonzero values of GF', jf,lnpt,nsyn
                   WRITE(12,REC=LL)i_seg,iys,iy,JF_final,LNPT_use, 
      &                        NSYN_final,(WS(I),I=1,JF_final)
 c
@@ -478,9 +480,6 @@ c
 c         TIME=(DEPTH-zdepth)*ETA
 c	  Modify this by the layer model
 c
-c	Here, we find the layer of the hypocenter (nlay_so) and that of the
-c	point source (nlay_sz)
-c	
 
                   do nla=1,jo+1
                      if((th(nla).le.depth) 
@@ -606,7 +605,7 @@ c	in a binary file.
 c	
             NXY=NXS_sub(I_seg)*NYS_sub(i_seg)
             NXYP=NXY*NX_P*NY_P
-            write(*,*)nx_p,ny_p,nxs_sub(i_seg),nys_sub(i_seg) 
+!            write(*,*)nx_p,ny_p,nxs_sub(i_seg),nys_sub(i_seg) 
             WRITE(32,REC=i_seg)nxs_sub(i_seg),nys_sub(i_seg), 
      &          nx_p,ny_p, ((((TDEL(IXS,IYS,IX,IY),Ix=1,Nx_P), 
      &         Iy=1,Ny_P),IxS=1,NxS_sub(i_seg)),IyS=1,NyS_sub(i_seg))
@@ -631,21 +630,24 @@ c
          enddo
          OO=OMAX/FMAX
          AMEVE=AMEVE+OO
-         WRITE(*,*)'station', ir
-         write(*,*)'maximum value of observed trace', omax
-         write(*,*)'maximum value of preliminary synthetic trace', fmax
-         write(*,*)'ratio max_observed/max_synthetic',oo 
+!         write(*,*)'Useful for debugging: '
+!         write(*,*)'station', ir
+!         write(*,*)'maximum value of observed trace', omax
+!         write(*,*)'maximum value of preliminary synthetic trace', fmax
+!         write(*,*)'ratio max_observed/max_synthetic',oo 
 C
 c200   CONTINUE
       enddo
       AMEVE=AMEVE/NSTAON
       AMEVE=AMEVE*3.39*1.0E16
-      WRITE(*,*)' M0= ',AMEVE
+!      WRITE(*,*)' M0= ',AMEVE
       CLOSE(9)
       CLOSE(14)
       CLOSE(10)
       CLOSE(11)
-
+c      write(*,*)NEW_LINE('A')
+      write(*,'(/A/)')'END PROGRAM TO COMPUTE TELESEISMIC BODY WAVE GF'
+c      write(*,*)NEW_LINE('A')
       STOP
       END
 
@@ -1202,13 +1204,7 @@ c      END IF
          W2=W*W
          W4=W2*W2
          CALL RESPON(FK,W,NL,NBS,LOVE,PO,IFLAG)
-c
-c we are uncommenting this
-c
-c      CALL SOUR(FK,FK2,NBS)
-c
-c we just uncomented this
-c
+c         CALL SOUR(FK,FK2,NBS) 
          CALL RESUWV(UWV)
 c	if (ifr.eq.3) then
 c	write(*,*)'common/ressav'
@@ -2427,7 +2423,7 @@ c
          return
       endif
       DO I=1,N
-         if ((xp(i) - x) .le. 1.e-6) cycle
+         if ((xp(i) - x) .le. -1.e-6) cycle
          if (abs(xp(i) - x) .lt. 1.e-6) then
             y = yp(i)
          endif
@@ -2527,7 +2523,7 @@ c
 c	 READ(14,12)A0(IRR),DS(IRR),DTT,NPOLES(IRR),NZEROES(IRR)
 c12	 FORMAT(2(1X,E12.6),F4.1,1X,2(1X,I2))
               read(14,13)pole_inf
-              write(*,13)pole_inf
+!              write(*,13)pole_inf
  13           format(a)
               read(14,*)nzeroes(irr)
               if(nzeroes(irr).gt.0)then

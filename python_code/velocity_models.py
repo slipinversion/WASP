@@ -57,35 +57,6 @@ def select_velmodel(tensor_info, default_dirs):
         ``management.py``.
 
     """
-#    if {'strong_motion', 'cgps'} & set(used_data_type):
-#        lat = tensor_info['lat']
-#        lon = tensor_info['lon']
-#        depth = tensor_info['depth']
-#        if -77 < lon < -67 and -18 > lat > -50: #Chile
-#            if -18 > lat >= -32 and depth <= 200:
-#                velmodel = 'Model.01_Hussen2'
-#            if -18 > lat >= -32 and depth > 200:
-#                velmodel = 'Model.01_FAPE'
-#            if lat < -40:
-#                velmodel = 'Model.01_Maule2'
-#            if -32 > lat >= -36 and depth <= 200:
-#                velmodel = 'Model.01_Hicks'
-#            if -36 > lat >= -40 and depth <= 200:
-#                velmodel = 'Model.01_Hicks'
-#            crust_model = model2dict(
-#                os.path.join(default_dirs['root_dir'], velmodel))
-#        elif 30 < lat < 40 and -120 < lon < -115:
-#            velmodel = 'Model.01_california1'
-#            crust_model = model2dict(
-#                os.path.join(default_dirs['root_dir'], velmodel))
-#        elif 30 < lat < 40 and -125 < lon < -120:
-#            velmodel = 'Model.01_napa'
-#            crust_model = model2dict(
-#                os.path.join(default_dirs['root_dir'], velmodel))
-#        else:
-#            crust_model = __crust_crust_velmodel(tensor_info)
-#    else:
-#        crust_model = __crust_crust_velmodel(tensor_info)
     crust_model = __crust_crust_velmodel(tensor_info, default_dirs)
     velmodel = __crust_mantle_model(crust_model, tensor_info['depth'])
     velmodel2json(velmodel)
@@ -176,6 +147,14 @@ def __crust_crust_velmodel(tensor_info, default_dirs):
             thick_crust[0] = thick_crust[1]
             thick_crust[1] = aux
             break
+#
+# remove water layer
+#
+    if s_vel_crust[0] <= 0.5:
+        p_vel_crust = p_vel_crust[1:]
+        s_vel_crust = s_vel_crust[1:]
+        dens_crust = dens_crust[1:]
+        thick_crust = thick_crust[1:]
 
     s_vel_crust = [max(s_vel, 0.01) for s_vel in s_vel_crust]
     indexes = [i for i, thick in enumerate(thick_crust) if thick > 0.0001]
@@ -320,6 +299,8 @@ def __process_line(line):
     
     
 if __name__ == '__main__':
+    velmodel = model2dict('vel_model')
+    velmodel2json(velmodel)
     import argparse
     import management as mng
     parser = argparse.ArgumentParser()

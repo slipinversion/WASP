@@ -1,19 +1,20 @@
 module get_stations_data
 
 
-   use constants, only : nnsta, nnxy, max_seg, npuse, inptd, npth, n_data
-   use wavelet_param, only : lnpt, nlen, jmin, jmax, jfmax
+   use constants, only : max_stations, max_seg, npuse, wave_pts2, wave_pts, n_data
+   use wavelet_param, only : lnpt, nlen, jmin, jmax, max_freq
    use wavelets, only : fourier_coefs, meyer_yamada, wavelet_obs
    implicit none
    integer, parameter :: nnsta_tele = 80
-   real :: weight(nnsta), wave_obs(npth, nnsta), wmax(nnsta), dt_channel(nnsta)
-   integer :: misfit_type(12, nnsta), t_max(nnsta), t_max_val(nnsta)
-   real :: wavelet_weight(12, nnsta)
-   character(len=6) :: sta_name1(nnsta), sta_name2(nnsta), sta_name3(nnsta), &
-         &     sta_name4(nnsta), sta_name5(nnsta)
-   character(len=3) :: component1(nnsta), component2(nnsta), component3(nnsta), &
-         &     component4(nnsta), component5(nnsta)
-   integer :: mmm(nnsta), llove(nnsta), io_up(nnsta), idata(nnsta)
+   real :: weight(max_stations), wave_obs(wave_pts2, max_stations), wmax(max_stations), dt_channel(max_stations)
+   integer :: misfit_type(12, max_stations), t_max(max_stations), t_max_val(max_stations)
+   real :: wavelet_weight(12, max_stations)
+   character(len=6) :: sta_name1(max_stations), sta_name2(max_stations), sta_name3(max_stations), &
+         &     sta_name4(max_stations), sta_name5(max_stations)
+   character(len=3) :: component1(max_stations), component2(max_stations), component3(max_stations), &
+         &     component4(max_stations), component5(max_stations)
+   integer :: mmm(max_stations), llove(max_stations), io_up(max_stations), idata(max_stations), &
+         &     disp_or_vel(max_stations), used_data
 
 
 contains
@@ -30,6 +31,7 @@ contains
    real erm
    complex z0
 
+   write(*,*)'Get stations metadata and waveforms and store them in memory...'
    z0 = cmplx(0.0, 0.0)
    erm = 0.0
    call fourier_coefs()
@@ -37,6 +39,8 @@ contains
    ll_in = 0
    ll_out = 0
    dt_channel(:) = 0.0
+   wave_obs(:, :) = 0.0
+   used_data = 0
    if (strong) then
       call get_strong_motion_stations(ll_in, ll_out)
       ll_in = ll_out
@@ -64,13 +68,14 @@ contains
    implicit none
    integer ll_in, ll_out, ll_g, io_chan, j_con(11), k, ir, no, &
    &  n_wave_weight, ir_max, n_chan, &
-   &  nos(nnsta), io_mod(nnsta), n_chan3
-   real dt, weig(nnsta), j_wig(11), dt_sample, lat_s, lon_s
+   &  nos(max_stations), io_mod(max_stations), n_chan3
+   real dt, weig(max_stations), j_wig(11), dt_sample, lat_s, lon_s
    logical, parameter :: cgps=.False.
    character(len=20) filename
-!   character(len=6) sta_name(nnsta)
-!   character(len=3) component(nnsta)
+!   character(len=6) sta_name(max_stations)
+!   character(len=3) component(max_stations)
 
+   write(*,*)'Get strong motion stations metadata and waveforms...'
    n_chan3 = 0
 !
 !  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
@@ -78,7 +83,7 @@ contains
 !
    open(9,file='Readlp.inf',status='old')
    open(15,file='Wave.str', status='old')
-   read(15,*) jmin, jmax, jfmax
+   read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
 
@@ -105,7 +110,7 @@ contains
       if (weig(ir) .gt. 0) n_chan3 = n_chan3 + 1
    end do
    close(9)
-   write(*,*)'n_chan: ', n_chan3
+!   write(*,*)'n_chan: ', n_chan3
 
    filename = 'Obser.str'
    filename = trim(filename)
@@ -136,6 +141,7 @@ contains
    end do
    close(15)  
    ll_out = ll_in + n_chan
+   call count_wavelets(ll_in, n_chan)
    end subroutine get_strong_motion_stations
 
    
@@ -143,13 +149,14 @@ contains
    implicit none
    integer ll_in, ll_out, ll_g, io_chan, j_con(11), k, ir, no, &
    &  n_wave_weight, ir_max, n_chan, &
-   &  nos(nnsta), io_mod(nnsta), n_chan3
-   real :: lat_s, lon_s, dt, weig(nnsta), j_wig(11), dt_sample
+   &  nos(max_stations), io_mod(max_stations), n_chan3
+   real :: lat_s, lon_s, dt, weig(max_stations), j_wig(11), dt_sample
    logical, parameter :: cgps=.True.
    character(len=20) filename
-!   character(len=6) sta_name(nnsta)
-!   character(len=3) component(nnsta)
+!   character(len=6) sta_name(max_stations)
+!   character(len=3) component(max_stations)
 
+   write(*,*)'Get cGPS stations metadata and waveforms...'
    n_chan3 = 0
 !
 !  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
@@ -157,7 +164,7 @@ contains
 !
    open(9, file='Readlp.cgps', status='old')
    open(15, file='Wave.cgps', status='old')
-   read(15,*) jmin, jmax, jfmax
+   read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
 
@@ -189,6 +196,16 @@ contains
    filename = trim(filename)
    call get_waveforms(filename, ir_max, ll_in, ll_out, cgps) 
 
+   open(25, file='cgps_wavelet')
+   do ir = 1, ir_max
+      write(25, *)ir
+      ll_g = ir + ll_in
+      do k = 1, nlen
+         write(25, *)wave_obs(k, ll_g)
+      enddo
+   enddo
+   close(25)
+
    do ir = 1, ir_max
 
       io_chan = io_chan+1
@@ -214,6 +231,7 @@ contains
    end do
    close(15)
    ll_out = ll_in + n_chan
+   call count_wavelets(ll_in, n_chan)
    end subroutine get_cgps_stations
 
    
@@ -222,12 +240,13 @@ contains
    integer ll_in, ll_out, ll_g, j_con(11), k, ir, n_wave_weight, n_chan, &
    &  nos, n_chan3, idts, nstaon, love, int1
    real lat_sta, lon_sta, j_wig(11), dt, & 
-   &  rang, az, earth_angle, disp_or_vel(nnsta), float1, float2
+   &  rang, az, earth_angle, float1, float2
    logical, parameter :: cgps=.False.
    character(len=20) filename
    character(len=6)  earth, sttyp 
    character(len=14) fname
 
+   write(*,*)'Get body waves stations metadata and waveforms...'
    n_chan3 = 0
 !
 !  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
@@ -235,7 +254,7 @@ contains
 !
    open(9, file='Readlp.das', status='old')
    open(14, file='Weight', status='old')
-   if (jfmax .gt. npuse) then
+   if (max_freq .gt. npuse) then
       write(*,*)'You should stop and check dimension sww,sws'
       stop
    end if
@@ -247,7 +266,7 @@ contains
    nlen = 2 ** lnpt
 
    open(15, file='Wave.tele', status='old')
-   read(15,*) jmin, jmax, jfmax
+   read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
    do ir = 1, nstaon
@@ -256,17 +275,17 @@ contains
       if (weight(ll_g) .gt. 0) n_chan3 = n_chan3 + 1
    end do
    rewind 14
-   write(*,*)'n_chan: ', n_chan3
+!   write(*,*)'n_chan: ', n_chan3
    n_chan = nstaon 
    
    filename = 'Obser.tele'
    filename = trim(filename)
-   call get_waveforms(filename, nstaon, ll_in, ll_out, cgps) 
+   call get_waveforms(filename, nstaon, ll_in, ll_out, cgps)
 
    do ir = 1, nstaon
       read(9,*) nos, earth, sttyp, sta_name3(ir), fname, &
       & rang, az, lat_sta, lon_sta, earth_angle, float1, &
-      & mmm(ir), float2, disp_or_vel(ir), llove(ir), int1, idata(ir)
+      & mmm(ir), disp_or_vel(ir), float2, llove(ir), int1, idata(ir)
       ll_g = ir+ll_in
       if (idata(ir) .gt. 0 .or. mmm(ir) .eq. 3) cycle
       dt_channel(ll_g) = dt
@@ -294,6 +313,7 @@ contains
    close(14)
    close(15)
    ll_out = ll_in + n_chan
+   call count_wavelets(ll_in, n_chan)
    end subroutine get_body_waves_stations
 
 
@@ -301,16 +321,17 @@ contains
    implicit none
    integer ll_in, ll_out, ll_g, io_chan, j_con(11), k, ir, no, &
    &  n_wave_weight, ir_max, n_chan, &
-   &  nos(nnsta), io_mod(nnsta), n_chan3, &
-   &  io_ns(nnsta), idts, io_ew(nnsta), io_str(nnsta)
-   real lat_s(nnsta), lon_s(nnsta), dt, &
-   &  ang_ns(nnsta), ang_ew(nnsta), weig(nnsta, 3), j_wig(11), dt_sample, &
+   &  nos(max_stations), io_mod(max_stations), n_chan3, &
+   &  io_ns(max_stations), idts, io_ew(max_stations), io_str(max_stations)
+   real lat_s(max_stations), lon_s(max_stations), dt, &
+   &  ang_ns(max_stations), ang_ew(max_stations), weig(max_stations, 3), j_wig(11), dt_sample, &
    &  dip, rake, theta
    logical, parameter :: cgps=.False.
    character(len=20) filename
-!   character(len=6) sta_name(nnsta)
+!   character(len=6) sta_name(max_stations)
    character(len=250) modes
 
+   write(*,*)'Get stations metadata and waveforms for long period surface waves...'
    n_chan3 = 0
 !
 !  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
@@ -320,7 +341,7 @@ contains
    open(9, file='Readlp.inf_low', status='old')
 
    open(15, file='Wave.str_low', status='old')
-   read(15,*) jmin, jmax, jfmax
+   read(15,*) jmin, jmax, max_freq
    read(15,'(a)')modes
    read(15,*) n_wave_weight
    idts = 3
@@ -396,7 +417,8 @@ contains
       end do
    end do
    close(15)   
-   ll_out = ll_out+n_chan
+   ll_out = ll_in+n_chan
+   call count_wavelets(ll_in, n_chan)
    end subroutine get_surface_waves_stations
 
 
@@ -404,11 +426,11 @@ contains
    implicit none
    integer ll_in, ll_out, ll_g, j_con(11), k, ir, no, &
    &  n_wave_weight, ir_max, n_chan, nos, io_mod, n_chan3
-   real :: lat_s, lon_s, dt, weig(nnsta), j_wig(11), dt_sample
+   real :: lat_s, lon_s, dt, weig(max_stations), j_wig(11), dt_sample
    logical, parameter :: cgps=.False.
    character(len=20) filename
-!   character(len=6) sta_name(nnsta)
-!   character(len=3) component(nnsta)
+!   character(len=6) sta_name(max_stations)
+!   character(len=3) component(max_stations)
 
    n_chan3 = 0
 !
@@ -417,7 +439,7 @@ contains
 !
    open(9, file='Readlp.dart', status='old')
    open(15, file='Wave.dart', status='old')
-   read(15,*) jmin, jmax, jfmax
+   read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
 
@@ -471,6 +493,7 @@ contains
    end do
    close(15)
    ll_out = ll_in + n_chan
+   call count_wavelets(ll_in, n_chan)
    end subroutine get_dart_stations
 
 
@@ -478,8 +501,8 @@ contains
    implicit none
    integer ll_in, ll_out, ll_g, nm, i, ir, no, &
    &  ir_max
-   real cr(inptd), cz(inptd), obser(n_data), &
-   &  dto, amp_max, obse(n_data, nnsta), mean
+   real cr(wave_pts2), cz(wave_pts2), obser(n_data), &
+   &  dto, amp_max, obse(n_data, max_stations), mean
    logical :: cgps
    character(len=40) string
    character(len=20) filename
@@ -487,6 +510,7 @@ contains
    filename = trim(filename)
    open(13, file=filename, status='old')
    do ir = 1, ir_max
+      write(43, *)ir
       ll_g = ir+ll_in
       read(13,*)
       read(13,*)
@@ -496,7 +520,7 @@ contains
       read(13,*)
       read(13,*)(obse(i, ll_g), i = 1, no)
       mean = sum(obse(no - 20:no, ll_g)) / 20.0
-      do i = 1, inptd
+      do i = 1, wave_pts2
          cz(i) = 0.0
          cr(i) = 0.0
          if (i .lt. no) then
@@ -506,6 +530,10 @@ contains
             if (cgps) obser(i) = mean
          end if
       end do
+      do i = 1,nlen
+         cr(i) = obser(i)
+         cz(i) = 0.0
+      enddo
 
       call wavelet_obs(cr, cz, obser)
       amp_max = 0.0
@@ -537,10 +565,30 @@ contains
    end subroutine get_waveforms
 
 
+   subroutine count_wavelets(ll_in, ir_max)
+   implicit none
+   integer :: k, j, ll_in, ir, ir_max, ll_g, n_begin, n_delt, length
+   do ir = 1, ir_max
+      ll_g = ir+ll_in
+      if (weight(ll_g) .gt. (10**-3)) then
+         do j = jmin, jmax
+            n_begin = 2**(j-1)
+            n_delt = nlen/n_begin
+            length = int(t_max(ll_g)/n_delt+0.5)-1
+            if (wavelet_weight(j, ll_g) .gt. (10**-3)) then
+               used_data = used_data + length
+            endif
+         end do
+      endif
+   end do
+   end subroutine count_wavelets
+
+
    subroutine error1(ll_in, n_chan)
+   implicit none
    integer :: ll_in, n_chan
-   if (n_chan + ll_in .gt. nnsta) then
-      write(*,*)'Error: Maximum allowed number of channels: ', nnsta
+   if (n_chan + ll_in .gt. max_stations) then
+      write(*,*)'Error: Maximum allowed number of channels: ', max_stations
       write(*,*)'But amount of channels used for modelling is at least', n_chan + ll_in
       write(*,*)'Please check maximum allowed number of channels'
       stop

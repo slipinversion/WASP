@@ -11,12 +11,12 @@ import get_outputs
 import datetime
 import os
 import seismic_tensor as tensor
+import fault_plane as pf
 
 
-def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
-                  used_data, vel_model, solution):
+def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     """Write FSP file with the solution of FFM modelling from file Solucion.txt
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param segments_data: list of dictionaries with properties of fault segments
     :param rise_time: dictionary with rise time information
@@ -33,6 +33,9 @@ def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
     :type vel_model: dict
     """
     locator = flinnengdahl.FlinnEngdahl()
+    segments = segments_data['segments']
+    rise_time = segments_data['rise_time']
+    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
     slips = solution['slip']
     rakes = solution['rake']
     trup = solution['rupture_time']
@@ -54,13 +57,13 @@ def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
     tag = date
     now = datetime.datetime.now()
 
-    plane_info = segments_data[0]
-    n_sub_stk, n_sub_dip, delta_x, delta_y, hyp_stk, hyp_dip\
+    plane_info = segments[0]
+    stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
         = pl_mng.__unpack_plane_data(plane_info)
-    hyp_stk = (hyp_stk + 0.5) * delta_x
-    length = delta_x * n_sub_stk
-    hyp_dip = (hyp_dip + 0.5) * delta_y
-    width = delta_y * n_sub_dip
+    hyp_stk = (hyp_stk + 0.5) * delta_strike
+    length = delta_strike * stk_subfaults
+    hyp_dip = (hyp_dip + 0.5) * delta_dip
+    width = delta_dip * dip_subfaults
     strike = plane_info['strike']
     dip = plane_info['dip']
     rake = plane_info['rake']
@@ -70,8 +73,8 @@ def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
     ps_times = [ps_segment[:, :, 0, 0, 4] for ps_segment in point_sources]
     delta_time = [rupt_seg - ps_time for ps_time, rupt_seg\
         in zip(ps_times, trup)]
-    total_subfaults = [segment['n_sub_x'] * segment['n_sub_y']\
-        for segment in segments_data]
+    total_subfaults = [segment['stk_subfaults'] * segment['dip_subfaults']\
+        for segment in segments]
     total_subfaults = np.sum(np.array(total_subfaults))
     avg_time = [np.sum(dt_seg.flatten()) for dt_seg in delta_time]
     avg_time = np.sum(np.array(avg_time).flatten()) / total_subfaults
@@ -79,9 +82,9 @@ def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
         in zip(ps_distances, trup)]
     avg_vel = [np.sum(avg_vel_seg.flatten()) for avg_vel_seg in avg_vel]
     avg_vel = np.sum(np.array(avg_vel).flatten()) / total_subfaults
-    ta0 = rise_time['ta0']
-    dta = rise_time['dta']
-    msou = rise_time['msou']
+    min_rise = rise_time['min_rise']
+    delta_rise = rise_time['delta_rise']
+    windows = rise_time['windows']
 
     quantity_strong = 0
     if 'strong_motion' in used_data:
@@ -110,7 +113,7 @@ def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
     depth2 = np.cumsum(np.array(thick))
     depth2 = depth2 - depth2[0]
     zipped = zip(depth2, p_vel, s_vel, dens, qp, qs)
-    zipped2 = zip(segments_data, point_sources, latitudes, longitudes,
+    zipped2 = zip(segments, point_sources, latitudes, longitudes,
                   depths, slips, rakes, trup, trise, tfall, moment)
 
     string2 = '{0:9.4f} {1:9.4f} {2:9.4f} {3:9.4f} {4:9.4f} '\
@@ -137,14 +140,15 @@ def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
         outfile.write('% {} inversion-related '\
             'parameters{}\n'.format(string, string))
         outfile.write('%\n% Invs : Nx = {}  Nz = {} Fmin = {} Hz  '\
-            'Fmax = {} Hz\n'.format(n_sub_stk, n_sub_dip, 0.01, 0.125))
+            'Fmax = {} Hz\n'.format(stk_subfaults, dip_subfaults, 0.01, 0.125))
         outfile.write('% Invs : Dx = {} km  Dz = {} '\
-            'km\n'.format(delta_x, delta_y))
+            'km\n'.format(delta_strike, delta_dip))
         outfile.write('% Invs : Ntw = {}  Nsg = {}     '\
             '(# of time-windows,# of fault segments)'\
-            '\n'.format(msou, len(segments_data)))
+            '\n'.format(windows, len(segments)))
         outfile.write('% Invs : LEN = {} s SHF = {} s    '\
-            '(time-window length and time-shift)\n'.format(ta0 + dta, dta))
+            '(time-window length and time-shift)\n'.format(
+                min_rise + delta_rise, delta_rise))
         outfile.write('% SVF  : Asymetriccosine    '\
             '(type of slip-velocity function used)\n')
         outfile.write('%\n% Data : SGM TELE TRIL LEVEL GPS INSAR SURF OTHER\n')
@@ -169,8 +173,8 @@ def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
         outfile.write('% {}/{}/{} created by pkoch@csn.uchile.'\
         'cl\n'.format(now.day, now.month, now.year))
         outfile.write('%\n% SOURCE MODEL PARAMETERS\n')
-        if len(segments_data) == 1:
-            outfile.write('% Nsbfs = {} subfaults\n'.format(n_sub_stk, n_sub_dip))
+        if len(segments) == 1:
+            outfile.write('% Nsbfs = {} subfaults\n'.format(stk_subfaults, dip_subfaults))
         outfile.write('% X,Y,Z coordinates in km; SLIP in m\n')
         outfile.write('% if applicable: RAKE in deg, RISE in s, TRUP in s, '\
             'slip in each TW in m\n')
@@ -178,7 +182,7 @@ def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
             'subfault or segment: |\'|\n')
         outfile.write('% Origin of local coordinate system at epicenter: '\
             'X (EW) = 0, Y (NS) = 0\n')
-        if len(segments_data) == 1:
+        if len(segments) == 1:
             outfile.write('% LAT LON X==EW Y==NS Z SLIP RAKE TRUP RISE ')
             outfile.write('SF_MOMENT\n%{}{}\n'.format(string, string))
             lat_fault = latitudes[0].flatten()
@@ -221,16 +225,16 @@ def static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
                 moment_fault = fault_segment_data[10].flatten()
                 strike = segment['strike']
                 dip = segment['dip']
-                n_sub_stk, n_sub_dip, delta_x, delta_y, hyp_stk, hyp_dip\
+                stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
                     = pl_mng.__unpack_plane_data(plane_info)
-                length = n_sub_stk * delta_x
-                width = n_sub_dip * delta_y
+                length = stk_subfaults * delta_strike
+                width = dip_subfaults * delta_dip
                 min_dep = np.min(ps_seg[:, :, :, :, 2].flatten())
                 lat0 = ps_seg[-1, -1, -1, -1, 0]
                 lon0 = ps_seg[-1, -1, -1, -1, 1]
-                hyp_stk = (hyp_stk + 0.5) * delta_x
-                hyp_dip = (hyp_dip + 0.5) * delta_y
-                n_subfaults = n_sub_stk * n_sub_dip
+                hyp_stk = (hyp_stk + 0.5) * delta_strike
+                hyp_dip = (hyp_dip + 0.5) * delta_dip
+                n_subfaults = stk_subfaults * dip_subfaults
                 outfile.write('% SEGMENT # {}: STRIKE = {} deg DIP = {} '\
                     'deg\n'.format(i_segment + 1, strike, dip))
                 outfile.write('% LEN = {} km WID = {} km\n'.format(length, width))
@@ -269,7 +273,7 @@ if __name__ == '__main__':
                         help="folder where there are input files")
     parser.add_argument("-gcmt", "--gcmt_tensor",
                         help="location of GCMT moment tensor file")
-    parser.add_argument("-v", "--velmodel", 
+    parser.add_argument("-v", "--velmodel",
                         help="direction of velocity model file")
     parser.add_argument("-t", "--tele", action="store_true",
                         help="use teleseismic data in modelling")
@@ -303,4 +307,3 @@ if __name__ == '__main__':
             segments_data, point_sources)
     static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
                   used_data, vel_model, solution)
-        

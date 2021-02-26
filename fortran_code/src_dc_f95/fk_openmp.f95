@@ -53,6 +53,8 @@
 !				for single force.
 !				Correct a bug in free bottom boundary condi.
 !				Use thickness<epsilon to indicate halfspace.
+
+!                   pk          Added small modifications.
 !**********************************************************************
 !      program fk
 module fk_openmp
@@ -61,6 +63,7 @@ module fk_openmp
    use constants, only : nlay, twopi, pi, ndis, nt
    use vel_model_data, only : depths, xi, mu, new_vel_p, new_vel_s, rcv, src, new_dens, qqp, qqs, flip_model, &
                         &     extra, extra2, n_layers_new
+   use layer, only : ka, kb
    use fk_source, only : source
    use fk_kernel, only : kernel
    use retrieve_gf, only : lnpt, dt, d_step
@@ -74,10 +77,10 @@ contains
 
    subroutine sub_bs_dc(nx,x,t0,green,disp)
 !
+   use omp_lib
    IMPLICIT NONE
-   include 'omp_lib.h'
    integer stype,updn
-   complex*16 :: ka(nlay),kb(nlay),att,w,w2
+   complex*16 :: att,w,w2
    logical dynamic, disp
 !
    real :: green(nt, 8, ndis)
@@ -90,14 +93,16 @@ contains
 !
    integer ixx
 !
-   complex :: nf1,nf2,u(3,3)
+   complex*16 :: nf1,nf2,u(3,3), aux(9, ndis)
+!   complex :: nf1,nf2,u(3,3), aux(9, ndis)
    real aj0,aj1,aj2,z,tdata(2*nt)
 !
    complex, allocatable :: summ(:, :, :)
-   complex data1(nt), kahan_y(9,ndis), kahan_t(9,ndis), kahan_c(9,ndis)
+   complex data1(nt), kahan_y(9, ndis), kahan_t(9, ndis), kahan_c(9, ndis)
    allocate(summ(9,ndis,nt))
 
-   call omp_set_num_threads(48)
+   call omp_set_num_threads(8)
+   write(0,*)'Compute near field GF at fixed depth...'
    dynamic = .TRUE.
    nCom = 9
 !       sequence 1   2   3  4    5   6   7   8
@@ -114,7 +119,7 @@ contains
 !     *  den, th, qa, qb)
 
    stype=2
-   sigma=2
+   sigma=2.d0
    nfft=2**lnpt
    taper=0.2d0
    smth=1
@@ -219,21 +224,20 @@ contains
    z = pmax*nfft2*dw/kc
    k = sqrt(z*z+1)
    total = nfft2*(kc/dk)*0.5*(k+log(k+z)/z)
-   write(0,'(a3,f9.5,a8,f9.2,a8,i9)')'dk',dk,'kmax',kc,'N',total
+!   write(0,'(a3,f9.5,a8,f9.2,a8,i9)')'dk',dk,'kmax',kc,'N',total
    tenPerc = 0.1*total
    count = 0.
    kc = kc*kc
    data1(:) = cmplx(0.,0.)
-!   summ(:, :, :) = cmplx(0.,0.)
    
 
-   write(0,*)' start F-K computation, iw-range:',wc1,wc2,wc,nfft2
+!   write(0,*)' start F-K computation, iw-range:',wc1,wc2,wc,nfft2
 !$omp parallel &
-!$omp& private (j, omega, w, att, ka, kb, k, n, u, i, ix, z, ixx, aj0, aj1, aj2, nf1, nf2), & 
-!$omp& private (filter, phi, l, kahan_y, kahan_t, kahan_c) &
+!$omp& private (j, omega, w, att, k, n, u, i, ix, z, ixx, aj0, aj1, aj2, nf1, nf2), & 
+!$omp& private (filter, phi, l, aux) &
 !$omp& shared (wc1, nfft2, sigma, n_layers_new, pmin, dk, kc, pmax, src, rcv, mu, nx, x) &
 !$omp& shared (aj0s, aj1s, aj2s, summ, flip, count, tenPerc, const, wc, wc2, taper, dynamic, t0, nCom)
-!$omp do schedule(dynamic)
+!$omp do schedule(guided)
    do j=wc1, nfft2                                                  ! start frequency loop
       summ(:, :, j) = cmplx(0.0, 0.0)
       omega = (j-1)*dw
@@ -246,16 +250,14 @@ contains
          ka(i) = ka(i)*ka(i)
          kb(i) = kb(i)*kb(i)
       enddo
-      kahan_y(:,:)=0.
-      kahan_t(:,:)=0.
-      kahan_c(:,:)=0.
+      aux(:, :) = 0.d0
 !
-! we replace direct summation by Kahan summation formula, which reduces numerical error
+! replace summation in single precision to double precision, which reduces numerical error
 !
       k = omega*pmin + 0.5d0*dk
       n = (sqrt(kc+(pmax*omega)**2)-k)/dk                           ! kmax
       do i=1,n                                                      ! start k-loop
-         call kernel(k, u, ka, kb)
+         call kernel(k, u)
          do ix=1,nx
             z = k*x(ix)
             ixx = int(x(ix)/d_step + 0.001) + 1
@@ -264,9 +266,9 @@ contains
             aj1 = aj1s(ixx,i)
             aj2 = aj2s(ixx,i)
 ! n=0
-            kahan_y(1,ix) = u(1,1)*aj0*flip
-            kahan_y(2,ix) = - u(2,1)*aj1
-            kahan_y(3,ix) = - u(3,1)*aj1
+            aux(1,ix) = aux(1,ix) + u(1,1)*aj0*flip
+            aux(2,ix) = aux(2,ix) - u(2,1)*aj1
+            aux(3,ix) = aux(3,ix) - u(3,1)*aj1
 !            summ(1,ix,j) = summ(1,ix,j) + u(1,1)*aj0*flip
 !            summ(2,ix,j) = summ(2,ix,j) - u(2,1)*aj1
 !            summ(3,ix,j) = summ(3,ix,j) - u(3,1)*aj1
@@ -278,20 +280,15 @@ contains
                nf1 =    (u(2,2)+u(3,2))*aj1/z ! n=1
                nf2 = 2.*(u(2,3)+u(3,3))*aj2/z ! n=2
             else
-               nf1 =    (u(2,2)+u(3,2))/2.0   ! n=1
-               nf2 = 2.*(u(2,3)+u(3,3))*z/8.0 ! n=2
+               nf1 =    (u(2,2)+u(3,2))/2.   ! n=1
+               nf2 = 2.*(u(2,3)+u(3,3))*z/8. ! n=2
             endif
-            kahan_y(4,ix) = u(1,2)*aj1*flip
-            kahan_y(5,ix) = u(2,2)*aj0 - nf1
-            kahan_y(6,ix) = u(3,2)*aj0 - nf1
-            kahan_y(7,ix) = u(1,3)*aj2*flip
-            kahan_y(8,ix) = u(2,3)*aj1 - nf2
-            kahan_y(9,ix) = u(3,3)*aj1 - nf2
-            do l=1,9
-               kahan_t(l,ix) = summ(l,ix,j) + kahan_y(l,ix)
-               kahan_c(l,ix) = (kahan_t(l,ix) - summ(l,ix,j)) - kahan_y(l,ix)
-               summ(l,ix,j) = kahan_t(l,ix)
-            enddo
+            aux(4,ix) = aux(4,ix) + u(1,2)*aj1*flip
+            aux(5,ix) = aux(5,ix) + u(2,2)*aj0 - nf1
+            aux(6,ix) = aux(6,ix) + u(3,2)*aj0 - nf1
+            aux(7,ix) = aux(7,ix) + u(1,3)*aj2*flip
+            aux(8,ix) = aux(8,ix) + u(2,3)*aj1 - nf2
+            aux(9,ix) = aux(9,ix) + u(3,3)*aj1 - nf2
 !            summ(4,ix,j) = summ(4,ix,j) + u(1,2)*aj1*flip
 !            summ(5,ix,j) = summ(5,ix,j) + u(2,2)*aj0 - nf1
 !            summ(6,ix,j) = summ(6,ix,j) + u(3,2)*aj0 - nf1
@@ -305,6 +302,7 @@ contains
             write(0,'(i4,a6)') int(100.*count/total)+1, '% done'
          endif
       enddo                                                 ! end of k-loop
+      summ(:, :nx, j) = aux(:, :nx)
       filter = const
       if ( dynamic .AND. j.GT.wc ) then 
          filter = 0.5d0*(1.d0+cos((j-wc)*taper))*filter
@@ -330,10 +328,8 @@ contains
    nfft = smth*nfft
    nfft3 = nfft/2
    dfac = exp(sigma*dt)
-   write(0,*)'Debugging', sigma, dfac, dt
    do ix=1,nx
       if ( nfft2.EQ.1 ) then
-!          write(20,'(f5.1,9e11.3)')x(ix),(real(summ(ix,l,1)),l=1,nCom)
          do l=1,8
             green(1,l,ix) = real(summ(new_old(l),ix,1))
          enddo
@@ -359,7 +355,7 @@ contains
                kahan_t(1, 1) = 0.0
                kahan_c(1, 1) = 0.0
                do j=2,nfft
-                  kahan_y(1, 1) = tdata(j)*dt
+                  kahan_y(1, 1) = (tdata(j) + tdata(j-1))*dt/2.0
                   kahan_t(1, 1) = green(j-1,l,ix)+kahan_y(1, 1)
                   kahan_c(1, 1) = (kahan_t(1, 1)-green(j-1,l,ix))-kahan_y(1, 1)
                   green(j,l,ix) = kahan_t(1, 1)
@@ -390,7 +386,6 @@ contains
       endif
    enddo
    deallocate(summ)     
-!      stop
    end subroutine sub_bs_dc
 
 

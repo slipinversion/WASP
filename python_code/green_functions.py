@@ -6,6 +6,8 @@
 import os
 import subprocess
 import json
+import logging
+import modulo_logs as ml
 
 
 def gf_retrieve(used_data_type, default_dirs):
@@ -17,31 +19,63 @@ def gf_retrieve(used_data_type, default_dirs):
     :type used_data_type: list
     :type default_dirs: dict
     """
-    
-#    default_dirs = mng.default_dirs()
     green_fun_tele = default_dirs['tele_gf']
     green_fun_str = default_dirs['strong_motion_gf']
     green_fun_gps = default_dirs['gps_gf']
     
     processes = []
+    loggers = []
+    ch = logging.StreamHandler()
+    formatter = logging.Formatter('%(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    ch.setLevel(logging.ERROR)
     
     if 'tele_body' in used_data_type:
-        with open(os.path.join('logs', 'green_tele_log'), "w") as out_tele:
-            p1 = subprocess.Popen([green_fun_tele], stdout=out_tele)
+        logger1 = ml.create_log('body_wave_GF',
+                                os.path.join('logs', 'green_tele_log'))
+        logger1.addHandler(ch)
+        p1 = subprocess.Popen([green_fun_tele], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
+        # with open(os.path.join('logs', 'green_tele_log'), "w") as out_tele:
+        #     p1 = subprocess.Popen([green_fun_tele], stdout=out_tele)
         processes = processes + [p1]
+        loggers = loggers + [logger1]
     if 'strong_motion' in used_data_type:
-        with open(os.path.join('logs', 'green_np1_str_log'), "w") as out_strong:
-            p2 = subprocess.Popen([green_fun_str], stdout=out_strong)
+        logger2 = ml.create_log('get_strong_motion_GF',
+                                os.path.join('logs', 'green_str_log'))
+        logger2.addHandler(ch)
+        p2 = subprocess.Popen([green_fun_str], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
+        # with open(os.path.join('logs', 'green_np1_str_log'), "w") as out_strong:
+        #     p2 = subprocess.Popen([green_fun_str], stdout=out_strong)
         processes = processes + [p2]
+        loggers = loggers + [logger2]
     if 'cgps' in used_data_type:
-        with open(os.path.join('logs', 'green_np1_cgps_log'), "w") as out_cgps:
-            p3 = subprocess.Popen([green_fun_str, 'cgps'], stdout=out_cgps)
+        logger3 = ml.create_log('get_cgps_GF',
+                                os.path.join('logs', 'green_cgps_log'))
+        logger3.addHandler(ch)
+        p3 = subprocess.Popen([green_fun_str, 'cgps'], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
+        # with open(os.path.join('logs', 'green_np1_cgps_log'), "w") as out_cgps:
+            # p3 = subprocess.Popen([green_fun_str, 'cgps'], stdout=out_cgps)
         processes = processes + [p3]
+        loggers = loggers + [logger3]
     if 'gps' in used_data_type:
-        p4 = subprocess.Popen([green_fun_gps, ], )
+        logger4 = ml.create_log('GPS_GF',
+                                os.path.join('logs', 'green_gps_log'))
+        logger4.addHandler(ch)
+        p4 = subprocess.Popen([green_fun_gps, ], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
         processes = processes + [p4]
+        loggers = loggers + [logger4]
 
-    [p.wait() for p in processes]
+    # [p.wait() for p in processes]
+    for p, log in zip(processes, loggers):
+        out, err = p.communicate(timeout=20 * 60)
+        log.info(out.decode('utf-8'))
+        if err: log.error(err.decode('utf-8', 'ignore'))
+        ml.close_log(log)
+
     
     
 def fk_green_fun0(dt, tensor_info, default_dirs, gf_bank=None):
@@ -141,7 +175,7 @@ def fk_green_fun0(dt, tensor_info, default_dirs, gf_bank=None):
     return green_dict
 
 
-def fk_green_fun1(dt, tensor_info, location, cgps=False):
+def fk_green_fun1(data_prop, tensor_info, location, cgps=False):
     """We write a file with important data for computing or retrieving strong
     motion Green functions.
     
@@ -152,6 +186,8 @@ def fk_green_fun1(dt, tensor_info, location, cgps=False):
     :type tensor_info: float
     :type location: string
     """
+    sampling = data_prop['sampling']
+    dt = sampling['dt_strong'] if not cgps else sampling['dt_cgps']
     depth = tensor_info['depth']
     time_shift = tensor_info['time_shift']
     min_depth = max(1, depth - 100)
@@ -159,6 +195,7 @@ def fk_green_fun1(dt, tensor_info, location, cgps=False):
     max_depth = min(max_depth, depth + 60)
     min_dist = 0
     max_dist = 600 if time_shift < 40 else 1000
+    time_corr = 10 if not cgps else 25
     
     green_dict = {
             'location': location,
@@ -166,7 +203,8 @@ def fk_green_fun1(dt, tensor_info, location, cgps=False):
             'max_depth': max_depth,
             'min_dist': min_dist,
             'max_dist': max_dist,
-            'dt': dt
+            'dt': dt,
+            'time_corr': time_corr
     }
     
     name = 'strong_motion_gf.json' if not cgps else 'cgps_gf.json'
@@ -180,6 +218,7 @@ def fk_green_fun1(dt, tensor_info, location, cgps=False):
 if __name__ == '__main__':
     import argparse
     import seismic_tensor as tensor
+    import management as mng
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--folder", default=os.getcwd(),

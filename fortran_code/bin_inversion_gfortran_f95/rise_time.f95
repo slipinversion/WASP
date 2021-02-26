@@ -1,7 +1,7 @@
 module rise_time
 
 
-   use constants, only : inptd, nnsta, mmsou, pi, twopi
+   use constants, only : wave_pts2, max_stations, max_rise_time_range, pi, twopi
    use get_stations_data, only : dt_channel, lnpt
    use model_parameters, only : ta0, dta, msou
    implicit none
@@ -138,12 +138,12 @@ contains
    implicit none
    real :: df, dt, t1, t2
    integer :: i, ir, isl, isr, jf 
-   allocate(source(inptd, nnsta, mmsou, mmsou))
+   allocate(source(wave_pts2, max_stations, max_rise_time_range, max_rise_time_range))
 !       
 ! Here, we load into memory, the Fourier transform of rise time function 
 !
    jf = 2**(lnpt-1)+1
-   do ir = 1, nnsta
+   do ir = 1, max_stations
       dt = dt_channel(ir)
       if (dt .lt. 1.e-4) cycle
       df = 1.0/(2**lnpt)/dt

@@ -1,13 +1,13 @@
 module retrieve_surf_gf
 
 
-   use constants, only : nny, ndis, nt, inptd
+   use constants, only : nny, ndis, nt, wave_pts2
    implicit none
    integer, private :: nblock2, nx, nz, nfmax
    integer :: npt_bank, dt_bank
    real, private :: dep_max, dep_min, dep_step, dist_max, dist_min, d_step
    real, private :: grid_depth(50), grid_dist(1601)
-   complex, private :: green_bank(inptd, 10, 1601, 50)
+   complex, private :: green_bank(wave_pts2, 10, 1601, 50)
 
 
 contains
@@ -52,7 +52,7 @@ contains
    open(50, file=gf_bank, status='old', access='direct', recl=nblock2) ! open green functions bank
    
    index_rec = 0
-   write(*,*) nz_b, nz_e, nx_b, nx_e
+!   write(*,*) nz_b, nz_e, nx_b, nx_e
    do iz = nz_b, nz_e
       do k = nx_b, nx_e
          index_rec = (iz - 1) * nx + k
@@ -89,7 +89,7 @@ contains
    real(8) :: distance
    real :: depth, zu_min, zu_max
    real :: fault_bounds(2, 2)
-   complex :: green_out(inptd, 10)
+   complex :: green_out(wave_pts2, 10)
 
    real :: d_min, d_max, d_min2, d_max2, z_max, z_min
    complex :: green_up_left, green_down_left, green_up_right, green_down_right
@@ -111,16 +111,16 @@ contains
    z_min = subgrid_depth(1)
    z_max = subgrid_depth(nz_e - nz_b + 1)
    if (distance .gt. d_max2 .or. distance .lt. d_min2) then
-      write(*,*)"ooh The input distance is over the x_boundary"
-      write(*,*)"green function is set to zero"
+      write(*,*)"WARNING: Input distance is over horizontal boundary"
+      write(*,*)"Green function is set to zero"
       write(*,*) distance, d_max, d_min
       return
    end if
    dep_use = max(dep_use, z_min)
    dep_use = min(dep_use, z_max)
    if (depth .gt. z_max .or. depth .lt. z_min) then
-      write(*, *)"The input depth is outside vertical boundary"
-      write(*, *)"use the z_max or zmin instead", depth, z_max, z_min
+      write(*, *)"WARNING: The input depth is outside vertical boundary"
+      write(*, *)"Depth: ", depth, ", min_depth: ", z_min, ", max_depth: ", z_max!use the z_max or zmin instead", depth, z_max, z_min
    end if
 
    k_left = 1
@@ -148,7 +148,7 @@ contains
    ratio_z = (dep_use - subgrid_depth(k_up)) / dep_step
 
    do ncom = 1, 10
-      do n = 1, inptd
+      do n = 1, wave_pts2
          green_up_left = green_bank(n, ncom, k_left, k_up)
          green_up_right = green_bank(n, ncom, k_right, k_up)
          green_down_left = green_bank(n, ncom, k_left, k_down)

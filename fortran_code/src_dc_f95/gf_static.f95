@@ -4,7 +4,8 @@
 program gf_static
 
 
-   use constants, only : dpi, max_seg, nnxs, nnys, nnpx, nnpy, nt 
+   use constants, only : dpi, max_seg, max_stk_subfaults, max_dip_subfaults, max_stk_psources, &
+   &  max_dip_psources, nt 
    use vel_model_data, only : read_vel_model, update_model, src, new_vel_s, new_dens
    use wave_travel, only : trav_fk
    use fk_static, only : sub_bs_dc 
@@ -27,21 +28,25 @@ program gf_static
    real green_p(nt,8,3000)
    real green_sub_dip(3), gf_dip
    real green_sub_stk(3), gf_stk
-   real :: fau_mod(7, nnpx, nnpy, nnxs, nnys, max_seg)
-   real :: green_dip(3, nnxs, nnys, max_seg, 300)
-   real :: green_stk(3, nnxs, nnys, max_seg, 300)
+   real, allocatable :: fau_mod(:, :, :, :, :, :)
+   real, allocatable :: green_dip(:, :, :, :, :)
+   real, allocatable :: green_stk(:, :, :, :, :)
    integer nxs0, nys0, n_seg,i_seg,ll
    integer nxs_sub(max_seg),nys_sub(max_seg)
    real :: dip_sub(max_seg),stk_sub(max_seg)
-   real :: kahan_y(6, nnxs), kahan_t(6, nnxs), kahan_c(6, nnxs)
+   real :: kahan_y(6, max_stk_subfaults), kahan_t(6, max_stk_subfaults), kahan_c(6, max_stk_subfaults)
    real c_depth
    integer io_seg
    logical :: disp
+   allocate(fau_mod(7, max_stk_psources, max_dip_psources, max_stk_subfaults, max_dip_subfaults, max_seg))
+   allocate(green_dip(3, max_stk_subfaults, max_dip_subfaults, max_seg, 300))
+   allocate(green_stk(3, max_stk_subfaults, max_dip_subfaults, max_seg, 300))
    disp = .False.
 !
 ! input position of gps stations
 !
 !	pause
+   write(*,'(/A/)')'PROGRAM TO COMPUTE STATIC GF WITH FK METHOD'
    open(12, file='Readlp.static', status='old')
    read(12,*)ir_max
    read(12,*)
@@ -222,6 +227,10 @@ program gf_static
    enddo
       
    close(13)
+   write(*,'(/A/)')'END PROGRAM TO COMPUTE STATIC GF WITH FK METHOD'
+   deallocate(fau_mod)
+   deallocate(green_dip)
+   deallocate(green_stk)
 
 
 end program gf_static
