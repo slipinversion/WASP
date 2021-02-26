@@ -761,6 +761,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
              option='Solucion.txt', max_slip=None):
     """We plot slip map.
     """
+    import collections
     print('Creating Slip Map...')
     plane_info = segments[0]
     n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
@@ -793,17 +794,19 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         max_lons_idx = np.where(segments_lons[segment].flatten()==max_lons[segment])[0][0]
         cornerD = [max_lons[segment], segments_lats[segment].flatten()[max_lons_idx], depths[max_lons_idx], 3]
         corners = np.c_[cornerA, cornerB, cornerC, cornerD]
-        min1 = min2 = max(corners[2,:])
-        for i in range(4):
-            if corners[2,i] < min1:
-                min2 = min1
-                min1 = corners[2,i]
-            elif corners[2,i] < min2 and corners[2,i] != min1:
-                min2 = corners[2,i]
-        idx_min1 = np.where(np.array(corners[2,:]) == min1)[0][0]
-        idx_min2 = np.where(np.array(corners[2,:]) == min2)[0][0]
-        corners = np.c_[corners,cornerA]
 
+        max_dep = max(corners[2,:])
+        idx_max = np.where(np.array(corners[2,:]) == max_dep)[0][0]
+        min1 = min2 = corners[:,idx_max]
+        for i in range(len(corners)):
+            if corners[2,i] < min1[2]:
+                min2 = min1
+                min1 = corners[:,i]
+            elif corners[2,i] < min2[2] and collections.Counter(corners[:,i]) != collections.Counter(min1):
+                min2 = corners[:,i]
+
+        updip = np.c_[min1,min2]
+        corners = np.c_[corners,cornerA]
 
     margin = 1.3 * (n_sub_x * delta_x) / 111.19#min(3 * (n_sub_x * delta_x) / 111.19, 10)
     lat0 = tensor_info['lat']
@@ -921,7 +924,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     ax.plot(lon0, lat0, '*', markersize=15, transform=ccrs.PlateCarree(),
             zorder=4, markerfacecolor="None", markeredgecolor='k', markeredgewidth=1.5)
     ax.plot(corners[0,:],corners[1,:], 'k',lw=5)
-    updip = np.array([[corners[0,idx_min1], corners[0,idx_min2]],[corners[1,idx_min1],corners[1,idx_min2]]])
+
     ax.plot(updip[0,:],updip[1,:], 'r', lw=5)
 #
 # plot slip map
@@ -1597,6 +1600,7 @@ if __name__ == '__main__':
     """
     """
     import management as mng
+    import eventpage_downloads as dwnlds
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--folder", default=os.getcwd(),
                         help="folder where there are input files")
@@ -1621,6 +1625,8 @@ if __name__ == '__main__':
                         help="create shakemap_polygon.txt")
     parser.add_argument("-ev","--EventID", nargs='?', const='Not Provided', type=str,
                         help="Provide event ID")
+    parser.add_argument("-d","--downloads",action="store_true",
+                        help="create event page download files")
     args = parser.parse_args()
     os.chdir(args.folder)
     used_data = []
@@ -1679,5 +1685,13 @@ if __name__ == '__main__':
         _PlotSlipDist_Compare(segments, point_sources, input_model, solution)
         _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
                            solution)
+    if args.downloads:
+       dwnlds.write_CMTSOLUTION_file()
+       if args.EventID:
+            evID = args.EventID
+       else:
+            evID = None
+       dwnlds.write_Coulomb_file(evID)
+       dwnlds.write_Okada_displacements()
 
     plot_misfit(used_data)#, forward=True)
