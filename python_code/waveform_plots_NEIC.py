@@ -27,6 +27,10 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
             min_val, max_val = ax.get_ylim()
             min_val = np.minimum(np.min(waveform), min_val)
             max_val = np.maximum(np.max(waveform), max_val)
+            if type_str == 'cgps':
+                if max_val < 1 and min_val > -1:
+                    max_val = 1
+                    min_val = -1
             ax.set_ylim([-(max(abs(min_val), max_val)),max(abs(min_val), max_val)])
             min_val, max_val = ax.get_ylim()
             ax.vlines(0, min_val, max_val,'k', lw=1)
@@ -40,6 +44,17 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                    '{:0.3f}'.format(max(abs(min_val),max_val)),ha='right',va='center')
                 ax.hlines(0, -350, np.max(time), 'k', lw=1)
                 ax.set_xlim([-350, np.max(time)])
+            elif type_str == 'cgps':
+                min_wval = np.min(waveform)
+                max_wval = np.max(waveform)
+                if max_wval > abs(min_wval):
+                    ax.text(np.max(time), 0.6*max_val,
+                       '{:0.2f}'.format(max_wval),ha='right',va='center')
+                else:
+                    ax.text(np.max(time), 0.6*max_val,
+                       '{:0.2f}'.format(min_wval),ha='right',va='center')
+                ax.hlines(0, -15, np.max(time), 'k', lw=1)
+                ax.set_xlim([-15,np.max(time)])
             min_time, max_time = ax.get_xlim()
             if type_str == 'tele_body' and comp == 'BHZ':
                 ax.text(1.4*min_time,0.2*max(abs(min_val),max_val),'P',ha='right',va='bottom')
@@ -49,6 +64,8 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                 ax.text(1.4*min_time,0.2*max(abs(min_val),max_val),'Z',ha='right',va='bottom')
             if type_str == 'surf_tele' and comp == 'SH':
                 ax.text(1.4*min_time,0.2*max(abs(min_val),max_val),'T',ha='right',va='bottom')
+            if type_str == 'cgps':
+                ax.text(1.6*min_time, 0.2*max(abs(min_val),max_val),comp,ha='right',va='bottom')
         if custom == 'syn':
             max_val = np.maximum(abs(min(waveform)),max(waveform))
             tmin, tmax = ax.get_xlim()
@@ -59,6 +76,9 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
             elif type_str == 'surf_tele':
                 ax.text(tmax, 0.6*ymin,
                     '{:0.3f}'.format(max_val),ha='right',va='center',color='red')
+            elif type_str == 'cgps':
+                ax.text(tmax, 0.6*ymin,
+                    '{:0.2f}'.format(max_val),ha='right',va='center',color='red')
         #ax.xaxis.set_major_locator(
         #    ticker.MaxNLocator(nbins=3, min_n_ticks=3))
         #ax.yaxis.set_major_locator(
@@ -75,6 +95,13 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                  ticker.MultipleLocator(500))
             ax.yaxis.set_major_locator(
                  ticker.NullLocator())
+        elif type_str == 'cgps':
+            ax.xaxis.set_major_locator(
+                 ticker.MultipleLocator(20))
+            ax.yaxis.get_major_locator().set_params(integer=True)
+            #ax.yaxis.tick_right()
+            #ax.yaxis.set_major_locator(
+            #     ticker.NullLocator())
             #ax.xaxis.set_minor_locator(
             #     ticker.MultipleLocator(500))
         ax.grid(axis='x',which='both',linestyle='dotted', color='0.5')
@@ -84,15 +111,24 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
 def add_metadata(axes, **kwargs):
     """
     """
-    if 'names' in kwargs:
-        for ax, name in zip(axes, kwargs['names']):
-            ax.text(
-                -0.02, 0.50, name, ha='right', va='center', transform=ax.transAxes)
-    if 'distances' in kwargs:
-        for ax, dist in zip(axes, kwargs['distances']):
-            ax.text(
-                0.01, 0.46, '{:0.0f}'.format(dist), ha='left',
-                va='top', transform=ax.transAxes)
+    if 'type_str' in kwargs:
+        if kwargs['type_str'] == 'cgps':
+            if 'names' in kwargs:
+                for ax, name in zip(axes, kwargs['names']):
+                    ax.text(-0.07, 0.50, name, ha='right', va='center', transform=ax.transAxes)
+            if 'distances' in kwargs:
+               for ax, dist in zip(axes, kwargs['distances']):
+                   ax.text(0.01, 0.46, '{:0.2f}'.format(dist), ha='left',
+                           va='top', transform=ax.transAxes)
+        else:
+            if 'names' in kwargs:
+                for ax, name in zip(axes, kwargs['names']):
+                    ax.text(-0.02, 0.50, name, ha='right', va='center', transform=ax.transAxes)
+            if 'distances' in kwargs:
+                for ax, dist in zip(axes, kwargs['distances']):
+                    ax.text(
+                        0.01, 0.46, '{:0.0f}'.format(dist), ha='left',
+                        va='top', transform=ax.transAxes)
     if 'azimuths' in kwargs:
         for ax, az in zip(axes, kwargs['azimuths']):
             ax.text(
@@ -111,7 +147,7 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
                        test=False, forward=False):
     """
     """
-    print('Creating Waveform Fit Plot: ' + str(type_str))
+    print('Creating Waveform Fit Plot: ' + str(type_str) + ' ' + str(components[0]))
     files = [file for file in files if file['component'] in components]
 #    plot_spectra(files, 0.02)
     files = sorted(files, key=lambda k: k['azimuth'])
@@ -151,7 +187,8 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
         'weights': weights,
         'azimuths': azimuths,
         'names': names,
-        'distances': distances
+        'distances': distances,
+        'type_str': type_str
     }
     axes2 = add_metadata(axes2, **dict)
 
