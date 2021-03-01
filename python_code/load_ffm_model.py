@@ -9,7 +9,8 @@ import get_outputs
 import numpy as np
 
 
-def load_ffm_model(option='Solucion.txt', max_slip=1000, len_stk=4, len_dip=4):
+def load_ffm_model(segments_data, point_sources, option='Solucion.txt',
+                   max_slip=1000, len_stk=4, len_dip=4):
     """Load FFM model from some input file.
 
     :param option: file from where to load the input kinematic model
@@ -23,7 +24,8 @@ def load_ffm_model(option='Solucion.txt', max_slip=1000, len_stk=4, len_dip=4):
     :type len_dip: int, optional
     """
     from random import randint
-    segments, rise_time, point_sources = pl_mng.__read_planes_info()
+    segments = segments_data['segments']
+    rise_time = segments_data['rise_time']
 
     slip = []
     rake = []
