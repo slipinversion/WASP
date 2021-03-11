@@ -16,7 +16,7 @@ import seismic_tensor as tensor
 import subprocess
 import errno
 import get_outputs
-
+from scipy.signal import butter, filtfilt
 from obspy.geodetics import kilometers2degrees
 
 
@@ -538,7 +538,7 @@ def input_chen_cgps(tensor_info, data_prop):
 
     with open('Wave.cgps', 'w') as file1, open('Obser.cgps', 'w') as file2:
         write_files_wavelet_observed(file1, file2, 1.0, data_prop,
-                                     traces_info, cgps=False)
+                                     traces_info, zero_start=True)
     return 'cgps'
 
 
@@ -568,7 +568,7 @@ def input_chen_static(tensor_info):
 
 
 def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
-                                 traces_info, gf_bank=None, cgps=False,
+                                 traces_info, gf_bank=None, zero_start=False,
                                  dart=False):
     """Write files with observed waveforms and properties of wavelet for all
     selected stations and channels
@@ -614,7 +614,7 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
             start = file['start_signal']
             stream = read(file['file'])
             waveform = stream[0].data[start:]
-            waveform = waveform - waveform[0] if cgps else waveform
+            waveform = waveform - waveform[0] if zero_start else waveform
             waveform = np.diff(waveform) if derivative else waveform
         else:
             waveform = [0 for i in range(ffm_duration)]
@@ -683,29 +683,58 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
     :type add_error: bool, optional
     """
     dt = files[0]['dt']
+    filtro_strong = data_prop['strong_filter']
+    filtro_tele = data_prop['tele_filter']
+    nyq = 0.5 / dt if not data_type == 'gps' else 10000
     if data_type == 'strong_motion':
-        max_val = 0.01
+        max_val = 0.1
         syn_file = 'synm.str'
         obser_file = 'Obser.str'
+        std_shift = 2
+        low_freq = filtro_strong['low_freq']
+        high_freq = filtro_strong['high_freq']
+        corners = [low_freq / nyq, high_freq / nyq]
+        filters = ['highpass', 'lowpass']
+        orders = [4]
     if data_type == 'cgps':
-        max_val = 1
-        dt = 1.0
+        max_val = 0.1
+        # dt = 1.0
         syn_file = 'synm.cgps'
         obser_file = 'Obser.cgps'
+        std_shift = 0.5
+        low_freq = 0
+        high_freq = filtro_strong['high_freq']
+        corners = [high_freq / nyq]
+        filters = ['lowpass']
+        orders = [4]
     if data_type == 'tele_body':
-        max_val = 1
+        max_val = 10#1
         syn_file = 'synm.tele'
         obser_file = 'Obser.tele'
+        std_shift = 0.5
+        high_freq = 1.0
+        low_freq = filtro_strong['low_freq']
+        high_freq = filtro_strong['high_freq']
+        corners = [low_freq / nyq, high_freq / nyq]
+        filters = ['highpass', 'lowpass']
+        orders = [2, 2]
     if data_type == 'surf_tele':
-        max_val = 0.005
-        dt = 4.0
+        max_val = 0.01#0.005
+        # dt = 4.0
         syn_file = 'synm.str_low'
         obser_file = 'Obser.str_low'
+        std_shift = 2
+        low_freq = 0.004
+        high_freq = 0.006
+        corners = [[low_freq / nyq, high_freq / nyq]]
+        filters = ['bandpass']
+        orders = [2]
     if data_type == 'dart':
         max_val = 0.005
-        dt = 60.0
+        # dt = 60.0
         syn_file = 'synm.dart'
         obser_file = 'Obser.dart'
+        std_shift = 30
 
     dart = 'dart' in data_type
     string = '{0:3d} {1:>5}{2:>10.3f}{3:>10.3f} {4} {5} {6} {7} {8} {9}\n'
@@ -715,11 +744,27 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
         files = get_outputs.get_data_dict(files, syn_file=syn_file)
         with open(obser_file, 'w') as outfile:
             for file in files:
-                trace = np.array(file['synthetic'])
-                length = len(trace)
+                dt = file['dt']
+                channel = file['component']
+                max_val0 = max_val
+                if data_type == 'cgps' and channel[-1] == 'Z':
+                    max_val0 = 5 * max_val
+                waveform = 0 * np.array(file['synthetic'])
+                shift = np.random.randn(1) * std_shift
+                shift = int(shift / dt)
+                length = len(waveform)
                 error = np.zeros(length)
+                if shift > 0:
+                    waveform[shift:] = file['synthetic'][:-shift]
+                elif shift < 0:
+                    waveform[:shift] = file['synthetic'][-shift:]
+                else:
+                    waveform = file['synthetic']
                 if add_error:
-                    error = max_val * np.random.randn(length)
+                    error = max_val0 * np.random.randn(length)
+                for order, filter, corner in zip(orders, filters, corners):
+                    b, a = butter(order, corner, btype=filter)
+                    error = filtfilt(b, a, error)
                 waveform = waveform + error
                 write_observed_file(file, dt, outfile, waveform, dart=dart)
     else:
@@ -737,8 +782,10 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
                 weight1 = float(line[7])
                 weight2 = float(line[8])
                 weight3 = float(line[9])
-                error = [1.0, 1.0, 5.0]
-                new_obs = new_obs + error
+                error = np.random.randn(3)
+                new_obs[0] = float(new_obs[0]) + 0.1 * error[0]
+                new_obs[1] = float(new_obs[1]) + 0.1 * error[1]
+                new_obs[2] = float(new_obs[2]) + 0.5 * error[2]
                 outfile.write(
                         string_fun(i, name, lat, lon, new_obs[0], new_obs[1],
                                    new_obs[2], weight1, weight2, weight3))
@@ -766,9 +813,6 @@ def inputs_simmulated_annealing(dictionary, data_type):
     cooling_rate = dictionary['cooling_rate']
     initial_temp = dictionary['initial_temperature']
 
-    if not data_type:
-        data_type = mng.update_data(tensor_info)
-    data_type = set(data_type) - {'gps', 'dart'}
     type_of_inversion = 1#dm.set_data_type(data_type)
 
     with open('HEAT.IN', 'w') as filewrite:
@@ -847,11 +891,12 @@ def write_green_file(green_dict, cgps=False):
     min_dist = green_dict['min_dist']
     max_dist = green_dict['max_dist']
     location = green_dict['location']
+    time_corr = green_dict['time_corr']
     name = 'Green.in' if not cgps else 'Green_cgps.in'
     with open(name, 'w') as green_file:
         green_file.write('vel_model\n{} {} 1\n{} {} 1\n'.format(
                 max_depth, min_depth, max_dist, min_dist))
-        green_file.write('10 {} 50000 {}\n'.format(dt, 10))
+        green_file.write('10 {} 50000 {}\n'.format(dt, time_corr))
         green_file.write(location)
 
 
@@ -884,6 +929,8 @@ if __name__ == '__main__':
                         help="compute files with static GPS data")
     parser.add_argument("-a", "--annealing", action="store_true",
                         help="compute files for annealing")
+    parser.add_argument("-m", "--model_space", action="store_true",
+                        help="compute files for model space")
     args = parser.parse_args()
     os.chdir(args.folder)
     if args.gcmt_tensor:
@@ -927,6 +974,12 @@ if __name__ == '__main__':
             raise FileNotFoundError(
                     errno.ENOENT, os.strerror(errno.ENOENT), 'static_data.json')
         input_chen_static(tensor_info)
+    if args.model_space:
+        if not os.path.isfile('model_space.json'):
+            raise FileNotFoundError(
+                    errno.ENOENT, os.strerror(errno.ENOENT), 'model_space.json')
+        dictionary = json.load(open('model_space.json'))
+        model_space(dictionary)
     if args.annealing:
         if not os.path.isfile('annealing_prop.json'):
             raise FileNotFoundError(

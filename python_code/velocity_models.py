@@ -6,10 +6,8 @@ dictionaries with this velocity model.
 
 import numpy as np
 import json
-    
-#
-# rutinas para llamar desde afuera
-#
+from netCDF4 import Dataset
+
     
 def select_velmodel(tensor_info, default_dirs):
     """Script to select velocity model given hypocenter location
@@ -58,6 +56,7 @@ def select_velmodel(tensor_info, default_dirs):
 
     """
     crust_model = __crust_crust_velmodel(tensor_info, default_dirs)
+    # crust_model = __litho_crust_velmodel(tensor_info, default_dirs)
     velmodel = __crust_mantle_model(crust_model, tensor_info['depth'])
     velmodel2json(velmodel)
     return velmodel
@@ -281,6 +280,131 @@ def __dict_velmodel(p_vel, s_vel, dens, thick, qa, qb):
             'qb': [str(v) for v in qb]
     }
     return velmodel_dict
+
+
+def __litho_crust_velmodel(tensor_info, default_dirs):
+    """We find the velocity model interpolated from litho1.0, for the location
+    of the hypocenter of the earthquake
+    
+    :param tensor_info: dictionary with moment tensor information
+    :param default_dirs: dictionary with default directories to be used
+    :type default_dirs: dict
+    :type tensor_info: dict
+    """
+#
+# code for crust type
+#
+    lat = tensor_info['lat']
+    lon = tensor_info['lon']
+    litho_model = default_dirs['litho_model']
+    rootgrp = Dataset(litho_model, "r", format="NETCDF4")
+    
+    vars = rootgrp.variables
+    latitudes = vars['latitude']
+    latitudes = np.array([val for val in latitudes])
+    longitudes = vars['longitude']
+    longitudes = np.array([val for val in longitudes])
+    
+    latitudes2 = (latitudes - lat) ** 2
+    longitudes2 =  (longitudes - lon) ** 2
+    index_lat = np.argmin(latitudes2)
+    index_lon = np.argmin(longitudes2)
+    
+    layers = [
+        'water_top',
+        'ice_top',
+        'upper_sediments_top',
+        'middle_sediments_top',
+        'lower_sediments_top',
+        'upper_crust_top',
+        'middle_crust_top',
+        'lower_crust_top',
+        'lid_top',
+        'asthenospheric_mantle_top'
+    ]
+    
+    p_vel_crust = [vars[layer + '_vp'][index_lat, index_lon] for layer in layers]
+    p_vel_crust = np.array([val for val in p_vel_crust if not np.isnan(val)])
+    
+    s_vel_crust = [vars[layer + '_vs'][index_lat, index_lon] for layer in layers]
+    s_vel_crust = np.array([val for val in s_vel_crust if not np.isnan(val)])
+    
+    dens_crust = [vars[layer + '_density'][index_lat, index_lon] for layer in layers]
+    dens_crust = np.array([val for val in dens_crust if not np.isnan(val)])/1000
+    
+    depth_crust = [vars[layer + '_depth'][index_lat, index_lon] for layer in layers]
+    depth_crust = np.array([val for val in depth_crust if not np.isnan(val)])
+    
+    qb_crust = [vars[layer + '_qmu'][index_lat, index_lon] for layer in layers]
+    qb_crust = np.array([val for val in qb_crust if not np.isnan(val)])
+    qa_crust = 2 * qb_crust
+#
+# remove water layer
+#
+    if s_vel_crust[0] <= 0.1:
+        p_vel_crust = p_vel_crust[1:]
+        s_vel_crust = s_vel_crust[1:]
+        dens_crust = dens_crust[1:]
+        depth_crust = depth_crust[1:]
+    
+    model = __depth2thick(
+        p_vel_crust, s_vel_crust, dens_crust, depth_crust, qa_crust, qb_crust)
+    
+    p_vel_crust = model['p_vel'][:-1]
+    s_vel_crust = model['s_vel'][:-1]
+    dens_crust = model['dens'][:-1]
+    thick_crust = model['thick'][:-1]
+    qa_crust = model['qa'][:-1]
+    qb_crust = model['qb'][:-1]
+
+    indexes = [i for i, thick in enumerate(thick_crust) if float(thick) > 0.0001]
+
+    p_vel_crust = np.array([p_vel_crust[i] for i in indexes])
+    s_vel_crust = np.array([s_vel_crust[i] for i in indexes])
+    dens_crust = np.array([dens_crust[i] for i in indexes])
+    thick_crust = np.array([thick_crust[i] for i in indexes])
+    qa_crust = np.array([qa_crust[i] for i in indexes])
+    qb_crust = np.array([qb_crust[i] for i in indexes])
+    crust_velmodel = __dict_velmodel(
+            p_vel_crust, s_vel_crust, dens_crust, thick_crust,
+            qa_crust, qb_crust)
+                
+    return crust_velmodel
+
+
+def model_depth2thick(model_file):
+    """
+    """
+    with open(model_file, 'r') as input_file:
+        lines = input_file.readlines()
+    
+    if len(__process_line(lines[0])) == 1:
+        del lines[0]
+    
+    p_vel_crust = np.array([__process_line(line)[0] for line in lines])
+    s_vel_crust = np.array([__process_line(line)[1] for line in lines])
+    dens_crust = np.array([__process_line(line)[2] for line in lines])
+    depth_crust = np.array([__process_line(line)[3] for line in lines])
+    qa_crust = np.array([__process_line(line)[4] for line in lines])
+    qb_crust = np.array([__process_line(line)[5] for line in lines])
+    
+    model = __depth2thick(
+        p_vel_crust, s_vel_crust, dens_crust, depth_crust, qa_crust, qb_crust)
+    
+    return model
+
+
+def __depth2thick(p_vel, s_vel, dens, depth, qa, qb):
+    """
+    """
+    thick = np.diff(depth)
+    p_vel2 = 2 / (1/p_vel[:-1] + 1/p_vel[1:])
+    p_vel2 = np.round(p_vel2, 2)
+    s_vel2 = 2 / (1/s_vel[:-1] + 1/s_vel[1:])
+    s_vel2 = np.round(s_vel2, 2)
+    
+    model = __dict_velmodel(p_vel2, s_vel2, dens[:-1], thick, qa[:-1], qb[:-1])
+    return model
 
 
 def __process_line(line):
