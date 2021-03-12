@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """Routine for performing administrative tasks, such as changing folders, or
 moving to a different folder.
 """
@@ -92,6 +92,7 @@ def default_dirs():
             'long_gf_bank': os.path.join(root_dir, 'gfs_nm', 'long', 'low.in'),
             'crust_codes': os.path.join(root_dir, 'info', 'CNtype2.txt'),
             'models_codes': os.path.join(root_dir, 'info', 'CNtype2_key.txt'),
+            'litho_model': os.path.join(root_dir, 'info', 'LITHO1.0.nc'),
             'gf_bank': os.path.join(root_dir, 'gfs_nm', 'long', 'low.in'),
             'create_fault_files': os.path.join(
                     root_dir, 'bin_inversion_gfortran', 'fsub'),
@@ -245,3 +246,4 @@ if __name__ == '__main__':
         correct_response_file(tensor_info, pzfile)
         
     
+

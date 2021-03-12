@@ -772,10 +772,7 @@ def __select_cgps_files(cgps_files, tensor_info):
     event_lon = tensor_info['lon']
     date_origin = tensor_info['date_origin']
     depth = tensor_info['depth']
-    moment = tensor_info['moment_mag']
-    moment_mag = 2*(np.log10(moment) - 16.1)/3
-    length = 10**(-2.31 + 0.57*moment_mag)
-    distance = 2 + length / 2 / 111.12
+    distance = 2 if time_shift < 50 else 4
 
     for i, (stream, sac) in enumerate(zip(streams, cgps_files)):
         station_lat = stream[0].stats.sac.stla
@@ -1083,10 +1080,7 @@ def __select_str_files(strong_files, tensor_info):
     centroid_lon = tensor_info['centroid_lon']
     depth = tensor_info['depth']
     strong_files2 = []
-    moment = tensor_info['moment_mag']
-    moment_mag = 2*(np.log10(moment) - 16.1)/3
-    length = 10**(-2.31 + 0.57*moment_mag)
-    distance = 2 + length / 2 / 111.12
+    distance = 2 if time_shift < 50 else 4
     
     for sac in strong_files:
         select_stat = True
