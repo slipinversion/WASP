@@ -74,7 +74,7 @@ slipcpt = ListedColormap(slip_cpt)
 #  [1.0, 0.0, 0.0]]}
 #slipcpt = matplotlib.colors.LinearSegmentedColormap('slipcpt',cD)
 
-def plot_ffm_sol(tensor_info, segments, point_sources, shear, solution,
+def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                  vel_model, default_dirs, autosize=False, mr_time=False, evID=None):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
@@ -144,7 +144,7 @@ def plot_ffm_sol(tensor_info, segments, point_sources, shear, solution,
     
     """
     #_plot_vel_model(vel_model, point_sources)
-    _plot_moment_rate_function(segments, shear, point_sources, mr_time=mr_time)
+    _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=mr_time)
     #_PlotRiseTime(segments, point_sources, solution)
     #_PlotRuptTime(segments, point_sources, solution)
     _PlotSlipDistribution(segments, point_sources, solution, autosize=autosize)
@@ -335,7 +335,7 @@ def _PlotRiseTime(segments, point_sources, solution):
     return
 
 
-def _PlotSlipDistribution(segments, point_sources, solutioni, autosize=False):
+def _PlotSlipDistribution(segments, point_sources, solution, autosize=False):
     """We plot slip distribution based on the FFM solution model
     """
     print('Creating Slip Distribution Plot...')
@@ -370,12 +370,10 @@ def _PlotSlipDistribution(segments, point_sources, solutioni, autosize=False):
         ax.spines["left"].set_linewidth(3)
         ax.spines["right"].set_linewidth(3)
         fig.subplots_adjust(right=0.85, top=0.85, bottom=0.3)
-        n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
+        stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
                 = pl_mng.__unpack_plane_data(segment)
-        strk = segment['strike']
-        dip = segment['dip']
-        x = np.arange(n_sub_x) * delta_x - hyp_stk * delta_x
-        y = np.arange(n_sub_y) * delta_y - hyp_dip * delta_y
+        x = np.arange(stk_subfaults) * delta_strike - hyp_stk * delta_strike
+        y = np.arange(dip_subfaults) * delta_dip - hyp_dip * delta_dip
         X = np.linspace(min(x),max(x),20*len(x))
         Y = np.linspace(min(y),max(y),20*len(y))
         z = (u**2+v**2)**0.5
@@ -399,6 +397,8 @@ def _PlotSlipDistribution(segments, point_sources, solutioni, autosize=False):
         cb = fig.colorbar(sm, cax=cbar_ax, orientation='horizontal')
         cb.outline.set_linewidth(3)
         cb.set_label('Slip (m)',fontsize=18)
+        strk = segment['strike']
+        dip = segment['dip']
         ax.text(-0.1, 1.22, 'Strike = '+ str(int(strk)), fontsize=15,
                      fontweight='bold', transform=ax.transAxes, va='top', ha='left')
         ax.text(-0.1, 1.13, 'Dip = ' + str(int(dip)), fontsize=15,
@@ -446,12 +446,10 @@ def _PlotSlipTimes(segments, point_sources, solution):
         ax1.spines["left"].set_linewidth(3)
         ax1.spines["right"].set_linewidth(3)
         fig.subplots_adjust(right=0.75, hspace=0.38)
-        n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
+        stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
                 = pl_mng.__unpack_plane_data(segment)
-        strk = segment['strike']
-        dip = segment['dip']
-        x = np.arange(n_sub_x) * delta_x - hyp_stk * delta_x
-        y = np.arange(n_sub_y) * delta_y - hyp_dip * delta_y
+        x = np.arange(stk_subfaults) * delta_strike - hyp_stk * delta_strike
+        y = np.arange(dip_subfaults) * delta_dip - hyp_dip * delta_dip
         X = np.linspace(min(x),max(x),20*len(x))
         Y = np.linspace(min(y),max(y),20*len(y))
         z = (u**2+v**2)**0.5
@@ -475,6 +473,8 @@ def _PlotSlipTimes(segments, point_sources, solution):
         cb = fig.colorbar(sm, cax=cbar_ax1, orientation='vertical')
         cb.outline.set_linewidth(3)
         cb.set_label('Rupture Time (s)',fontsize=16)
+        strk = segment['strike']
+        dip = segment['dip']
         ax1.text(-0.1, 1.25, 'Strike = '+ str(int(strk)), fontsize=13,
                      fontweight='bold', transform=ax1.transAxes, va='top', ha='left')
         ax1.text(-0.1, 1.19, 'Dip = ' + str(int(dip)), fontsize=13,
@@ -582,13 +582,11 @@ def _PlotCumulativeSlip(segments, point_sources, solution, tensor_info, evID=Non
         plt.rc('font', size=11)
         fig = plt.figure(figsize=(8, 8))
 
-        n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
+
+        stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
                 = pl_mng.__unpack_plane_data(segment)
-        strk = segment['strike']
-        dip = segment['dip']
-        max_slip_seg = np.max(slip_seg.flatten())
-        x = np.arange(n_sub_x) * delta_x - hyp_stk * delta_x
-        y = np.arange(n_sub_y) * delta_y - hyp_dip * delta_y
+        x = np.arange(stk_subfaults) * delta_strike - hyp_stk * delta_strike
+        y = np.arange(dip_subfaults) * delta_dip - hyp_dip * delta_dip
 
         ### PLOT IT ###
         grid = plt.GridSpec(4, 4, hspace=0.2, wspace=0.2)
@@ -617,11 +615,11 @@ def _PlotCumulativeSlip(segments, point_sources, solution, tensor_info, evID=Non
         along_strike = np.sum(cumslip_seg, axis = 0)
         along_dip = np.sum(cumslip_seg, axis = 1)
         ### Calculate equivalent slip length in along-strike and along-dip directions ###
-        eq_len_AS = shakemap.equivalent_slip_length(along_strike/100, delta_x)
-        left_edge_AS = shakemap.locate_equivalent_slip(along_strike/100, delta_x, eq_len_AS)
+        eq_len_AS = shakemap.equivalent_slip_length(along_strike/100, delta_strike)
+        left_edge_AS = shakemap.locate_equivalent_slip(along_strike/100, delta_strike, eq_len_AS)
         left_edge_AS = left_edge_AS + x[0]
-        eq_len_AD = shakemap.equivalent_slip_length(along_dip/100, delta_y)
-        left_edge_AD = shakemap.locate_equivalent_slip(along_dip/100, delta_y, eq_len_AD)
+        eq_len_AD = shakemap.equivalent_slip_length(along_dip/100, delta_dip)
+        left_edge_AD = shakemap.locate_equivalent_slip(along_dip/100, delta_dip, eq_len_AD)
         left_edge_AD = left_edge_AD + y[0]
 
         main_ax.hlines(left_edge_AD, left_edge_AS, left_edge_AS + eq_len_AS, 'k', ls='--')
@@ -679,6 +677,8 @@ def _PlotCumulativeSlip(segments, point_sources, solution, tensor_info, evID=Non
         cbar_ax.xaxis.set_label_position('top')
         cb.outline.set_linewidth(3)
         cb.set_label('Slip (m)',fontsize=10, fontweight='bold')
+        strk = segment['strike']
+        dip = segment['dip']
         ax1.text(-0.2, 0.85, 'Strike = '+ str(int(strk)), fontsize=11,
                      transform=ax1.transAxes, va='top', ha='center')
         ax1.text(-0.2, 0.7, 'Dip = ' + str(int(dip)), fontsize=11,
@@ -732,10 +732,10 @@ def _PlotSlipDist_Compare(segments, point_sources, input_model,
         ax1.set_ylabel(y_label)
         ax1.set_xlabel(x_label)
         fig.subplots_adjust(right=0.75)
-        n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
-            = pl_mng.__unpack_plane_data(segment)
-        x = np.arange(n_sub_x) * delta_x - hyp_stk * delta_x
-        y = np.arange(n_sub_y) * delta_y - hyp_dip * delta_y
+        stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
+                = pl_mng.__unpack_plane_data(segment)
+        x = np.arange(stk_subfaults) * delta_strike - hyp_stk * delta_strike
+        y = np.arange(dip_subfaults) * delta_dip - hyp_dip * delta_dip
         ax0.quiver(x, y, u, v, scale=15.0, width=0.003)
         ax1.quiver(x, y, u2, v2, scale=15.0, width=0.003)
         if i_segment == 0:
@@ -764,15 +764,15 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     import collections
     print('Creating Slip Map...')
     plane_info = segments[0]
-    n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
-        = pl_mng.__unpack_plane_data(plane_info)
-#    if n_sub_x * n_sub_y == 1:
-#        return
+    stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
+            = pl_mng.__unpack_plane_data(plane_info)
+    x = np.arange(stk_subfaults) * delta_strike - hyp_stk * delta_strike
+    y = np.arange(dip_subfaults) * delta_dip - hyp_dip * delta_dip
     slip = solution['slip']
 #
 # accurate plot coordinates
 #
-    segments_lats, segments_lons = __redefine_lat_lon(segments, point_sources)
+    segments_lats, segments_lons, segments_deps = __redefine_lat_lon(segments, point_sources)
     min_lats = [min(segment_lat.flatten()) for segment_lat in segments_lats]
     max_lats = [max(segment_lat.flatten()) for segment_lat in segments_lats]
     min_lons = [min(segment_lon.flatten()) for segment_lon in segments_lons]
@@ -784,7 +784,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
 
     # outline the segments in black #
     for segment in range(len(segments_lats)):
-        depths = point_sources[segment][:, :, :, :, 2].flatten()
+        depths = segments_deps[segment].flatten()
         min_lats_idx = np.where(segments_lats[segment].flatten()==min_lats[segment])[0][0]
         cornerA = [segments_lons[segment].flatten()[min_lats_idx], min_lats[segment], depths[min_lats_idx], 0]
         min_lons_idx = np.where(segments_lons[segment].flatten()==min_lons[segment])[0][0]
@@ -794,7 +794,6 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         max_lons_idx = np.where(segments_lons[segment].flatten()==max_lons[segment])[0][0]
         cornerD = [max_lons[segment], segments_lats[segment].flatten()[max_lons_idx], depths[max_lons_idx], 3]
         corners = np.c_[cornerA, cornerB, cornerC, cornerD]
-
         max_dep = max(corners[2,:])
         idx_max = np.where(np.array(corners[2,:]) == max_dep)[0][0]
         min1 = min2 = corners[:,idx_max]
@@ -808,7 +807,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         updip = np.c_[min1,min2]
         corners = np.c_[corners,cornerA]
 
-    margin = 1.3 * (n_sub_x * delta_x) / 111.19#min(3 * (n_sub_x * delta_x) / 111.19, 10)
+    margin = 1.3 * (stk_subfaults * delta_strike) / 111.19#min(3 * (n_sub_x * delta_x) / 111.19, 10)
     lat0 = tensor_info['lat']
     lon0 = tensor_info['lon']
  #   margins = [min_lon, max_lon, min_lat, max_lat]
@@ -878,44 +877,44 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         plt.text(lon0 + margin - 2, lat0 + margin - 0.45,
                  '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
         for name, sta_lat, sta_lon, obs, syn, error in stations_gps2:
-            plt.plot(sta_lon, sta_lat, 'ks', transform=ccrs.PlateCarree(),
-                     markersize=14)
+            #plt.plot(sta_lon, sta_lat, 'ks', transform=ccrs.PlateCarree(),
+            #         markersize=14)
             gps_z, gps_n, gps_e = syn
-            east_west = float(gps_e) / max_obs#/ 100
-            north_south = float(gps_n) / max_obs#/ 100
+            east_west = float(gps_e) / max_obs #/ 100
+            north_south = float(gps_n) / max_obs #/ 100
             plt.arrow(sta_lon, sta_lat, east_west, north_south, color='r',
                       zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
             up_down = float(gps_z) / max_obs#/ 100
-            plt.arrow(sta_lon, sta_lat, 0.0, up_down, color='r', zorder=3,
-                      linewidth=2, head_width=0.05, head_length=0.05,
-                      transform=ccrs.PlateCarree())
+            #plt.arrow(sta_lon, sta_lat, 0.0, up_down, color='r', zorder=3,
+            #          linewidth=2, head_width=0.05, head_length=0.05,
+            #          transform=ccrs.PlateCarree())
             gps_z, gps_n, gps_e = obs
-            east_west = float(gps_e) / max_obs#/ 100
-            north_south = float(gps_n) / max_obs#/ 100
+            east_west = float(gps_e) / max_obs #/ 100
+            north_south = float(gps_n) / max_obs #/ 100
             plt.arrow(sta_lon, sta_lat, east_west, north_south, zorder=3,
                       linewidth=2, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
             up_down = float(gps_z) / max_obs#/ 100
-            plt.arrow(sta_lon, sta_lat, 0.0, up_down, zorder=3,
-                      linewidth=2, head_width=0.05, head_length=0.05,
-                      transform=ccrs.PlateCarree())
-            plt.text(sta_lon + 0.1, sta_lat + 0.1, '{}'.format(name),
+            #plt.arrow(sta_lon, sta_lat, 0.0, up_down, zorder=3,
+            #          linewidth=2, head_width=0.05, head_length=0.05,
+            #          transform=ccrs.PlateCarree())
+            plt.text(sta_lon + 0.02, sta_lat + 0.02, '{}'.format(name),
                      transform=ccrs.PlateCarree())
             err_z, err_n, err_e = error
             width = float(err_e) / max_obs#/ 100
             height = float(err_n) / max_obs#/ 100
-            ellipse = patches.Ellipse(
-                    (sta_lon + east_west, sta_lat + north_south), width,
-                    height, zorder=4, color='k', linewidth=10,
-                    transform=ccrs.PlateCarree())
-            plt.gca().add_patch(ellipse)
-        plt.arrow(lon0 + margin - 0.2, lat0 + margin - 0.2, -1, 0, color='r',
-                  zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
-                  transform=ccrs.PlateCarree())
-        plt.arrow(lon0 + margin - 0.2, lat0 + margin - 0.4, -1, 0, color='k',
-                  zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
-                  transform=ccrs.PlateCarree())
+        #    ellipse = patches.Ellipse(
+        #            (sta_lon + east_west, sta_lat + north_south), width,
+        #            height, zorder=4, color='k', linewidth=10,
+        #            transform=ccrs.PlateCarree())
+        #    plt.gca().add_patch(ellipse)
+        #plt.arrow(lon0 + margin - 0.2, lat0 + margin - 0.2, -1, 0, color='r',
+        #          zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
+        #          transform=ccrs.PlateCarree())
+        #plt.arrow(lon0 + margin - 0.2, lat0 + margin - 0.4, -1, 0, color='k',
+        #          zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
+        #          transform=ccrs.PlateCarree())
     max_slip = max([np.amax(slip_fault) for slip_fault in slip])\
         if not max_slip else max_slip
     margins = [min_lon - 2, max_lon + 2, min_lat - 2, max_lat + 2]
@@ -924,7 +923,6 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     ax.plot(lon0, lat0, '*', markersize=15, transform=ccrs.PlateCarree(),
             zorder=4, markerfacecolor="None", markeredgecolor='k', markeredgewidth=1.5)
     ax.plot(corners[0,:],corners[1,:], 'k',lw=5)
-
     ax.plot(updip[0,:],updip[1,:], 'r', lw=5)
 #
 # plot slip map
@@ -956,17 +954,17 @@ def _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
     """
     input_slip = input_model['slip']
     plane_info = segments[0]
-    n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
+    stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
         = pl_mng.__unpack_plane_data(plane_info)
-    if n_sub_x * n_sub_y == 1:
+    if stk_subfaults * dip_subfaults == 1:
         return
     slip = solution['slip']
 #
 # accurate plot coordinates
 #
-    segments_lats, segments_lons = __redefine_lat_lon(segments, point_sources)
+    segments_lats, segments_lons, segments_deps = __redefine_lat_lon(segments, point_sources)
 
-    margin = min(1.5 * (n_sub_x * delta_x) / 111.19, 10)#3
+    margin = min(1.5 * (stk_subfaults * delta_strike) / 111.19, 10)#3
     lat0 = tensor_info['lat']
     lon0 = tensor_info['lon']
     margins = [lon0 - margin, lon0 + margin, lat0 - margin, lat0 + margin]
@@ -1009,46 +1007,56 @@ def __redefine_lat_lon(segments, point_sources):
     """
     segments_lats = [[]] * len(segments)
     segments_lons = [[]] * len(segments)
+    segments_deps = [[]] * len(segments)
     for i, point_sources_seg in enumerate(point_sources):
         lat = point_sources_seg[:, :, :, :, 0]
         lon = point_sources_seg[:, :, :, :, 1]
+        dep = point_sources_seg[:, :, :, :, 2]
         ny, nx, a, b = lat.shape
         new_lat = np.zeros((ny + 1, nx + 1))
         new_lon = np.zeros((ny + 1, nx + 1))
+        new_dep = np.zeros((ny + 1, nx + 1))
         for j in range(ny):
             for k in range(nx):
                 new_lat[j, k] = lat[j, k, 0, 0]
                 new_lon[j, k] = lon[j, k, 0, 0]
+                new_dep[j, k] = dep[j, k, 0, 0]
         for k in range(nx):
             new_lat[-1, k] = lat[-1, k, -1, 0]
             new_lon[-1, k] = lon[-1, k, -1, 0]
+            new_dep[-1, k] = dep[-1, k, -1, 0]
         for j in range(ny):
             new_lat[j, -1] = lat[j, -1, 0, -1]
             new_lon[j, -1] = lon[j, -1, 0, -1]
+            new_dep[j, -1] = dep[j, -1, 0, -1]
         new_lat[-1, -1] = lat[-1, -1, -1, -1]
         new_lon[-1, -1] = lon[-1, -1, -1, -1]
+        new_dep[-1, -1] = dep[-1, -1, -1, -1]
         segments_lats[i] = new_lat
         segments_lons[i] = new_lon
-    return segments_lats, segments_lons
+        segments_deps[i] = new_dep
+    return segments_lats, segments_lons, segments_deps
 
 
-def _plot_moment_rate_function(segments, shear, point_sources, mr_time=None):
+def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None):
     """We plot moment rate function
     """
     print('Creating Moment Rate Plot...')
+    segments = segments_data['segments']
     plane_info = segments[0]
     dt = 0.01
-    model = load_ffm_model.load_ffm_model()
+    model = load_ffm_model.load_ffm_model(segments_data, point_sources)
     slip = model['slip']
     trup = model['trup']
     tl = model['trise']
     tr = model['tfall']
     properties = pl_mng.__unpack_plane_data(plane_info)
-    delta_x, delta_y = [properties[2], properties[3]]
-    n_sub_x, n_sub_y = [properties[0], properties[1]]
+    delta_strike, delta_dip = [properties[2], properties[3]]
+    stk_subfaults, dip_subfaults = [properties[0], properties[1]]
     tmax = 1.5 * np.max([np.amax(trup_seg + tl_seg + tr_seg)\
                          for trup_seg, tl_seg, tr_seg in zip(trup, tl, tr)])
-    tmax = tmax if n_sub_x * n_sub_y > 1 else (tl[0][0, 0] + tr[0][0, 0]) * 8.0
+    tmax = tmax if stk_subfaults * dip_subfaults > 1\
+        else (tl[0][0, 0] + tr[0][0, 0]) * 8.0
     nmax = int((tmax/dt + 1))
     mr = np.zeros(nmax)
     seismic_moment = 0
@@ -1071,7 +1079,7 @@ def _plot_moment_rate_function(segments, shear, point_sources, mr_time=None):
                 tend = tmid + len(array2)
                 rise_time[tmid:tend]\
                     = (1 + np.cos(np.pi * array2 / tfall)) / (tfall + trise)
-                duration = int(max(delta_x, delta_y) / dt / rupt_vel)
+                duration = int(max(delta_strike, delta_dip) / dt / rupt_vel)
                 source_dur = np.ones(duration) / duration
                 start_index = max(0, int(trup_seg[iy, ix] / dt))
 #                source_dur[start_index:start_index + duration] = np.ones(duration)
@@ -1084,7 +1092,7 @@ def _plot_moment_rate_function(segments, shear, point_sources, mr_time=None):
 
         seismic_moment = seismic_moment\
             + np.sum((slip_seg / 100) * (shear_seg / 10)\
-                     * (delta_x * 1000) * (delta_y * 1000))
+                     * (delta_strike * 1000) * (delta_dip * 1000))
         
 #    
 # find moment rate function
@@ -1092,7 +1100,7 @@ def _plot_moment_rate_function(segments, shear, point_sources, mr_time=None):
         for i in range(nmax):
             time = i * dt
             mr[i] = mr[i]\
-                + moment_rate[i] * (delta_x * 1000) * (delta_y * 1000)
+                + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
     
     time = np.arange(nmax) * dt 
     with open('STF.txt', 'w') as outf:
@@ -1158,19 +1166,20 @@ def _PlotSnapshotSlip(tensor_info, segments, point_sources, solution):
     trup = solution['rupture_time']
     tl = solution['t_rise']
     tr = solution['t_fall']
-    n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
+    stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
         = pl_mng.__unpack_plane_data(plane_info)
-    if [n_sub_x, n_sub_y] == [1, 1]:
+    if [stk_subfaults, dip_subfaults] == [1, 1]:
         return
     tmid = trup + tl
     tstop = trup + tl + tr
     srmax = slip / (tr + tl) * 2.
 #
 # Define the vector field of the slip and plotting parameters.
-#    
-    x = np.arange(n_sub_x) * delta_x - hyp_stk * delta_x
-    y = np.arange(n_sub_y) * delta_y - hyp_dip * delta_y
-    ratio = max(1, (9 / 16) * ((n_sub_x * delta_x) / (n_sub_y * delta_y)))
+#   
+    x = np.arange(stk_subfaults) * delta_strike - hyp_stk * delta_strike
+    y = np.arange(dip_subfaults) * delta_dip - hyp_dip * delta_dip
+    ratio = max(1,
+        (9 / 16) * ((stk_subfaults * delta_strike) / (dip_subfaults * delta_dip))) 
     vmax = np.amax(slip)
     tmax = np.amax(trup)
     step = int((tmax/dt + 1) / 9.)
@@ -1515,28 +1524,27 @@ def _plot_waveforms(files, components, type_str, tensor_info,
 def __extent_plot(plane_info):
     """
     """
-    n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
+    stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
         = pl_mng.__unpack_plane_data(plane_info)
-    return [-hyp_stk * delta_x, (n_sub_x - hyp_stk) * delta_x,
-            -hyp_dip * delta_y, (n_sub_y - hyp_dip) * delta_y]
-
+    return [-hyp_stk * delta_strike, (stk_subfaults - hyp_stk) * delta_strike,
+            -hyp_dip * delta_dip, (dip_subfaults - hyp_dip) * delta_dip]
 
 def __several_axes(data, segment, point_source_seg, ax, min_val=None, max_val=None,
                    autosize=True, cmap=slipcpt, depth_ax=True):
     """
     """
-    n_sub_x, n_sub_y, delta_x, delta_y, hyp_stk, hyp_dip\
+    stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
         = pl_mng.__unpack_plane_data(segment)
-    min_dist = - (hyp_dip + 0.5) * delta_y
-    max_dist = (n_sub_y - hyp_dip - 0.5) * delta_y
-    min_strike = - (hyp_stk + 0.5) * delta_x
-    max_strike = (n_sub_x - hyp_stk - 0.5) * delta_x
+    min_dist = - (hyp_dip + 0.5) * delta_dip
+    max_dist = (dip_subfaults - hyp_dip - 0.5) * delta_dip
+    min_strike = - (hyp_stk + 0.5) * delta_strike
+    max_strike = (stk_subfaults - hyp_stk - 0.5) * delta_strike
     dep = point_source_seg[:, :, :, :, 2]
     min_depth = dep[0, 0, 0, 0]
     max_depth = dep[-1, 0, -1, 0]
-    if n_sub_x * n_sub_y == 1:
+    if stk_subfaults * dip_subfaults == 1:
         dip = segment['dip']
-        delta_z = delta_y * np.sin(dip * np.pi / 180.0) / 2
+        delta_z = delta_dip * np.sin(dip * np.pi / 180.0) / 2
         min_depth = min_depth - delta_z
         max_depth = max_depth + delta_z
     max_val = np.max(data.flatten()) if not max_val else max_val
@@ -1546,7 +1554,7 @@ def __several_axes(data, segment, point_source_seg, ax, min_val=None, max_val=No
                    extent=[min_strike, max_strike, min_dist, max_dist])
     ax.set(adjustable='datalim')
     if autosize:
-        ax.figure.set_size_inches(4 * n_sub_x * delta_x / n_sub_y / delta_y, 4)
+        ax.figure.set_size_inches(4 * stk_subfaults * delta_strike / dip_subfaults / delta_dip, 4)
     if depth_ax:
         ax2 = ax.twinx()
         ax2.set_xlim([min_strike, max_strike])
@@ -1555,7 +1563,7 @@ def __several_axes(data, segment, point_source_seg, ax, min_val=None, max_val=No
         ax2.set_ylabel('Depth (km)',fontsize=16)
         ax2.invert_yaxis()
         if autosize:
-            ax2.figure.set_size_inches(4 * n_sub_x * delta_x / n_sub_y / delta_y, 4)
+            ax2.figure.set_size_inches(4 * stk_subfaults * delta_strike / dip_subfaults / delta_dip, 4)
     ax.invert_yaxis()
     return ax, im
 
@@ -1640,7 +1648,10 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     else:
         tensor_info = tensor.get_tensor()
-    segments, rise_time, point_sources = pl_mng.__read_planes_info()
+    segments_data = json.load(open('segments_data.json'))
+    segments = segments_data['segments']
+    rise_time = segments_data['rise_time']
+    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
     solution = get_outputs.read_solution_static_format(segments)
     if args.ffm_solution:
         if not os.path.isfile('velmodel_data.json'):
@@ -1660,7 +1671,7 @@ if __name__ == '__main__':
             evID = args.EventID
         else:
             evID = None
-        plot_ffm_sol(tensor_info, segments, point_sources, shear, solution,
+        plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                      vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID)
         
     if args.shakemappolygon:
@@ -1677,21 +1688,23 @@ if __name__ == '__main__':
         stations_gps = zip(names, lats, lons, observed, synthetic, error)
     if args.strong:
         traces_info = json.load(open('strong_motion_waves.json'))
-    if args.strong or args.gps:
+    #if args.strong or args.gps:
+    if args.gps:
         solution = get_outputs.read_solution_static_format(segments)
         _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
                  files_str=traces_info, stations_gps=stations_gps)
-        input_model = load_ffm_model.load_ffm_model(option='Fault.time')
-        _PlotSlipDist_Compare(segments, point_sources, input_model, solution)
-        _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
-                           solution)
+        #input_model = load_ffm_model.load_ffm_model(
+        #        segments_data, point_sources, option='Fault.time')
+        #_PlotSlipDist_Compare(segments, point_sources, input_model, solution)
+        #_PlotComparisonMap(tensor_info, segments, point_sources, input_model,
+        #                   solution)
     if args.downloads:
        dwnlds.write_CMTSOLUTION_file()
        if args.EventID:
             evID = args.EventID
        else:
             evID = None
-       dwnlds.write_Coulomb_file(evID)
+       dwnlds.write_Coulomb_file(eventID=evID)
        dwnlds.write_Okada_displacements()
 
     plot_misfit(used_data)#, forward=True)
