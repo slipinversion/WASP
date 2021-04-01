@@ -360,8 +360,6 @@ def __fault_plane_properties(eq_time, tensor_info, plane_info, water_level):
 #    min_size = 10 if time_shift > 10 else 5
     delta_strike = max(size0, 1.0)
     delta_dip = max(size0, 1.0)
-    # if dip > 60 and max_width < 75: # strike slip
-    #     delta_dip = min(5, delta_dip)
     stk_subfaults = int(min(int(max_length / delta_strike), 45))
     if stk_subfaults % 2 is 0:
         stk_subfaults = stk_subfaults + 1
@@ -534,9 +532,9 @@ def __subfaults_properties(delta_strike, delta_dip, stk_subfaults, dip_subfaults
             'delta_strike': delta_strike,
             'delta_dip': delta_dip,
             'stk_subfaults': stk_subfaults,
-            'dip_subfaults': dip_subfaults,
-            'largo': delta_strike * stk_subfaults,
-            'ancho': delta_dip * dip_subfaults,
+            'dip_subfaults': dip_subfaults
+            # 'largo': delta_strike * stk_subfaults, #
+            # 'ancho': delta_dip * dip_subfaults, #
     }
     return values
 

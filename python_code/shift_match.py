@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import seismic_tensor as tensor
 
 
-def shift_match(data_type, plot=False, method='full'):
+def shift_match(data_type, plot=False, method='full', zero_start=True):
     """We shift synthetic data to maximize cross-correlation with observed data.
 
     :param data_type: list of data types to be used in modelling.
@@ -24,7 +24,6 @@ def shift_match(data_type, plot=False, method='full'):
     :type tensor_info: bool, optional
     :type method: string, optional
     """
-    # print(data_type)
     if data_type == 'tele':
         json_file = 'tele_waves.json'
     if data_type == 'strong':
@@ -47,11 +46,6 @@ def shift_match(data_type, plot=False, method='full'):
     files = get_outputs.get_data_dict(files, syn_file=synthetics_file)
     for file in files:
         derivative = False if not 'derivative' in file else file['derivative']
-        # if file['component'] in ['P', 'BHZ']:
-        #     file['synthetic'] = []
-        #     file['observed'] = []
-        #     continue
-        print(file['name'], file['component'])
         synt_tr = file['synthetic']
         stream = read(file['file'])
         nshift = int(5 / dt) if data_type == 'tele' else int(5 / dt)\
@@ -62,48 +56,65 @@ def shift_match(data_type, plot=False, method='full'):
             obser_tr = np.diff(obser_tr)
         length = int(float(file['duration'])) if method == 'full' else int(25 / dt)
         start = int(file['start_signal'])
-        print(length)
         tr_shift = _shift(obser_tr, synt_tr, nshift, length, start, plot=plot)
         file['start_signal'] = start + tr_shift
+        new_baseline = stream[0].data[start + tr_shift]
+        if zero_start:
+            stream[0].data = stream[0].data - new_baseline
+            stream.write(file['file'], format='SAC', byteorder=0)
 
+        file['synthetic'] = []
+        file['observed'] = []
         if plot:
+            length2 = int(10 / dt)
+            start0 = 0
+            start00 = 0
             name = file['name']
             component = file['component']
             synthetic = synt_tr[:length]
+            time0 = np.arange(len(synthetic)) * dt
             fig, axes = plt.subplots(2, 1)
             fig.suptitle('{} {}'.format(name, component))
             if start >= 0:
+                start2 = max(0, start - length2)
+                start3 = start - start2
                 observed0 = np.array(
-                    [val for i, val in enumerate(obser_tr[start:])\
+                    [val for i, val in enumerate(obser_tr[start2:])\
                     if i < length])
             else:
                 observed0 = np.array(
                     [val for i, val in enumerate(obser_tr) if i < length])
                 observed0 = np.concatenate(([0] * -start, observed0))
-            print(len(observed0), len(synthetic))
-            axes[0].plot(observed0)
-            axes[0].plot(synthetic, 'r')
+            time1 = np.arange(-start3, len(observed0) - start3) * dt
+            min_val = np.minimum(np.min(observed0), np.min(synthetic))
+            max_val = np.maximum(np.max(observed0), np.max(synthetic))
+            axes[0].plot(time1, observed0)
+            axes[0].plot(time0, synthetic, 'r')
+            axes[0].vlines(0, min_val, max_val)
             axes[0].set_title('Before Shift')
-            start2 = start + tr_shift
-            if start2 >= 0:
+            start4 = start + tr_shift
+            if start4 >= 0:
+                start5 = max(0, start4 - length2)
+                start6 = start4 - start5
                 observed1 = np.array(
-                    [val for i, val in enumerate(obser_tr[start2:])\
+                    [val for i, val in enumerate(obser_tr[start5:])\
                     if i < length])
             else:
                 observed1 = np.array(
                     [val for i, val in enumerate(obser_tr) if i < length])
                 observed1 = np.concatenate(([0] * -start2, observed1))
-            axes[1].plot(observed1)
-            axes[1].plot(synthetic, 'r')
+            if zero_start:
+                observed1 = observed1 - new_baseline
+            time2 = np.arange(-start6, len(observed1) - start6) * dt
+            axes[1].plot(time2, observed1)
+            axes[1].plot(time0, synthetic, 'r')
+            axes[1].vlines(0, min_val, max_val)
             axes[1].set_title('After Shift')
             name_file = os.path.join(
                 plot_folder, '{}_{}.png'.format(name, component))
             plt.savefig(name_file)
             plt.close(fig)
-        file['synthetic'] = []
-        file['observed'] = []
 
-#    if do_shift:
     with open(json_file,'w') as f:
          json.dump(
              files, f, sort_keys=True, indent=4,
@@ -124,16 +135,17 @@ def _shift(obser_tr, syn_tr, nshift, length, start_pos, plot=False):
         #     [val for i, val in enumerate(obser_tr[start_pos + j:])\
         #      if i < length])
         start2 = start_pos + j
+        exy = 0
         if start2 < 0:
-            observed = np.array(
-                [val for i, val in enumerate(obser_tr) if i < length + start2])
-            exy = np.sum(observed * synthetic[-start2:])
+            continue
+            # observed = np.array(
+            #     [val for i, val in enumerate(obser_tr) if i < length + start2])
+            # exy = np.sum(observed * synthetic[-start2:])
         else:
             observed = np.array(
                 [val for i, val in enumerate(obser_tr[start_pos + j:])\
                 if i < length])
             synthetic2 = synthetic[:len(observed)]
-            # print(len(observed), len(synthetic2))
             exy = np.sum(observed * synthetic2)
         err = 2 * exy
 #        err = np.max(np.abs(c_obs - c_syn))
@@ -142,7 +154,7 @@ def _shift(obser_tr, syn_tr, nshift, length, start_pos, plot=False):
         if err_max <= err:
             err_max = err
             j_min = j
-    print('Final err max:', err_max)
+    # print('Final err max:', err_max)
     return j_min
 
 
@@ -160,6 +172,7 @@ def _print_arrival(tensor_info):
         sac = file['file']
         stream = read(sac)
         trace = stream[0]
+        delta = trace.stats.delta
         stat = trace.stats.station
         chan = trace.stats.channel
         if not chan == 'BHZ':

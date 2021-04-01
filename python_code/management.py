@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Routine for performing administrative tasks, such as changing folders, or
 moving to a different folder.
 """
@@ -224,6 +224,7 @@ def run_sac(command):
         sac_exec, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
     out, err = p.communicate(input=command.encode('utf-8'))
+    p.terminate()
     return out, err
 
 

@@ -295,10 +295,13 @@ def _get_observed_from_chen2(file, margin=10):
     data = st[0].data
     dt = file['dt']
     index0 = file['start_signal'] - int(margin // dt)
-    index0 = max(index0, 0)
+    # index0 = max(index0, 0)
     index1 = file['start_signal'] + file['duration']
     index1 = max(index1, index0 + 1)
-    data = data[index0:index1]
+    if index0 >= 0:
+        data = data[index0:index1]
+    else:
+        data = data[index0:]
     return data
 
 

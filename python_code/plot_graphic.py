@@ -245,7 +245,7 @@ def _plot_vel_model(velmodel, point_sources):
     depths = np.append([depths], [70])#[max_depth])
     plt.plot((p_vel[0], p_vel[0]), (depths[0], depths[1]), 'b-', label='P')
     plt.plot((sh_vel[0], sh_vel[0]), (depths[0], depths[1]), 'r-', label='SH')
-    j = len(depths) - 2
+    j = len(depths) - 3#2
     for i in range(j):
         plt.plot((p_vel[i], p_vel[i]), (depths[i], depths[i + 1]), 'b-')
         plt.plot(
@@ -462,19 +462,18 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
 # accurate plot coordinates
 #
     segments_lats, segments_lons = __redefine_lat_lon(segments, point_sources)
-    min_lats = [min(segment_lat.flatten()) for segment_lat in segments_lats]
-    max_lats = [max(segment_lat.flatten()) for segment_lat in segments_lats]
-    min_lons = [min(segment_lon.flatten()) for segment_lon in segments_lons]
-    max_lons = [max(segment_lon.flatten()) for segment_lon in segments_lons]
+    min_lats = [np.min(segment_lat.flatten()) for segment_lat in segments_lats]
+    max_lats = [np.max(segment_lat.flatten()) for segment_lat in segments_lats]
+    min_lons = [np.min(segment_lon.flatten()) for segment_lon in segments_lons]
+    max_lons = [np.max(segment_lon.flatten()) for segment_lon in segments_lons]
     min_lat = np.min(min_lats)# - 0.5
     max_lat = np.max(max_lats)# + 0.5
     min_lon = np.min(min_lons)# - 0.5
     max_lon = np.max(max_lons)# + 0.5
 
-    margin = 1.3 * (stk_subfaults * delta_strike) / 111.19#min(3 * (stk_subfaults * delta_strike) / 111.19, 10)
+    margin = 1.3 * (stk_subfaults * delta_strike) / 111.19
     lat0 = tensor_info['lat']
     lon0 = tensor_info['lon']
- #   margins = [min_lon, max_lon, min_lat, max_lat]
     tectonic = '{}.shp'.format(default_dirs['trench_graphics'])
     dictn = {
             'projection': ccrs.PlateCarree(),
@@ -491,9 +490,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     countries = cf.ShapelyFeature(
             shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
             edgecolor='black', facecolor='lightgray')
-#    ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries)
-#    ax.plot(lon0, lat0, 'w*', markersize=15, transform=ccrs.PlateCarree(),
-#            zorder=4)
+
     if files_str is not None:
         for file in files_str:
             name = file['name']
@@ -530,22 +527,22 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             plt.plot(sta_lon, sta_lat, 'ks', transform=ccrs.PlateCarree(),
                      markersize=14)
             gps_z, gps_n, gps_e = syn
-            east_west = float(gps_e) / max_obs#/ 100
-            north_south = float(gps_n) / max_obs#/ 100
+            east_west = float(gps_e) / max_obs
+            north_south = float(gps_n) / max_obs
             plt.arrow(sta_lon, sta_lat, east_west, north_south, color='r',
                       zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
-            up_down = float(gps_z) / max_obs#/ 100
+            up_down = float(gps_z) / max_obs
             plt.arrow(sta_lon, sta_lat, 0.0, up_down, color='r', zorder=3,
                       linewidth=2, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
             gps_z, gps_n, gps_e = obs
-            east_west = float(gps_e) / max_obs#/ 100
-            north_south = float(gps_n) / max_obs#/ 100
+            east_west = float(gps_e) / max_obs
+            north_south = float(gps_n) / max_obs
             plt.arrow(sta_lon, sta_lat, east_west, north_south, zorder=3,
                       linewidth=2, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
-            up_down = float(gps_z) / max_obs#/ 100
+            up_down = float(gps_z) / max_obs
             plt.arrow(sta_lon, sta_lat, 0.0, up_down, zorder=3,
                       linewidth=2, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
@@ -730,7 +727,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources):
         for i in range(nmax):
             time = i * dt
             mr[i] = mr[i]\
-                 + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
+                + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
 
     time = np.arange(nmax) * dt
     with open('STF.txt', 'w') as outf:
@@ -1144,7 +1141,8 @@ if __name__ == '__main__':
 
     traces_info, stations_gps = [None, None]
     if args.gps:
-        names, lats, lons, observed, synthetic, error = get_outputs.retrieve_gps()
+        names, lats, lons, observed, synthetic, error\
+                = get_outputs.retrieve_gps()
         stations_gps = zip(names, lats, lons, observed, synthetic, error)
     if args.strong:
         traces_info = json.load(open('strong_motion_waves.json'))
@@ -1153,7 +1151,7 @@ if __name__ == '__main__':
         _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
                  files_str=traces_info, stations_gps=stations_gps)
         input_model = load_ffm_model.load_ffm_model(
-                segments_data, point_sources, option='Fault.time')
+            segments_data, point_sources, option='Fault.time')
         _PlotSlipDist_Compare(segments, point_sources, input_model, solution)
         _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
                            solution)

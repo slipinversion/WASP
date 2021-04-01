@@ -502,7 +502,6 @@ def get_traces_files(data_type):
         traces_files = p_traces_files + sh_traces_files
     if data_type == 'strong_motion':
         traces_files = glob.glob(os.path.join('STR', '*.H[LN][ENZ]*.VEL.tmp'))
-        # traces_files = glob.glob(os.path.join('STR', '*.VEL.tmp'))
         traces_files = traces_files + glob.glob(os.path.join('STR', '*.BN[ENZ]*.VEL.tmp'))
     if data_type == 'cgps':
         traces_files = glob.glob(os.path.join('cGPS', '*.L[HXY]*tmp'))

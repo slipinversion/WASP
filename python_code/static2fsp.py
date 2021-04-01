@@ -299,7 +299,7 @@ if __name__ == '__main__':
     else:
         tensor_info = tensor.get_tensor()
     segments_data, rise_time, point_sources = pl_mng.__read_planes_info()
-    if not os.path.isfile('static_data.json'):
+    if not os.path.isfile('velmodel_data.json'):
         raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), 'velmodel_data.json')
     vel_model = json.load(open('velmodel_data.json'))
