@@ -55,8 +55,8 @@ def select_velmodel(tensor_info, default_dirs):
         ``management.py``.
 
     """
-    crust_model = __crust_crust_velmodel(tensor_info, default_dirs)
-    # crust_model = __litho_crust_velmodel(tensor_info, default_dirs)
+    # crust_model = __crust_crust_velmodel(tensor_info, default_dirs)
+    crust_model = __litho_crust_velmodel(tensor_info, default_dirs)
     velmodel = __crust_mantle_model(crust_model, tensor_info['depth'])
     velmodel2json(velmodel)
     return velmodel

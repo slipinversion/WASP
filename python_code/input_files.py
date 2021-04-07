@@ -568,7 +568,7 @@ def input_chen_static(tensor_info):
 
 
 def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
-                                 traces_info, gf_bank=None, zero_start=False,
+                                 traces_info, gf_bank=None, zero_start=True,
                                  dart=False):
     """Write files with observed waveforms and properties of wavelet for all
     selected stations and channels
@@ -614,7 +614,10 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
             start = file['start_signal']
             stream = read(file['file'])
             waveform = stream[0].data[start:]
-            waveform = waveform - waveform[0] if zero_start else waveform
+            if zero_start:
+                stream[0].data = stream[0].data - waveform[0]
+                stream.write(file['file'], format='SAC', byteorder=0)
+                waveform = waveform - waveform[0]
             waveform = np.diff(waveform) if derivative else waveform
         else:
             waveform = [0 for i in range(ffm_duration)]

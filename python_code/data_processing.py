@@ -572,7 +572,7 @@ def select_process_surf_tele(tele_files0, tensor_info):
     logger1.info('Get final surface waves')
     os.chdir(os.path.join(data_folder, 'LONG'))
     surf_files = glob.glob('*.BHZ.*DIS') + glob.glob('*.SH.*DIS')
-    __create_long_period(surf_files)
+    __create_long_period(surf_files, tensor_info)
     
     logger1.info('Long period surface waves have been succesfully processed')
     os.chdir(data_folder)
@@ -635,7 +635,7 @@ def __remove_response_surf(used_tele_sacs, response_files, logger=None):
     return
     
     
-def __create_long_period(surf_files):
+def __create_long_period(surf_files, tensor_info):
     """We downsample long period data.
     """
     sacheaders = [SACTrace.read(sac) for sac in surf_files]
@@ -727,10 +727,12 @@ def select_process_cgps(cgps_files, tensor_info, data_prop):
     logger1.info('Process selected cGPS traces')
     os.chdir(os.path.join(os.getcwd(), 'cGPS'))
     cgps_files1 = glob.glob('*.L[HXY]*.sac') + glob.glob('*.L[HXY]*SAC')
-    __change_start(cgps_files1, tensor_info)
+    __change_start(cgps_files1, tensor_info, cgps=True)
     new_process_cgps(tensor_info, cgps_files1, data_prop, logger=logger1)
     os.chdir(data_folder)
     logger1.info('cGPS waves have been succesfully processed')
+    strong_files3 = glob.glob(os.path.join('cGPS', '*tmp'))
+    select_strong_stations(tensor_info, strong_files3)
     ml.close_log(logger1)
     return
 
@@ -790,7 +792,6 @@ def __select_cgps_files(cgps_files, tensor_info):
         if not __select_distance(tensor_info, station_lat, station_lon,
                                  max_distance=distance, use_centroid=True):
             continue
-        #print(stream[0].stats.station)
         indexes = np.isfinite(stream[0].data)        
         if np.max(stream[0].data[indexes]) == np.min(stream[0].data[indexes]):
             continue
@@ -820,7 +821,7 @@ def __select_cgps_files(cgps_files, tensor_info):
             and len(indexes3) >= 5 and max([len(gap) for gap in gaps]) >= 4:
                 continue
             else:
-                for gap in gaps[:-1]:
+                for gap in gaps:
                     begin = gap[0] - 1
                     end = gap[-1] + 1
                     stream[0].data = __linear_fill(stream[0].data, begin, end)
@@ -831,18 +832,32 @@ def __select_cgps_files(cgps_files, tensor_info):
         stream.write(name, format='SAC', byteorder=0)
 
 
-def __change_start(stations_str, tensor_info):
+def __change_start(stations_str, tensor_info, cgps=False):
     """Routine for modifying start time of cGPS data
     """
+    event_lat = tensor_info['lat']
+    event_lon = tensor_info['lon']
+    depth = tensor_info['depth']
     sacheaders = [SACTrace.read(sac) for sac in stations_str]
     for sac, sacheader in zip(stations_str, sacheaders):
         st = read(sac)
+        station_lat = st[0].stats.sac.stla
+        station_lon = st[0].stats.sac.stlo
+        dist = locations2degrees(event_lat, event_lon, station_lat, station_lon)
+        dist = dist * 111.12
+        dist = np.sqrt(dist**2 + depth**2)
+        est_arrival = dist / 5
         begin = sacheader.b
         reftime = sacheader.reftime
         st[0].stats.starttime = UTCDateTime(reftime) + begin
-        st[0].trim(starttime=tensor_info['date_origin'] - 110,
-            endtime=tensor_info['date_origin'] + 1100)# - 60 * 10)
-        st[0].data = st[0].data - np.mean(st[0].data[:10])
+        diff = st[0].stats.starttime - tensor_info['date_origin']
+        if diff > est_arrival:
+            continue
+        if cgps:
+            st[0].trim(endtime=tensor_info['date_origin'] + 1100)  # - 60 * 10)
+            st[0].data = st[0].data - np.mean(st[0].data[:10])
+        st[0].trim(starttime=tensor_info['date_origin'] - 20, pad=True,
+                   fill_value=0)
         st.write(sac, format='SAC', byteorder=0)
 
 
@@ -928,34 +943,50 @@ def _filter_decimate(sac_files, filtro, dt, corners=4, passes=2,
     low_freq = filtro['low_freq']
     high_freq = filtro['high_freq']
     power = lambda m, n: max([d for d in range(10) if m % (n**d) == 0])
-    input_sac = ''
-    for sac in sac_files:
-        sacheader = SACTrace.read(sac)
-        delta = sacheader.delta
-        ratio = int(round(dt / delta))
-        power5 = power(ratio, 5)
-        power2 = power(ratio, 2)
-        power3 = power(ratio, 3)
-        if ratio > 2**power2 * 3**power3 * 5**power5: continue
-        input_sac = '{}\nread {} \n'.format(input_sac, sac)
-        if filter == 'bandpass':
-            input_sac = input_sac + 'bp c {} {} n {} p {} \n'.format(
-                        low_freq, high_freq, corners, passes)
-        elif filter == 'lowpass':
-            input_sac = input_sac + 'lp c {} n {} p {} \n'.format(
-                        high_freq, corners, passes)
-        if decimate:
+    if decimate:
+        input_sac = ''
+        for sac in sac_files:
+            sacheader = SACTrace.read(sac)
+            delta = sacheader.delta
+            ratio = int(round(dt / delta))
+            power5 = power(ratio, 5)
+            power2 = power(ratio, 2)
+            power3 = power(ratio, 3)
+            if ratio > 2**power2 * 3**power3 * 5**power5:
+                continue
+            input_sac = '{}\nread {} \n'.format(input_sac, sac)
+            if filter == 'bandpass':
+                input_sac = input_sac + 'bp c {} {} n {} p {} \n'.format(
+                    low_freq, high_freq, corners, passes)
+            elif filter == 'lowpass':
+                input_sac = input_sac + 'lp c {} n {} p {} \n'.format(
+                    high_freq, corners, passes)
             input_sac = input_sac\
-                    + 'decimate 5\n' * power5\
-                    + 'decimate 3\n' * power3\
-                    + 'decimate 2\n' * power2
-        input_sac = input_sac + 'mul 100\nwrite {}.tmp \n'.format(sac)
-
-    input_sac = '{}\nquit\n'.format(input_sac)
-    out, err = mng.run_sac(input_sac)
-    if logger:
-        logger.debug(out.decode('utf-8'))
-        if err: logger.warning(err.decode('utf-8'))
+                + 'decimate 5\n' * power5\
+                + 'decimate 3\n' * power3\
+                + 'decimate 2\n' * power2
+            input_sac = input_sac + 'mul 100\nwrite {}.tmp \n'.format(sac)
+    
+        input_sac = '{}\nquit\n'.format(input_sac)
+        out, err = mng.run_sac(input_sac)
+        if logger:
+            logger.debug(out.decode('utf-8'))
+            if err:
+                logger.warning(err.decode('utf-8'))
+    else:
+        for sac in sac_files:
+            st = read(sac)
+            delta = st[0].stats.delta
+            nyq = 0.5 / delta
+            high_freq2 = high_freq / nyq
+            low_freq2 = low_freq / nyq
+            if filter == 'bandpass':
+                b, a = butter(corners, [low_freq2, high_freq2], btype='bandpass')
+            else:
+                b, a = butter(corners, high_freq2, btype='lowpass')
+            filt_data = filtfilt(b, a, st[0].data)
+            st[0].data = 100*filt_data
+            st.write('{}.tmp'.format(sac), format='SAC', byteorder=0)
     return
 
 
@@ -1037,12 +1068,13 @@ def select_process_strong(strong_files0, tensor_info, data_prop, custom=False):
     strong_files1 = glob.glob('*ACC')
     strong_files2 = __select_str_files(strong_files1, tensor_info)
     logger1.info('Update duration of traces')
-    _trim_accel(strong_files2, tensor_info)
+    __change_start(strong_files2, tensor_info)
+    # _trim_accel(strong_files2, tensor_info)
     logger1.info('Process selected strong motion traces')
     process_strong_motion(strong_files2, tensor_info, data_prop, logger=logger1)
     os.chdir(data_folder)
     strong_files3 = glob.glob(os.path.join('STR', '*tmp'))
-    select_strong_stations(strong_files3)
+    select_strong_stations(tensor_info, strong_files3)
     logger1.info('Strong motion waves have been succesfully processed')
     ml.close_log(logger1)
     return
@@ -1268,35 +1300,48 @@ def _delete_criteria(data):
 ##########################
 
 
-def select_strong_stations(files):
+def select_strong_stations(tensor_info, files):
     """We select strong motion data to use in finite fault modelling
-    
+
     :param files: list of waveform files (in sac format) to select
     :type files: list
     """
     if len(files) < 150:
         return files
+    lat = tensor_info['lat']
+    lon = tensor_info['lon']
     streams = [read(sac) for sac in files]
     sacheaders = [SACTrace.read(sac) for sac in files]
     names = [header.kstnm for header in sacheaders]
-    azimuth0 = np.array([header.az for header in sacheaders])
+    azimuth0 = []
+    for header in sacheaders:
+        station_lat = header.stla
+        station_lon = header.stlo
+        dist, az, baz = mng._distazbaz(station_lat, station_lon, lat, lon)
+        azimuth0 = azimuth0 + [az]
+    azimuth0 = np.array(azimuth0)#[header.az for header in sacheaders])
     az0 = np.amin(azimuth0)
     az1 = np.amax(azimuth0)
     jump = int((az1 - az0) / 60) + 1
     names = list(set(names))
     select_stations = []
-    
+
 # Limiting the number of data. Choose at most one station (3 channels)
 # for every degree in azimuth. Preferably use data with higher PGV
-     
+
     for az0 in range(0, 360, jump):
         az1 = az0 + jump
         best_pgv = 0.0
         for name in names:
-            indexes = [i for i, header in enumerate(sacheaders)\
-                       if name==header.kstnm]
-            azimuth = next(header.az for header in sacheaders\
-                           if name==header.kstnm)
+            indexes = [i for i, header in enumerate(sacheaders)
+                       if name == header.kstnm]
+            header0 = next(header for header in sacheaders
+                           if name == header.kstnm)
+            station_lat = header0.stla
+            station_lon = header0.stlo
+            dist, azimuth, baz = mng._distazbaz(station_lat, station_lon, lat, lon)
+            # azimuth = next(header.az for header in sacheaders
+            #                if name == header.kstnm)
             if not az0 <= azimuth < az1:
                 continue
             streams2 = [st for i, st in enumerate(streams) if i in indexes]
@@ -1304,12 +1349,12 @@ def select_strong_stations(files):
             pgv = np.sqrt(np.sum(pgvs ** 2))
             if pgv > best_pgv:
                 best_pgv = pgv
-                chosen_sta = [sac for i, sac in enumerate(files)\
+                chosen_sta = [sac for i, sac in enumerate(files)
                               if i in indexes]
-        
+
         if best_pgv > 0.0:
             select_stations = select_stations + chosen_sta
-    
+
     for file in files:
         if not file in select_stations:
             os.remove(file)

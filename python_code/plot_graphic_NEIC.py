@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """The routines here allow to plot the solution model FFM modelling, as well
-as moment rate function, and waveform fits. 
+as moment rate function, and waveform fits.
 """
 
 
@@ -78,7 +78,7 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                  vel_model, default_dirs, autosize=False, mr_time=False, evID=None):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param segments: list of dictionaries with properties of fault segments
     :param point_sources: properties of point sources of the fault plane
@@ -93,13 +93,13 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     :type shear: array
     :type solution: dict
     :type vel_model: dict
-    
+
     .. rubric:: Example:
-   
+
     First, we load necessary modules.
-    
+
     >>> import json
-    >>> import get_outputs # Allows us to get properties of inverted model 
+    >>> import get_outputs # Allows us to get properties of inverted model
     >>> import management as mng # Allows us to load location of plotting files
     >>> import fault_plane as pf
     >>> import plane_management as pl_mng
@@ -109,7 +109,7 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     >>> vel_model = json.load(open('velmodel_data.json')) # Assume vel_model stored in file 'velmodel_data.json'
     >>> segments, rise_time, point_sources = pl_mng.__read_planes_info() # Loads point sources and segments information
     >>> solution = get_outputs.read_solution_static_format(segments, point_sources)
-    >>> shear = pf.shear_modulous(point_sources, velmodel=vel_model)           
+    >>> shear = pf.shear_modulous(point_sources, velmodel=vel_model)
     >>> tensor_info = {
             'moment_mag': 7 * 10 ** 27,
             'date_origin': UTCDateTime(2014, 04, 01, 23, 46, 47)
@@ -126,22 +126,22 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     Next, we plot solution
 
     >>> default_dirs = mng.default_dirs()
-    >>> plot_ffm_sol(tensor_info, segments, point_sources, shear, solution,    
+    >>> plot_ffm_sol(tensor_info, segments, point_sources, shear, solution,
     >>>              vel_model, default_dirs)
-    
+
     .. note::
-        
-        To plot the results of the FFM modelling, we need to run this code 
+
+        To plot the results of the FFM modelling, we need to run this code
         in a folder whih contains files Solucion.txt, Fault.time, Fault.pos,
         Event_mult.in, and some among the files synm.tele, synm.str_low,
         synm.str and synm.cgps.
-        
+
     .. note::
-    
+
         When running this code manually, it is good idea to check if
         the information among files Solucion.txt, Fault.pos, Fault.time,
         and Event_mult.in is consistent.
-    
+
     """
     #_plot_vel_model(vel_model, point_sources)
     _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=mr_time)
@@ -153,7 +153,7 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
 
 def plot_misfit(used_data_type, forward=False):
     """Plot misfit of observed and synthetic data
-    
+
     :param used_data_type: list with data types used in modelling
     :param forward: whether model is result of kinematic modelling or not
     :type used_data_type: list
@@ -219,9 +219,9 @@ def _plot_vel_model(velmodel, point_sources):
     p_vel = np.array(velmodel['p_vel']).astype(np.float)
     sh_vel = np.array(velmodel['s_vel']).astype(np.float)
     thick = np.array(velmodel['thick']).astype(np.float)
-    
+
     depths = np.zeros(len(thick) + 1)
-    
+
     depths[1:] = np.cumsum(thick)
     depths = np.array([depth for depth in depths if depth < 70])
     depths = np.append([depths], [70])#[max_depth])
@@ -235,7 +235,7 @@ def _plot_vel_model(velmodel, point_sources):
         plt.plot((sh_vel[i], sh_vel[i]), (depths[i], depths[i + 1]), 'r-')
         plt.plot(
             (sh_vel[i], sh_vel[i + 1]), (depths[i + 1], depths[i + 1]), 'r-')
-    
+
     plt.plot((p_vel[j], p_vel[j]), (depths[j], depths[j + 1]), 'b-')
     plt.plot((sh_vel[j], sh_vel[j]), (depths[j], depths[j + 1]), 'r-')
 
@@ -492,11 +492,11 @@ def _PlotSlipTimes(segments, point_sources, solution):
         ax2.spines["left"].set_linewidth(3)
         ax2.spines["right"].set_linewidth(3)
         vrup_ref = segment['rupture_vel']
-        
+
         rupt_vel = rupttime_seg
         idx0 = np.where(rupt_vel<0.1)
         rupt_vel[idx0] = 1. #placeholder
-        diag_dist = np.sqrt(xcols**2+yrows**2) 
+        diag_dist = np.sqrt(xcols**2+yrows**2)
         rupt_vel = diag_dist/rupt_vel
         rupt_vel[idx0] = vrup_ref #referencevel
         idx10 = np.where(slip_seg>0.05*max_slip)
@@ -546,7 +546,7 @@ def _PlotSlipTimes(segments, point_sources, solution):
         ax3, im = __several_axes(
                 risetime_seg, segment, ps_seg, ax3, autosize=False, cmap='cividis_r')
         plt.clabel(contplot, fmt = '%.0f', inline = True, fontsize=11, colors='k')
-        cbar_ax3 = fig.add_axes([0.85, 0.115, 0.03, 0.2]) 
+        cbar_ax3 = fig.add_axes([0.85, 0.115, 0.03, 0.2])
         sm = plt.cm.ScalarMappable(cmap='cividis_r',norm=plt.Normalize(vmin=0.,vmax=max(risetime_seg.flatten())))
         cb = fig.colorbar(sm, cax=cbar_ax3, orientation='vertical')
         cb.outline.set_linewidth(3)
@@ -581,7 +581,6 @@ def _PlotCumulativeSlip(segments, point_sources, solution, tensor_info, evID=Non
         plt.rc('ytick',labelsize=11)
         plt.rc('font', size=11)
         fig = plt.figure(figsize=(8, 8))
-
 
         stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
                 = pl_mng.__unpack_plane_data(segment)
@@ -807,7 +806,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         updip = np.c_[min1,min2]
         corners = np.c_[corners,cornerA]
 
-    margin = 1.3 * (stk_subfaults * delta_strike) / 111.19#min(3 * (n_sub_x * delta_x) / 111.19, 10)
+    margin = 1.3 * (stk_subfaults * delta_strike) / 111.19#min(3 * (stk_subfaults * delta_strike) / 111.19, 10)
     lat0 = tensor_info['lat']
     lon0 = tensor_info['lon']
  #   margins = [min_lon, max_lon, min_lat, max_lat]
@@ -837,10 +836,10 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     shpfilename = shpreader.natural_earth(
                 resolution='10m', category='cultural', name='admin_0_countries')
 #    countries = cf.ShapelyFeature(
-#            shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(), 
+#            shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
 #            edgecolor='black', facecolor='lightgray')
     countries = cf.ShapelyFeature(
-            shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(), 
+            shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
             edgecolor='black', facecolor='None')
 #    ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries)
 #    ax.plot(lon0, lat0, 'w*', markersize=15, transform=ccrs.PlateCarree(),
@@ -971,7 +970,7 @@ def _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
     shpfilename = shpreader.natural_earth(
         resolution='10m', category='cultural', name='admin_0_countries')
     countries = cf.ShapelyFeature(
-        shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(), 
+        shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
         edgecolor='black', facecolor='lightgray')
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(30, 15), subplot_kw=dictn)
@@ -1059,13 +1058,13 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     nmax = int((tmax/dt + 1))
     mr = np.zeros(nmax)
     seismic_moment = 0
-    
+
     for segment, slip_seg, trup_seg, trise_seg, tfall_seg, shear_seg,\
     point_sources_seg in zip(segments, slip, trup, tl, tr, shear, point_sources):
-        ny_total, nx_total = np.shape(slip_seg)
+        dip_subfaults, stk_subfaults = np.shape(slip_seg)
         moment_rate = np.zeros(nmax)
-        for iy in range(ny_total):
-            for ix in range(nx_total):
+        for iy in range(dip_subfaults):
+            for ix in range(stk_subfaults):
                 rupt_vel = segment['rupture_vel']
                 rise_time = np.zeros(nmax)
                 tfall = tfall_seg[iy, ix]
@@ -1092,7 +1091,6 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
         seismic_moment = seismic_moment\
             + np.sum((slip_seg / 100) * (shear_seg / 10)\
                      * (delta_strike * 1000) * (delta_dip * 1000))
-        
 #    
 # find moment rate function
 #
@@ -1100,14 +1098,13 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
             time = i * dt
             mr[i] = mr[i]\
                 + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
-    
     time = np.arange(nmax) * dt 
     with open('STF.txt', 'w') as outf:
         outf.write('dt: {}\n'.format(dt))
         outf.write('Time[s]     Moment_Rate [Nm]\n')
         for t, val in zip(time, mr):
             outf.write('{:8.2f}:   {:8.4e}\n'.format(t, val))
-    
+
     seismic_moment = np.trapz(mr, dx=0.01)
     magnitude = 2.0 * (np.log10(seismic_moment * 10 ** 7) - 16.1) / 3.0
     fig = plt.figure(figsize=(10,8))
@@ -1127,7 +1124,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     rel_mr = mr/(max(mr))
     plt.text(
         0.99 * max(time), 0.95 * max(rel_mr),
-        'Max Mr: {:.2E} Nm/sec'.format(max(mr)), ha='right',fontweight='bold')    
+        'Max Mr: {:.2E} Nm/sec'.format(max(mr)), ha='right',fontweight='bold')
     plt.text(
         0.99 * max(time), 0.90 * max(rel_mr),
         'M$_0$: {:.2E} Nm'.format(seismic_moment), ha='right',fontweight='bold')
@@ -1194,7 +1191,7 @@ def _PlotSnapshotSlip(tensor_info, segments, point_sources, solution):
             time, slip, srmax, trup, tl, tr, tmid, tstop)
         ax.set_yticklabels([])
         ax.set_xticklabels([])
-        if np.max(broken) > np.min(broken): 
+        if np.max(broken) > np.min(broken):
             ax.contour(-broken, 1, colors='k',
                        extent=__extent_plot(plane_info))
         ax.contourf(cslip, cmap='jet', vmin=0, vmax=vmax,
@@ -1205,7 +1202,7 @@ def _PlotSnapshotSlip(tensor_info, segments, point_sources, solution):
         ax.set_title('Time: {0:.2f} s'.format(time))
         if i == 9: im = ax.contourf(x, y, cslip, cmap='jet')
         i = i + 1
-            
+
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
     cb = fig.colorbar(im, cax=cbar_ax)
@@ -1279,8 +1276,8 @@ def plot_beachball(tensor_info, segments, files=None, phase=None):
     plt.savefig(name_plot)
     plt.close()
     return
-    
-    
+
+
 def _plot_waveforms(files, components, type_str, tensor_info,
                     start_margin=10, test=False, forward=False):
     """We plot the observed and synthetic data for a set of stations and
@@ -1295,7 +1292,7 @@ def _plot_waveforms(files, components, type_str, tensor_info,
     for file in files:
         dt = file['dt']
         nstart = file['start_signal']
-        margin = int(start_margin / dt) if nstart > int(start_margin / dt) else 0 
+        margin = int(start_margin / dt) if nstart > int(start_margin / dt) else 0
         obs = np.array(file['observed'])
         if nstart >= 0:
             obs = np.concatenate((np.zeros(nstart), obs))
@@ -1339,7 +1336,7 @@ def _plot_waveforms(files, components, type_str, tensor_info,
             va='center', transform=ax.transAxes)
         ax.text(
             0.9, 0.9, name, ha='center', va='center', transform=ax.transAxes)
-        ax.set_xlim([np.min(time), np.max(time)])        
+        ax.set_xlim([np.min(time), np.max(time)])
         ax.set_ylim([min_val, max_val])
         ax.xaxis.set_major_locator(
             ticker.MaxNLocator(nbins=3, min_n_ticks=3))
@@ -1363,7 +1360,7 @@ def _plot_waveforms(files, components, type_str, tensor_info,
     if type_str == 'surf_tele':
         if 'P' in components: plot_name = 'Rayleigh_surf_waves.png'
         if 'SH' in components: plot_name = 'Love_surf_waves.png'
-    
+
     if type_str == 'dart':
         plot_name = 'Dart_waves.png'
 
@@ -1385,15 +1382,15 @@ def _plot_waveforms(files, components, type_str, tensor_info,
 #        content = f.readlines()
 #    content = [x.strip() for x in content]
 #    print(content[1].split())
-#    delta_x, delta_y = [val for val in content[1].split() if 'km' in val]
-#    delta_x = delta_x.split('=')[1] if '=' in delta_x else delta_x
-#    delta_x = delta_x[:-2]
-#    print(delta_x)
-#    delta_y = delta_y.split('=')[1] if '=' in delta_y else delta_y
-#    delta_y = delta_y[:-2]
-#    print(delta_y)
-#    dx = float(delta_x) * np.ones((len(content[10:-1])))
-#    dy = float(delta_y) * np.ones((len(content[10:-1])))
+#    delta_strike, delta_dip = [val for val in content[1].split() if 'km' in val]
+#    delta_strike = delta_strike.split('=')[1] if '=' in delta_strike else delta_strike
+#    delta_strike = delta_strike[:-2]
+#    print(delta_strike)
+#    delta_dip = delta_dip.split('=')[1] if '=' in delta_dip else delta_dip
+#    delta_dip = delta_dip[:-2]
+#    print(delta_dip)
+#    dx = float(delta_strike) * np.ones((len(content[10:-1])))
+#    dy = float(delta_dip) * np.ones((len(content[10:-1])))
 #    f.close()
 #
 #    input_units = {"length":"km", "width":"km", "depth":"km", "slip":"cm"}
@@ -1417,7 +1414,7 @@ def _plot_waveforms(files, components, type_str, tensor_info,
 #    field = None
 #    if len(q)==1:
 #        field=np.loadtxt(q[0])
-#        field = field[:,[0,2]]    
+#        field = field[:,[0,2]]
 #
 #    InputFile = "Temp.csv"
 #
@@ -1572,13 +1569,13 @@ def __rupture_process(time, slip, trup, tmid, tstop, rise_time,
     """We give slip rate, rupture front, and accumulated slip at a certain
     time ``time``.
     """
-    ny_total, nx_total = np.shape(slip)
-    srate = np.zeros((ny_total, nx_total))
-    cslip = np.zeros((ny_total, nx_total))
-    broken = np.ones((ny_total, nx_total))
-    
-    for i in range(ny_total):
-        for j in range(nx_total):
+    dip_subfaults, stk_subfaults = np.shape(slip)
+    srate = np.zeros((dip_subfaults, stk_subfaults))
+    cslip = np.zeros((dip_subfaults, stk_subfaults))
+    broken = np.ones((dip_subfaults, stk_subfaults))
+
+    for i in range(dip_subfaults):
+        for j in range(stk_subfaults):
             convolve = rise_time[i, j, :]
             index = int(time / dt - trup[i, j] / dt)
             if (time < trup[i, j]):
@@ -1593,16 +1590,16 @@ def __rupture_process(time, slip, trup, tmid, tstop, rise_time,
             if (time > tstop[i, j]):
                 cslip[i, j] = slip[i, j]
     return srate, cslip, broken
-    
-    
+
+
 def __add_watermark(fig):
     """
     """
     fig.text(0.1, 0.1, 'CSN Automatic \nSolution', fontsize=50, color='gray',
              ha='left', va='bottom', alpha=0.5, wrap=True)
     return fig
-                
-                
+
+
 if __name__ == '__main__':
     """
     """

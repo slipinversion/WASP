@@ -385,8 +385,8 @@ def adquisicion(tensor_info):
     and event_time.year >= 2014:
         data_type = data_type + ['strong']
     acquisition(event_time, event_lat, event_lon, depth, data_type)
-    
-    
+   
+ 
 def processing(tensor_info, data_type, data_prop):
     """Run all waveform data processing in parallel.
     
@@ -550,6 +550,7 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=N
     :type data_type: set
     :type plot_input: bool, optional
     """
+
     print('Plot results')
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
@@ -648,9 +649,15 @@ if __name__ == '__main__':
   
     default_dirs = mng.default_dirs()
     if args.option == 'auto':
-        if not args.gcmt_tensor:
+        if not args.gcmt_tensor and not args.qcmt_tensor:
             raise RuntimeError('You must select direction of input GCMT file')
-        tensor_info = tensor.get_tensor(cmt_file=args.gcmt_tensor)
+        if args.gcmt_tensor:
+            tensor_info = tensor.get_tensor(cmt_file=args.gcmt_tensor)
+        if args.qcmt_tensor:
+            tensor_info = tensor.get_tensor(quake_file=args.qcmt_tensor)
+        # if not args.gcmt_tensor:
+        #     raise RuntimeError('You must select direction of input GCMT file')
+        # tensor_info = tensor.get_tensor(cmt_file=args.gcmt_tensor)
         set_directory_structure(tensor_info)
         if args.data:
             for file in os.listdir(args.data):
