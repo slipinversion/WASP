@@ -5,6 +5,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib import gridspec, ticker, patches
 import cartopy.crs as ccrs
+import cartopy
 import cartopy.io.shapereader as shpreader
 import cartopy.feature as cf
 from matplotlib import cm
@@ -61,6 +62,10 @@ def set_map_cartopy(ax, margins, tectonic=None, countries=None, bathymetry=None)
     gl = ax.gridlines(linewidth=1, color='black', alpha=0.3, draw_labels=True)
     gl.top_labels = False
     gl.right_labels = False
+    #ax.add_feature(cartopy.feature.OCEAN)
+    ocean = cartopy.feature.NaturalEarthFeature('physical', 'ocean', \
+        scale='110m', edgecolor='none', facecolor=cartopy.feature.COLORS['water'])
+    ax.add_feature(ocean)
     if tectonic:
         ax.add_feature(tectonic)
     if countries:

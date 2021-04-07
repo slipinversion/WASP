@@ -12,7 +12,7 @@ from okada_wrapper import dc3dwrapper
 import matplotlib.pyplot as plt
 
 def write_Okada_displacements(directory=None):
-    print('... Writing Okada Displacement File')
+    print('Writing Okada Displacement File...')
 
     if directory==None:
         directory = os.getcwd()
@@ -26,9 +26,6 @@ def write_Okada_displacements(directory=None):
         if line.startswith('% Loc'):
             hypo_lat = float(line.split()[5])
             hypo_lon = float(line.split()[8])
-        #if line.startswith('% Invs : Dx '):
-        #    sf_length_as = float(line.split()[5]) # Subfault length along strike
-        #    sf_length_ad = float(line.split()[9]) # Subfault length along dip
     fsp.close()
     sol = open(directory+'/Solucion.txt','r')
     for line in sol:
@@ -46,6 +43,10 @@ def write_Okada_displacements(directory=None):
     # Convert to grid of lon/lat around epicenter
     _,xLats,_ = pyproj.Geod.fwd(g, hypo_lon*ones(len(x)), hypo_lat*ones(len(x)), 0*ones(len(x)), x*1000)
     xLons,_,_ = pyproj.Geod.fwd(g, hypo_lon*ones(len(y)), hypo_lat*ones(len(y)), 90*ones(len(y)), y*1000)
+    # Make Lon 0 to 360 (not -180 to 180) to avoid plotting issues
+    for kLon in range(len(xLons)):
+        if xLons[kLon] < 0:
+            xLons[kLon] = 360 + xLons[kLon]
 
     gridLon, gridLat = meshgrid(xLons,xLats)
 
@@ -62,10 +63,12 @@ def write_Okada_displacements(directory=None):
             # Make rake be -180 to 180 (not 0-360)
             if float(rake) > 180:
                 rake = float(rake) - 360
+            # Make Lon 0 to 360 (not -180 to 180)
+            if float(lon) < 0:
+                lon = float(lon) + 360
             LAT.append(float(lat)); LON.append(float(lon)); DEP.append(float(dep)); SLIP.append(float(slip));
             RAKE.append(float(rake)); STRIKE.append(float(strike)); DIP.append(float(dip));
     sol.close()
-
 
     ###############################
     ### CALCULATE DISPLACEMENTS ###
@@ -79,7 +82,7 @@ def write_Okada_displacements(directory=None):
     #for ksub in range(1):
     for ksub in range(Nfaults):
         if ksub % 100 == 0:
-            print('... ...Subfault: '+str(ksub))
+            print('...Subfault: '+str(ksub))
         sf_lon = LON[ksub]
         sf_lat = LAT[ksub]
         strike = STRIKE[ksub]
@@ -90,16 +93,11 @@ def write_Okada_displacements(directory=None):
         ss_slip = (slip/100.) * cos(deg2rad(rake)) 
         ds_slip = (slip/100.) * sin(deg2rad(rake))
 
-        #sf_lon = -72
-        #sf_lat = -29.2
-        #depth = 10.
         ### Make new x,y vectors, grid of distances in km from current subfault to lon/lat grid defined earlier ###
         fwd_az,b_az,distance_m = pyproj.Geod.inv(g,sf_lon*ones(shape(gridLon)),sf_lat*ones(shape(gridLat)),gridLon,gridLat)
         distance_km = distance_m/1000.
         x = distance_km*sin(deg2rad(fwd_az))
         y = distance_km*cos(deg2rad(fwd_az))
-        #print(x.min(),x.max())
-        #print(y.min(),y.max())
         ### Rotation matrices (code assumes N-S fault, must rotate positions by strike angle and then rotate back) ###
         theta = strike - 90
         theta = deg2rad(theta)
@@ -107,9 +105,6 @@ def write_Okada_displacements(directory=None):
         R_inv = array([[cos(-theta),-sin(-theta)],[sin(-theta),cos(-theta)]])
 
         k=0                            
-        #for kxy in range(1):
-        #    print(gridLon.flatten()[kxy],gridLat.flatten()[kxy])
-        #    print(x.flatten()[kxy],y.flatten()[kxy])
         for kxy in range(len(x)*len(y)):
             #Calculate on rotated position
             xy=R_fwd.dot(array([[x.flatten()[kxy]], [y.flatten()[kxy]]]))
@@ -166,7 +161,7 @@ def write_Okada_displacements(directory=None):
     plt.close()
 
 def write_CMTSOLUTION_file(pdefile=None,directory=None):
-    print('... Writing CMTSOLUTION to file')
+    print('Writing CMTSOLUTION to file...')
 
     if directory==None:
         directory = os.getcwd()
@@ -231,7 +226,7 @@ def write_CMTSOLUTION_file(pdefile=None,directory=None):
     CMTout.close()
 
 def write_Coulomb_file(directory=None,eventID=None):
-    print('... Writing Coulomb.inp to file')
+    print('Writing Coulomb.inp to file...')
 
     if directory==None:
         directory = os.getcwd()
@@ -334,15 +329,21 @@ def write_Coulomb_file(directory=None,eventID=None):
     zbot = zeros(Nfaults)
     
     for ksubfault in range(Nfaults):
-        top_mid_x[ksubfault] = x[ksubfault]+((sf_length_as/2)*cos(deg2rad(DIP[ksubfault])))*sin(deg2rad(STRIKE[ksubfault]-90))
-        top_mid_y[ksubfault] = y[ksubfault]+((sf_length_as/2)*cos(deg2rad(DIP[ksubfault])))*cos(deg2rad(STRIKE[ksubfault]-90))
-        xstart[ksubfault] = top_mid_x[ksubfault]+(sf_length_as/2)*sin(deg2rad(STRIKE[ksubfault]-180))
-        ystart[ksubfault] = top_mid_y[ksubfault]+(sf_length_as/2)*cos(deg2rad(STRIKE[ksubfault]-180))
-        xfin[ksubfault] = top_mid_x[ksubfault]+(sf_length_as/2)*sin(deg2rad(STRIKE[ksubfault]))
-        yfin[ksubfault] = top_mid_y[ksubfault]+(sf_length_as/2)*cos(deg2rad(STRIKE[ksubfault]))
-        ztop[ksubfault] = DEP[ksubfault]-(sf_length_ad/2)*sin(deg2rad(DIP[ksubfault]))
-        zbot[ksubfault] = DEP[ksubfault]+(sf_length_ad/2)*sin(deg2rad(DIP[ksubfault]))
-    
+        #top_mid_x[ksubfault] = x[ksubfault]+((sf_length_as/2)*cos(deg2rad(DIP[ksubfault])))*sin(deg2rad(STRIKE[ksubfault]-90))
+        #top_mid_y[ksubfault] = y[ksubfault]+((sf_length_as/2)*cos(deg2rad(DIP[ksubfault])))*cos(deg2rad(STRIKE[ksubfault]-90))
+        #xstart[ksubfault] = top_mid_x[ksubfault]+(sf_length_as/2)*sin(deg2rad(STRIKE[ksubfault]-180))
+        #ystart[ksubfault] = top_mid_y[ksubfault]+(sf_length_as/2)*cos(deg2rad(STRIKE[ksubfault]-180))
+        #xfin[ksubfault] = top_mid_x[ksubfault]+(sf_length_as/2)*sin(deg2rad(STRIKE[ksubfault]))
+        #yfin[ksubfault] = top_mid_y[ksubfault]+(sf_length_as/2)*cos(deg2rad(STRIKE[ksubfault]))
+        #ztop[ksubfault] = DEP[ksubfault]-(sf_length_ad/2)*sin(deg2rad(DIP[ksubfault]))
+        #zbot[ksubfault] = DEP[ksubfault]+(sf_length_ad/2)*sin(deg2rad(DIP[ksubfault]))
+        xstart[ksubfault] = x[ksubfault]
+        ystart[ksubfault] = y[ksubfault]
+        xfin[ksubfault] = x[ksubfault] + sf_length_as * sin(deg2rad(STRIKE[ksubfault]))
+        yfin[ksubfault] = y[ksubfault] + sf_length_as * cos(deg2rad(STRIKE[ksubfault]))
+        ztop[ksubfault] = DEP[ksubfault]
+        zbot[ksubfault] = DEP[ksubfault] + sf_length_ad * sin(deg2rad(DIP[ksubfault]))
+
         out='  1 %10.4f %10.4f %10.4f %10.4f 100 %10.4f %10.4f %10.4f %10.4f %10.4f FFM%d\n' % (xstart[ksubfault],ystart[ksubfault],xfin[ksubfault],yfin[ksubfault],RAKE[ksubfault],SLIP[ksubfault]/100.,DIP[ksubfault],ztop[ksubfault],zbot[ksubfault],ksubfault)
         coulomb.write(out)
     

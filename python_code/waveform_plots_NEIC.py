@@ -27,7 +27,7 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
             min_val, max_val = ax.get_ylim()
             min_val = np.minimum(np.min(waveform), min_val)
             max_val = np.maximum(np.max(waveform), max_val)
-            if type_str == 'cgps':
+            if type_str == 'cgps' or type_str == 'strong_motion':
                 if max_val < 1 and min_val > -1:
                     max_val = 1
                     min_val = -1
@@ -44,7 +44,7 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                    '{:0.3f}'.format(max(abs(min_val),max_val)),ha='right',va='center')
                 ax.hlines(0, -350, np.max(time), 'k', lw=1)
                 ax.set_xlim([-350, np.max(time)])
-            elif type_str == 'cgps':
+            elif type_str == 'cgps' or type_str == 'strong_motion':
                 min_wval = np.min(waveform)
                 max_wval = np.max(waveform)
                 if max_wval > abs(min_wval):
@@ -64,8 +64,8 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                 ax.text(1.4*min_time,0.2*max(abs(min_val),max_val),'Z',ha='right',va='bottom')
             if type_str == 'surf_tele' and comp == 'SH':
                 ax.text(1.4*min_time,0.2*max(abs(min_val),max_val),'T',ha='right',va='bottom')
-            if type_str == 'cgps':
-                ax.text(1.6*min_time, 0.2*max(abs(min_val),max_val),comp,ha='right',va='bottom')
+            if type_str == 'cgps' or type_str == 'strong_motion':
+                ax.text(1.4*min_time, 0.2*max(abs(min_val),max_val),comp,ha='right',va='bottom')
         if custom == 'syn':
             max_val = np.maximum(abs(min(waveform)),max(waveform))
             tmin, tmax = ax.get_xlim()
@@ -76,7 +76,7 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
             elif type_str == 'surf_tele':
                 ax.text(tmax, 0.6*ymin,
                     '{:0.3f}'.format(max_val),ha='right',va='center',color='red')
-            elif type_str == 'cgps':
+            elif type_str == 'cgps' or type_str == 'strong_motion':
                 ax.text(tmax, 0.6*ymin,
                     '{:0.2f}'.format(max_val),ha='right',va='center',color='red')
         #ax.xaxis.set_major_locator(
@@ -95,7 +95,7 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                  ticker.MultipleLocator(500))
             ax.yaxis.set_major_locator(
                  ticker.NullLocator())
-        elif type_str == 'cgps':
+        elif type_str == 'cgps' or type_str == 'strong_motion':
             ax.xaxis.set_major_locator(
                  ticker.MultipleLocator(20))
             ax.yaxis.get_major_locator().set_params(integer=True)
@@ -112,7 +112,7 @@ def add_metadata(axes, **kwargs):
     """
     """
     if 'type_str' in kwargs:
-        if kwargs['type_str'] == 'cgps':
+        if kwargs['type_str'] == 'cgps' or kwargs['type_str'] == 'strong_motion':
             if 'names' in kwargs:
                 for ax, name in zip(axes, kwargs['names']):
                     ax.text(-0.07, 0.50, name, ha='right', va='center', transform=ax.transAxes)
@@ -165,10 +165,8 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     for file in files:
         dt = file['dt']
         nstart = file['start_signal']
-        if not start_margin=='custom':
-            margin = int(start_margin / dt)# if nstart > int(start_margin / dt) else 0
-        else:
-            margin = min(nstart, 0)
+        margin = int(start_margin / dt)
+        margin = min(nstart, margin)
         start_waveform = start_waveform + [margin]
     zipped = zip(sampling, start_waveform, obs_waveforms)
     obs_times = [dt * np.arange(-start, len(observed) - start)\

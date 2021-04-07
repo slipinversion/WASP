@@ -182,7 +182,7 @@ def plot_misfit(used_data_type, forward=False):
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'surf_tele',
-                               start_margin='custom', forward=forward)
+                               start_margin=10, forward=forward)
     if 'strong_motion' in used_data_type:
         if not os.path.isfile('strong_motion_waves.json'):
             raise FileNotFoundError(
@@ -205,7 +205,7 @@ def plot_misfit(used_data_type, forward=False):
         values = [['LXZ', 'LHZ', 'LYZ'], ['LXE', 'LHE', 'LYE'], ['LXN', 'LHN', 'LYN']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'cgps',
-                                forward=forward, start_margin=0)
+                                forward=forward, start_margin=10)
     return
 
 
@@ -825,6 +825,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     from cartopy.io.img_tiles import Stamen
     tiler = Stamen('terrain-background')
     ax.add_image(tiler, 10)
+#    ax.stock_img()
 
 #    bathymetry = cf.NaturalEarthFeature('physical','bathymetry','10m')
 #    tectonic = cf.ShapelyFeature(
@@ -919,7 +920,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         if not max_slip else max_slip
     margins = [min_lon - 2, max_lon + 2, min_lat - 2, max_lat + 2]
     #ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries)
-    ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=None, bathymetry=None)
+    ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries, bathymetry=None)
     ax.plot(lon0, lat0, '*', markersize=15, transform=ccrs.PlateCarree(),
             zorder=4, markerfacecolor="None", markeredgecolor='k', markeredgewidth=1.5)
     ax.plot(corners[0,:],corners[1,:], 'k',lw=5)
@@ -929,15 +930,13 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
 #
     ax, cs = plot_map(ax, segments_lats, segments_lons, slip, max_val=max_slip, 
                       transform=dictn['projection'])
-#    cbar_ax = fig.add_axes([0.17, 0.12, 0.3, 0.02])
     sm = plt.cm.ScalarMappable(cmap=slipcpt,norm=plt.Normalize(vmin=0.,vmax=max_slip/100.))
     #from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     #cb_ax = inset_axes(ax, width = "30%", height = "5%", loc = 'lower left')
     #from matplotlib.axes.Axes import inset_axes
-    cb_ax = ax.inset_axes([0.04, 0.04, 0.3, 0.02])
-    #cb_ax = fig.add_axes([0.04, 0.04, 0.3, 0.02])
+    cb_ax = ax.inset_axes([0.1, 0.04, 0.3, 0.02])
+    #cb_ax = inset_axes(ax, width = 0.3, height = 0.02, loc = 'lower left')
     cbar = plt.colorbar(sm, cax=cb_ax, orientation='horizontal')
-#    cbar = plt.colorbar(sm, cax=cbar_ax, orientation='horizontal')
     cbar.outline.set_linewidth(3)
     cbar.set_label('Slip (m)')
     cbar.ax.xaxis.set_ticks_position('top')
