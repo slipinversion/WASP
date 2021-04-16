@@ -19,7 +19,10 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
     """
     """
     for ax, time, waveform, weight in zip(axes, times, waveforms, weights):
-        ax.plot(time, waveform, color=color, linewidth=2*weight)
+        if weight == 0.0:
+            ax.plot(time, waveform, color=color, linewidth=2, linestyle='dashed')
+        else:
+            ax.plot(time, waveform, color=color, linewidth=2*weight)
         min_time, max_time = ax.get_xlim()
         min_time = np.minimum(np.min(time), min_time)
         max_time = np.maximum(np.max(time), max_time)
@@ -89,7 +92,7 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
             ax.yaxis.set_major_locator(
                  ticker.NullLocator())
             ax.xaxis.set_minor_locator(
-                 ticker.MultipleLocator(10))
+                 ticker.MultipleLocator(5))
         elif type_str == 'surf_tele':
             ax.xaxis.set_major_locator(
                  ticker.MultipleLocator(500))
@@ -136,7 +139,7 @@ def add_metadata(axes, **kwargs):
                 va='bottom', transform=ax.transAxes)
     if 'weights' in kwargs:
         for ax, weight in zip(axes, kwargs['weights']):
-            alpha = 1 if weight > 0 else 0.1
+            alpha = 1 if weight > 0 else 0.25
             lines = ax.get_lines()
             for line in lines:
                 line.set_alpha(alpha)
