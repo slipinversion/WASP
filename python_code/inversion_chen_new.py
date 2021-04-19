@@ -34,7 +34,7 @@ import get_outputs
 
 
 def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
-                   dt_cgps=1.0):
+                   dt_cgps=1.0, st_response=True):
     """Routine for automatic FFM modelling
     
     :param tensor_info: dictionary with moment tensor properties
@@ -59,7 +59,7 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     os.chdir(os.path.join(sol_folder, 'data'))
     time2 = time.time()
     logger.info('Process data')
-    processing(tensor_info, data_type, data_prop)
+    processing(tensor_info, data_type, data_prop, st_response=st_response)
     time2 = time.time() - time2
     logger.info('Time spent processing traces: {}'.format(time2))
     os.chdir(sol_folder)
@@ -387,7 +387,7 @@ def adquisicion(tensor_info):
     acquisition(event_time, event_lat, event_lon, depth, data_type)
    
  
-def processing(tensor_info, data_type, data_prop):
+def processing(tensor_info, data_type, data_prop, st_response=True):
     """Run all waveform data processing in parallel.
     
     :param tensor_info: dictionary with moment tensor properties
@@ -409,9 +409,12 @@ def processing(tensor_info, data_type, data_prop):
     if 'surf_tele' in data_type:
         proc.select_process_surf_tele(tele_files, tensor_info)
     if 'strong_motion' in data_type:
-        # proc.strong_motion_processing_custom(
-        #     strong_files, tensor_info, data_prop, type='acc')
-        proc.select_process_strong(strong_files, tensor_info, data_prop)
+        proc.select_process_strong(
+            strong_files,
+            tensor_info,
+            data_prop,
+            remove_response=st_response
+        )
     if 'cgps' in data_type:
         proc.select_process_cgps(cgps_files, tensor_info, data_prop)
 
@@ -623,8 +626,6 @@ if __name__ == '__main__':
                         help="direction of folder with seismic data")
     parser.add_argument("-v", "--velmodel", 
                         help="direction of velocity model file")
-    parser.add_argument("-i", "--iris", action="store_true",
-                        help="whether data has been retrieved from iris")
     parser.add_argument("-t", "--tele", action="store_true",
                         help="use teleseismic data in modelling")
     parser.add_argument("-su", "--surface", action="store_true",
@@ -635,6 +636,12 @@ if __name__ == '__main__':
                         help="use cGPS data in modelling")
     parser.add_argument("--gps", action="store_true",
                         help="use GPS data in modelling")
+    parser.add_argument(
+        "-rst",
+        "--st_response",
+        action="store_false",
+        help="whether to remove response of strong_motion or not"
+    )
     args = parser.parse_args()
     velmodel = args.velmodel if args.velmodel else None
     if velmodel:
@@ -665,7 +672,7 @@ if __name__ == '__main__':
                     copy2(os.path.join(args.data, file), 'data')
         data_type = data_type if len(data_type) >= 1 else ['tele_body']
         automatic_usgs(tensor_info, data_type, default_dirs, velmodel=velmodel,
-                       dt_cgps=0.2)
+                       dt_cgps=0.2, st_response=args.st_response)
     if args.option == 'manual':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor

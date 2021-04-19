@@ -10,6 +10,7 @@ import json
 from obspy.geodetics import locations2degrees, degrees2kilometers
 from obspy.core.utcdatetime import UTCDateTime
 import subprocess
+from read_config import read_config
 
 
 def theoretic_arrivals(model, dist, depth):
@@ -86,45 +87,30 @@ def update_data(tensor_info, data_type=None):
 def default_dirs():
     """Environment variables.
     """
-    root_dir = os.path.join('/home', 'degoldberg', 'production_code', 'fortran_code')
+    config = read_config()
+    paths = config['PATHS']
+    info = paths['info']
+    compute_near_gf = paths['compute_near_gf']
+    get_near_gf = paths['get_near_gf']
+    modelling = paths['modelling']
     default_dirs = {
-            'root_dir': root_dir,
-            'long_gf_bank': os.path.join(root_dir, 'gfs_nm', 'long', 'low.in'),
-            'crust_codes': os.path.join(root_dir, 'info', 'CNtype2.txt'),
-            'models_codes': os.path.join(root_dir, 'info', 'CNtype2_key.txt'),
-            'litho_model': os.path.join(root_dir, 'info', 'LITHO1.0.nc'),
-            'gf_bank': os.path.join(root_dir, 'gfs_nm', 'long', 'low.in'),
-            'create_fault_files': os.path.join(
-                    root_dir, 'bin_inversion_gfortran', 'fsub'),
-            'compute_shear': os.path.join(
-                    root_dir, 'bin_inversion_gfortran', 'niu'),
-            'strong_motion_gf_bank': os.path.join(
-                    root_dir, 'gfs_nm', 'strong_motion'),
+            'root_dir': paths['code_path'],
+            'long_gf_bank': paths['surf_gf_bank'],
+            'crust_codes': os.path.join(info, 'CNtype2.txt'),
+            'models_codes': os.path.join(info, 'CNtype2_key.txt'),
+            'litho_model': os.path.join(info, 'LITHO1.0.nc'),
+            'gf_bank': paths['surf_gf_bank'],
             'strong_motion_gf_bank2': os.path.join(
-                    root_dir, 'src_dc_f95', 'green_bank_openmp_f95'),
-            'strong_motion_gf': os.path.join(
-                    root_dir, 'bin_str_f95', 'get_strong_motion'),
-            'cgps_gf_bank': os.path.join(root_dir, 'gfs_nm', 'cgps'),
-#            'cgps_gf': os.path.join(
-#                    root_dir, 'bin', 'bin_str_new', 'green_cgps'),
-            'gps_gf': os.path.join(root_dir, 'src_dc_f95', 'gf_static_f95'),
-            'tele_gf': os.path.join(
-                    root_dir, 'bin_inversion_gfortran_f95', 'green_tele'),
-            'finite_fault': os.path.join(
-                    root_dir, 'bin_inversion_gfortran_f95', 'run_modelling'),
-#            'finite_fault_static': os.path.join(
-#                    root_dir, 'bin', 'bin_inversion_gfortran', 'inv_three_static'),
-            'forward': os.path.join(
-                    root_dir, 'bin_inversion_gfortran_f95', 'run_forward'),
-#            'forward_static': os.path.join(
-#                    root_dir, 'bin', 'bin_inversion_gfortran', 'syn_three_static'),
-            'strong_stations_data': os.path.join(
-                    root_dir, 'strong_stations_locations.json'),
-            'tele_stations_data': os.path.join(
-                    root_dir, 'tele_stations_locations.json'),
+                    compute_near_gf, 'green_bank_openmp_f95'),
+            'strong_motion_gf': os.path.join(get_near_gf, 'get_strong_motion'),
+            'cgps_gf_bank': os.path.join(get_near_gf, 'cgps'),
+            'gps_gf': os.path.join(compute_near_gf, 'gf_static_f95'),
+            'tele_gf': os.path.join(modelling, 'green_tele'),
+            'finite_fault': os.path.join(modelling, 'run_modelling'),
+            'forward': os.path.join(modelling, 'run_forward'),
             'trench_graphics': os.path.join(
-                    root_dir, 'tectonicplates-master', 'PB2002_plates'),
-            'sac_exec': '/usr/local/sac/bin/sac'
+                    paths['cartopy_files'], 'PB2002_plates'),
+            'sac_exec': paths['sac_exec']
     }
     return default_dirs
 

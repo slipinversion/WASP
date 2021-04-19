@@ -12,6 +12,7 @@ import get_outputs
 from obspy import read
 import matplotlib.pyplot as plt
 import seismic_tensor as tensor
+from waveform_plots import plot_waveforms
 
 
 def shift_match(data_type, plot=False, method='full', zero_start=True):
@@ -56,64 +57,44 @@ def shift_match(data_type, plot=False, method='full', zero_start=True):
             obser_tr = np.diff(obser_tr)
         length = int(float(file['duration'])) if method == 'full' else int(25 / dt)
         start = int(file['start_signal'])
-        tr_shift = _shift(obser_tr, synt_tr, nshift, length, start, plot=plot)
+        tr_shift = _shift(obser_tr, synt_tr, nshift, length, start)
         file['start_signal'] = start + tr_shift
         new_baseline = stream[0].data[start + tr_shift]
-        if zero_start:
-            stream[0].data = stream[0].data - new_baseline
-            stream.write(file['file'], format='SAC', byteorder=0)
 
         file['synthetic'] = []
         file['observed'] = []
         if plot:
             length2 = int(10 / dt)
-            start0 = 0
-            start00 = 0
             name = file['name']
             component = file['component']
             synthetic = synt_tr[:length]
+            syn_waveforms = [synthetic, synthetic]
             time0 = np.arange(len(synthetic)) * dt
             fig, axes = plt.subplots(2, 1)
+            axes2 = axes.ravel()
             fig.suptitle('{} {}'.format(name, component))
-            if start >= 0:
-                start2 = max(0, start - length2)
-                start3 = start - start2
-                observed0 = np.array(
-                    [val for i, val in enumerate(obser_tr[start2:])\
-                    if i < length])
-            else:
-                observed0 = np.array(
-                    [val for i, val in enumerate(obser_tr) if i < length])
-                observed0 = np.concatenate(([0] * -start, observed0))
-            time1 = np.arange(-start3, len(observed0) - start3) * dt
-            min_val = np.minimum(np.min(observed0), np.min(synthetic))
-            max_val = np.maximum(np.max(observed0), np.max(synthetic))
-            axes[0].plot(time1, observed0)
-            axes[0].plot(time0, synthetic, 'r')
-            axes[0].vlines(0, min_val, max_val)
+            time1, observed0 = get_observed(file, start, length, margin=10)
+            axes[0].axvline(0)
             axes[0].set_title('Before Shift')
             start4 = start + tr_shift
-            if start4 >= 0:
-                start5 = max(0, start4 - length2)
-                start6 = start4 - start5
-                observed1 = np.array(
-                    [val for i, val in enumerate(obser_tr[start5:])\
-                    if i < length])
-            else:
-                observed1 = np.array(
-                    [val for i, val in enumerate(obser_tr) if i < length])
-                observed1 = np.concatenate(([0] * -start2, observed1))
-            if zero_start:
-                observed1 = observed1 - new_baseline
-            time2 = np.arange(-start6, len(observed1) - start6) * dt
-            axes[1].plot(time2, observed1)
-            axes[1].plot(time0, synthetic, 'r')
-            axes[1].vlines(0, min_val, max_val)
+            time2, observed1 = get_observed(
+                file, start4, length, margin=10, zero_start=zero_start)
+            obs_times = [time1, time2]
+            syn_times = [time0, time0]
+            obs_waveforms = [observed0, observed1]
+            axes2 = plot_waveforms(axes2, obs_times, obs_waveforms, color='black')
+            axes2 = plot_waveforms(axes2, syn_times, syn_waveforms, color='red',
+                                   custom='fill')
+            axes[1].axvline(0)
             axes[1].set_title('After Shift')
             name_file = os.path.join(
                 plot_folder, '{}_{}.png'.format(name, component))
             plt.savefig(name_file)
             plt.close(fig)
+
+        if zero_start:
+            stream[0].data = stream[0].data - new_baseline
+            stream.write(file['file'], format='SAC', byteorder=0)
 
     with open(json_file,'w') as f:
          json.dump(
@@ -122,25 +103,147 @@ def shift_match(data_type, plot=False, method='full', zero_start=True):
     return
 
 
-def _shift(obser_tr, syn_tr, nshift, length, start_pos, plot=False):
+def shift_match_regional(data_type, plot=False, method='full', zero_start=True):
+    """We shift regional synthetic data which satisfies pareto-optimal
+    cross-correlation with observed data, for a given station.
+
+    :param data_type: list of data types to be used in modelling.
+    :param plot: whether to plot results of waveform shift
+    :param method: method for cross-correlation
+    :type data_type: list
+    :type tensor_info: bool, optional
+    :type method: string, optional
+    """
+    if data_type == 'strong':
+        json_file = 'strong_motion_waves.json'
+    if data_type == 'cgps':
+        json_file = 'cgps_waves.json'
+    files = json.load(open(json_file))
+    plot_folder = 'strong_shift' if data_type == 'strong' else 'cgps_shift'
+    if not os.path.isdir(plot_folder):
+        os.mkdir(plot_folder)
+    synthetics_file = 'synm.str' if data_type == 'strong' else 'synm.cgps'
+
+    dt = float(files[0]['dt'])
+    files = get_outputs.get_data_dict(files, syn_file=synthetics_file)
+    stations = [file['name'] for file in files]
+    stations = list(set(stations))
+    for station in stations:
+        files2 = [file for file in files if file['name'] == station]
+        components = [file['component'] for file in files2]
+        synthetics = [file['synthetic'] for file in files2]
+        streams = [read(file['file']) for file in files2]
+        waveforms = [stream[0].data for stream in streams]
+        nshift = int(5 / dt) if data_type == 'strong' else int(4 / dt)
+        lengths = [int(float(file['duration'])) for file in files2]
+        length = np.min(np.array(lengths))
+        start = int(files2[0]['start_signal'])
+        tr_shift = _shift2(waveforms, synthetics, nshift, length, start)
+        for file in files2:
+            file['start_signal'] = start + tr_shift
+        # new_baselines = [st[0].data[start + tr_shift] for st in streams]
+
+        for file in files2:
+            file['synthetic'] = []
+            file['observed'] = []
+        if plot:
+            length2 = int(10 / dt)
+            start0 = 0
+            start00 = 0
+            fig, axes = plt.subplots(2, len(synthetics), figsize=(30, 10))
+            fig.text(0.04, 0.6, 'Before Shift', va='center', rotation='vertical')
+            fig.text(0.04, 0.3, 'After Shift', va='center', rotation='vertical')
+            fig.suptitle(station)
+            if len(files2) > 1:
+                zipped = zip(files2, synthetics, axes[0, :])
+                for file, synthetic, ax in zipped:
+                    time1, observed0 = get_observed(
+                        file, start, length, margin=10)
+                    time0 = np.arange(len(synthetic)) * dt
+                    ax.plot(time1, observed0)
+                    ax.plot(time0, synthetic, 'r')
+                    ax.axvline(0)
+                    ax.set_title(file['component'])
+                zipped = zip(files2, synthetics, axes[1, :])
+                for file, synthetic, ax in zipped:
+                    start4 = start + tr_shift
+                    time2, observed1 = get_observed(
+                        file, start4, length, margin=10, zero_start=zero_start)
+                    time0 = np.arange(len(synthetic)) * dt
+                    ax.plot(time2, observed1)
+                    ax.plot(time0, synthetic, 'r')
+                    ax.axvline(0)
+            else:
+                file = files2[0]
+                synthetic = synthetics[0]
+                time1, observed0 = get_observed(file, start, length, margin=10)
+                time0 = np.arange(len(synthetic)) * dt
+                min_val = np.minimum(np.min(observed0), np.min(synthetic))
+                max_val = np.maximum(np.max(observed0), np.max(synthetic))
+                axes[0].plot(time1, observed0)
+                axes[0].plot(time0, synthetic, 'r')
+                axes[0].vlines(0, min_val, max_val)
+                axes[0].set_title(file['component'])
+                start4 = start + tr_shift
+                time2, observed1 = get_observed(
+                    file, start4, length, margin=10, zero_start=zero_start)
+                time0 = np.arange(len(synthetic)) * dt
+                axes[1].plot(time2, observed1)
+                axes[1].plot(time0, synthetic, 'r')
+                axes[1].axvline(0)
+                axes[1].set_title(file['component'])
+            name_file = os.path.join(plot_folder, '{}.png'.format(station))
+            plt.savefig(name_file)
+            plt.close(fig)
+
+        if zero_start:
+            for stream in streams:
+                new_baseline = stream[0].data[start + tr_shift]
+                stream[0].data = stream[0].data - new_baseline
+                stream.write(file['file'], format='SAC', byteorder=0)
+
+    with open(json_file,'w') as f:
+         json.dump(
+             files, f, sort_keys=True, indent=4,
+             separators=(',', ': '), ensure_ascii=False)
+    return
+
+
+def get_observed(file_dict, start, length, margin=10, zero_start=False):
+    """
+    """
+    stream = read(file_dict['file'])
+    dt = stream[0].stats.delta
+    length2 = int(margin / dt)
+    waveform = stream[0].data
+    new_baseline = waveform[start]
+    if start >= 0:
+        start2 = max(0, start - length2)
+        start3 = start - start2
+        waveform1 = np.array(
+            [val for i, val in enumerate(waveform[start2:]) if i < length])
+    else:
+        waveform1 = np.array(
+            [val for i, val in enumerate(waveform) if i < length])
+        waveform1 = np.concatenate(([0] * -start, waveform1))
+    time = np.arange(-start3, len(waveform1) - start3) * dt
+    if zero_start:
+        waveform1 = waveform1 - new_baseline
+    return time, waveform1
+
+
+def _shift(obser_tr, syn_tr, nshift, length, start_pos):
     """Routine for shifting an observed waveform to maximize the
     cross-correlation to a synthetic waveform.
     """
     err_max = 0
     j_min = 0
-#    length = min(length, len(syn_tr), 150)
     synthetic = syn_tr[:length]
     for j in range(-nshift, nshift + 1):
-        # observed = np.array(
-        #     [val for i, val in enumerate(obser_tr[start_pos + j:])\
-        #      if i < length])
         start2 = start_pos + j
         exy = 0
         if start2 < 0:
             continue
-            # observed = np.array(
-            #     [val for i, val in enumerate(obser_tr) if i < length + start2])
-            # exy = np.sum(observed * synthetic[-start2:])
         else:
             observed = np.array(
                 [val for i, val in enumerate(obser_tr[start_pos + j:])\
@@ -148,13 +251,81 @@ def _shift(obser_tr, syn_tr, nshift, length, start_pos, plot=False):
             synthetic2 = synthetic[:len(observed)]
             exy = np.sum(observed * synthetic2)
         err = 2 * exy
-#        err = np.max(np.abs(c_obs - c_syn))
-#        err = err / max(np.max(np.abs(c_syn), np.max(np.abs(c_obs)))#1.0 - 2.0 * exy / (exx + eyy)
 
         if err_max <= err:
             err_max = err
             j_min = j
-    # print('Final err max:', err_max)
+    return j_min
+
+
+def _shift2(waveforms, synthetics, nshift, length, start_pos):
+    """Routine for finding the shift with pareto-optimal cross-correlation for
+    all channels of a certain station.
+    """
+    synthetics = [synthetic[:length] for synthetic in synthetics]
+
+    j_min = 0
+    err_max = 0
+    for j in range(-nshift, nshift + 1):
+        start2 = start_pos + j
+        err = 0
+        if start2 < 0:
+            continue
+        else:
+            zipped = zip(waveforms, synthetics)
+            for i, (observed, synthetic) in enumerate(zipped):
+                observed2 = np.array(
+                    [val for i, val in enumerate(observed[start_pos + j:])\
+                    if i < length])
+                synthetic2 = synthetic[:len(observed2)]
+                err = err + np.sum(observed2 * synthetic2) ** 3
+
+        if err_max <= err:
+            err_max = err
+            j_min = j
+
+    return j_min
+
+
+def _shift3(waveforms, synthetics, nshift, length, start_pos):
+    """Routine for finding the shift with pareto-optimal cross-correlation for
+    all channels of a certain station.
+    """
+    synthetics = [synthetic[:length] for synthetic in synthetics]
+
+    cross_corr = [[]] * (2 * nshift + 1)
+    for j in range(-nshift, nshift + 1):
+        start2 = start_pos + j
+        err = np.zeros(len(synthetics))
+        if start2 < 0:
+            continue
+        else:
+            zipped = zip(waveforms, synthetics)
+            for i, (observed, synthetic) in enumerate(zipped):
+                observed2 = np.array(
+                    [val for i, val in enumerate(observed[start_pos + j:])\
+                    if i < length])
+                synthetic2 = synthetic[:len(observed2)]
+                err[i] = 2 * np.sum(observed2 * synthetic2)
+        cross_corr[j + nshift] = err
+
+    pareto_set = []
+    j_min = 0
+    for j in range(-nshift, nshift + 1):
+        candidate = cross_corr[j + nshift]
+        pareto_max = True
+        for i in range(-nshift, nshift + 1):
+            err = cross_corr[i + nshift]
+            print(err)
+            print(candidate)
+            if np.any(err > candidate):
+                pareto_max = False
+                break
+        if pareto_max:
+            pareto_set = pareto_set + [j]
+    print(pareto_set)
+    if pareto_set:
+        j_min = pareto_set[0]
     return j_min
 
 
@@ -220,7 +391,10 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     if args.option == 'match':
         plot = False if not args.plot else True
-        shift_match(args.type, plot=plot)#, method='start')
+        if args.type in ['tele', 'surf']:
+            shift_match(args.type, plot=plot)
+        else:
+            shift_match_regional(args.type, plot=plot)
     else:
         _print_arrival(tensor_info)
 

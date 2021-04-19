@@ -889,7 +889,8 @@ def new_process_cgps(tensor_info, stations_str, data_prop, logger=None):
             ratio = int(dt_cgps / st[0].stats.delta)
             st[0].decimate(ratio)
         if st[0].stats.delta > dt_cgps:
-            st[0].resample(sampling_rate=1/dt_cgps)
+            st[0].interpolate(1/dt_cgps)
+            # st[0].resample(sampling_rate=1/dt_cgps)
         sacheader = SACTrace.from_obspy_trace(st[0])
         sacheader.t9 = high_freq
         sacheader.write(sac, byteorder='little')
@@ -943,50 +944,54 @@ def _filter_decimate(sac_files, filtro, dt, corners=4, passes=2,
     low_freq = filtro['low_freq']
     high_freq = filtro['high_freq']
     power = lambda m, n: max([d for d in range(10) if m % (n**d) == 0])
-    if decimate:
-        input_sac = ''
-        for sac in sac_files:
-            sacheader = SACTrace.read(sac)
-            delta = sacheader.delta
-            ratio = int(round(dt / delta))
-            power5 = power(ratio, 5)
-            power2 = power(ratio, 2)
-            power3 = power(ratio, 3)
-            if ratio > 2**power2 * 3**power3 * 5**power5:
-                continue
-            input_sac = '{}\nread {} \n'.format(input_sac, sac)
-            if filter == 'bandpass':
-                input_sac = input_sac + 'bp c {} {} n {} p {} \n'.format(
-                    low_freq, high_freq, corners, passes)
-            elif filter == 'lowpass':
-                input_sac = input_sac + 'lp c {} n {} p {} \n'.format(
-                    high_freq, corners, passes)
-            input_sac = input_sac\
-                + 'decimate 5\n' * power5\
-                + 'decimate 3\n' * power3\
-                + 'decimate 2\n' * power2
-            input_sac = input_sac + 'mul 100\nwrite {}.tmp \n'.format(sac)
-    
-        input_sac = '{}\nquit\n'.format(input_sac)
-        out, err = mng.run_sac(input_sac)
-        if logger:
-            logger.debug(out.decode('utf-8'))
-            if err:
-                logger.warning(err.decode('utf-8'))
-    else:
-        for sac in sac_files:
-            st = read(sac)
-            delta = st[0].stats.delta
-            nyq = 0.5 / delta
-            high_freq2 = high_freq / nyq
-            low_freq2 = low_freq / nyq
-            if filter == 'bandpass':
-                b, a = butter(corners, [low_freq2, high_freq2], btype='bandpass')
-            else:
-                b, a = butter(corners, high_freq2, btype='lowpass')
-            filt_data = filtfilt(b, a, st[0].data)
-            st[0].data = 100*filt_data
-            st.write('{}.tmp'.format(sac), format='SAC', byteorder=0)
+    # if decimate:
+    #     input_sac = ''
+    #     for sac in sac_files:
+    #         sacheader = SACTrace.read(sac)
+    #         delta = sacheader.delta
+    #         ratio = int(round(dt / delta))
+    #         power5 = power(ratio, 5)
+    #         power2 = power(ratio, 2)
+    #         power3 = power(ratio, 3)
+    #         if ratio > 2**power2 * 3**power3 * 5**power5:
+    #             continue
+    #         input_sac = '{}\nread {} \n'.format(input_sac, sac)
+    #         if filter == 'bandpass':
+    #             input_sac = input_sac + 'bp c {} {} n {} p {} \n'.format(
+    #                 low_freq, high_freq, corners, passes)
+    #         elif filter == 'lowpass':
+    #             input_sac = input_sac + 'lp c {} n {} p {} \n'.format(
+    #                 high_freq, corners, passes)
+    #         if decimate:
+    #             input_sac = input_sac\
+    #                 + 'decimate 5\n' * power5\
+    #                 + 'decimate 3\n' * power3\
+    #                 + 'decimate 2\n' * power2
+    #         input_sac = input_sac + 'mul 100\nwrite {}.tmp \n'.format(sac)
+    #     
+    #     input_sac = '{}\nquit\n'.format(input_sac)
+    #     out, err = mng.run_sac(input_sac)
+    #     if logger:
+    #         logger.debug(out.decode('utf-8'))
+    #         if err:
+    #             logger.warning(err.decode('utf-8'))
+    # else:
+    for sac in sac_files:
+        st = read(sac)
+        if decimate:
+            # st[0].resample(sampling_rate=1/dt)
+            st[0].interpolate(1/dt)
+        delta = st[0].stats.delta
+        nyq = 0.5 / delta
+        high_freq2 = high_freq / nyq
+        low_freq2 = low_freq / nyq
+        if filter == 'bandpass':
+            b, a = butter(corners, [low_freq2, high_freq2], btype='bandpass')
+        else:
+            b, a = butter(corners, high_freq2, btype='lowpass')
+        filt_data = filtfilt(b, a, st[0].data)
+        st[0].data = 100*filt_data
+        st.write('{}.tmp'.format(sac), format='SAC', byteorder=0)
     return
 
 
@@ -996,7 +1001,8 @@ def _filter_decimate(sac_files, filtro, dt, corners=4, passes=2,
 
 
 
-def select_process_strong(strong_files0, tensor_info, data_prop, custom=False):
+def select_process_strong(strong_files0, tensor_info, data_prop,
+                          remove_response=True):
     """Module for selecting and processing strong motion data
     
     :param tensor_info: dictionary with moment tensor information
@@ -1058,18 +1064,23 @@ def select_process_strong(strong_files0, tensor_info, data_prop, custom=False):
                             os.path.join('logs', 'strong_motion_processing.log'))
     logger1 = ml.add_console_handler(logger1)
     logger1.info('Process strong motion data')
-    logger1.info('Remove response for selected strong motion traces')
+    move_str_files(strong_files0)
     response_files = glob.glob('SACPZ*') + glob.glob('SAC_PZs*')
-    for file in response_files:
-        __convert_response_acc(file)
-    __remove_response_str(strong_files0, response_files, logger=logger1)
+    response_files = [os.path.abspath(response) for response in response_files]
+    os.chdir(os.path.join(data_folder, 'STR'))
+    strong_files1 = glob.glob('*ACC')
+    if remove_response:
+        logger1.info('Remove response for selected strong motion traces')
+        for file in response_files:
+            __convert_response_acc(file)
+        __remove_response_str(strong_files1, response_files, logger=logger1)
+        
     logger1.info('Select strong motion traces')
     os.chdir(os.path.join(data_folder, 'STR'))
     strong_files1 = glob.glob('*ACC')
     strong_files2 = __select_str_files(strong_files1, tensor_info)
     logger1.info('Update duration of traces')
     __change_start(strong_files2, tensor_info)
-    # _trim_accel(strong_files2, tensor_info)
     logger1.info('Process selected strong motion traces')
     process_strong_motion(strong_files2, tensor_info, data_prop, logger=logger1)
     os.chdir(data_folder)
@@ -1121,7 +1132,7 @@ def __select_str_files(strong_files, tensor_info):
         station_lon = sacfile.stlo
       
         st = read(sac)
-        syn_len = 20 + 4 * time_shift + 7 * depth / 50
+        syn_len = 20 + 4*time_shift + 7*depth/50
         start, end = [st[0].stats.starttime, st[0].stats.endtime]
         if end - start < syn_len:
             continue
@@ -1133,62 +1144,110 @@ def __select_str_files(strong_files, tensor_info):
     return strong_files2
 
 
-def __remove_response_str(stations_str, response_files, logger=None):
-    """Remove instrumental response.
+def move_str_files(stations_str):
+    """
     """
     sacheaders = [SACTrace.read(sac) for sac in stations_str]
 
     channel_name = lambda x: '{}N{}'.format(x[0], x[2])
     new_name = lambda station, channel, network:\
         'STR.{}.{}.{}.ACC'.format(station, channel_name(channel), network)
-    # channel_name = lambda x: '{}H{}'.format(x[0], x[2])
-    # new_name = lambda station, channel, network:\
-    #     'STR.{}.{}.{}.VEL'.format(station, channel_name(channel), network)
 
-    sac_files = []
-    old_responses = []
-    names = []
-    pre_processing = 'rtr\n'
+    for sac in stations_str:
+        st = read(sac)
+        name = st[0].stats.station
+        channel = st[0].stats.channel
+        network = st[0].stats.network
+        filename = os.path.join('STR', new_name(name, channel, network))
+        st.write(filename, format='SAC', byteorder=0)
+    return   
 
-    for sacheader, sac in zip(sacheaders, stations_str):
-        name = sacheader.kstnm
-        channel = sacheader.kcmpnm
-        network = sacheader.knetwk
+
+def __read_paz(paz_file):
+    """
+    """
+    with open(paz_file, 'r') as infile:
+        lines = [line.split() for line in infile]
+    indexes = [i for i, line in enumerate(lines) if 'ZEROS' in line]
+    index = indexes[-1]
+    lines2 = lines[index:]
+    n_zeros = int(lines2[0][1])
+    n_poles = int(lines2[n_zeros + 1][1])
+    gain_line = n_zeros + n_poles + 2
+    gain = float(lines2[gain_line][1])
+    zeros = [float(real)+1j*float(imag) for real, imag in lines2[1:n_zeros]]
+    poles = [float(real)+1j*float(imag) for real, imag in lines2[n_zeros+2:gain_line]]
+    paz_dict = {
+        'zeros': zeros,
+        'poles': poles,
+        'gain': gain,
+        'sensitivity': 1
+    }
+    return paz_dict
+
+
+def __remove_response_str(stations_str, response_files, logger=None):
+    """Remove instrumental response.
+    """
+    sacheaders = [SACTrace.read(sac) for sac in stations_str]
+
+    for sac in stations_str:
+        st = read(sac)
+        name = st[0].stats.station
+        channel = st[0].stats.channel
+        network = st[0].stats.network
         pz_files = [response for response in response_files\
                     if name in response and channel in response]
         if not pz_files:
+            os.remove(sac)
             continue
         pzfile2 = next(iter(pz_files))
         if not os.path.isfile(pzfile2):
+            os.remove(sac)
             continue
-        filename = os.path.join('STR', new_name(name, channel, network))
 
-        sac_files = sac_files + [sac]
-        old_responses = old_responses + [pzfile2]
-        names = names + [filename]
-
-    out, err = response.replace_response_sac(
-        sac_files, old_responses, names, pre_processing=pre_processing)
-
-    if logger:
-        logger.debug(out.decode('utf-8'))
-        if err: logger.warning(err.decode('utf-8'))
+        paz_dict = __read_paz(pzfile2)
+        st[0].simulate(paz_remove=paz_dict)
+        st.write(sac, format='SAC', byteorder=0)
     return
 
 
-def _trim_accel(strong_files, tensor_info):
-    """
-    """
-    start = tensor_info['date_origin']
-    streams = [read(sac) for sac in strong_files]
-    for sac, stream in zip(strong_files, streams):
-        starttime = stream[0].stats.starttime
-        diff = start - starttime
-        # if diff > 20:
-        stream[0].trim(starttime = start - 20, pad=True,
-            fill_value=0)#stream[0].data[0])
-        header = SACTrace.from_obspy_trace(stream[0])
-        stream.write(sac, format='SAC', byteorder=0)
+# def __remove_response_str(stations_str, response_files, logger=None):
+#     """Remove instrumental response.
+#     """
+#     sacheaders = [SACTrace.read(sac) for sac in stations_str]
+# 
+#     sac_files = []
+#     old_responses = []
+#     names = []
+#     pre_processing = 'rtr\n'
+# 
+#     for sac in stations_str:
+#         st = read(sac)
+#         name = st[0].stats.station
+#         channel = st[0].stats.channel
+#         network = st[0].stats.network
+#         pz_files = [response for response in response_files\
+#                     if name in response and channel in response]
+#         if not pz_files:
+#             os.remove(sac)
+#             continue
+#         pzfile2 = next(iter(pz_files))
+#         if not os.path.isfile(pzfile2):
+#             os.remove(sac)
+#             continue
+# 
+#         sac_files = sac_files + [sac]
+#         old_responses = old_responses + [pzfile2]
+#         names = names + [sac]
+# 
+#     out, err = response.replace_response_sac(
+#         sac_files, old_responses, names, pre_processing=pre_processing)
+# 
+#     if logger:
+#         logger.debug(out.decode('utf-8'))
+#         if err: logger.warning(err.decode('utf-8'))
+#     return
 
 
 def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
