@@ -36,7 +36,7 @@ import remove_response as response
 
 def select_process_tele_body(tele_files0, tensor_info, data_prop):
     """Module for automatic selection and processing of teleseismic body waves.
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
     :param tele_files0: files with body waves to be selected and processed
@@ -44,7 +44,7 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     :type data_prop: dict
     :type tele_files0: list
     .. rubric:: Example:
-    
+
     >>> from obspy.core.utcdatetime import UTCDateTime
     >>> import glob
     >>> data_prop = {
@@ -83,8 +83,8 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     >>> tele_files0 = glob.glob('*sac')
     >>> select_process_tele_body(tele_files0, tensor_info, data_prop)
     .. note::
-        
-        Currently, this code allows only to process files in sac format, where the 
+
+        Currently, this code allows only to process files in sac format, where the
         instrumental response is in a SACPZ file. Other data formats are not
         supported.
     """
@@ -106,7 +106,7 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     logger1.info('Start selection of teleseismic body data')
 
     data_folder = os.path.abspath(os.getcwd())
-    
+
     logger1.info('Get theoretical arrivals of P and S waves')
     model = TauPyModel(model="ak135f_no_mud")
     __picker(tensor_info, tele_files1, depth, model)
@@ -122,7 +122,7 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     os.chdir(os.path.join(data_folder, 'SH'))
     horizontal_sacs = glob.glob('*DIS')
     __rotation(horizontal_sacs, logger=logger1)
-    
+
     logger1.info('Process body waves')
     os.chdir(data_folder)
     os.chdir(os.path.join(data_folder, 'P'))
@@ -131,7 +131,7 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     os.chdir(os.path.join(data_folder, 'SH'))
     s_files = glob.glob('*SH*DIS')
     process_body_waves(s_files, 'SH', data_prop, tensor_info)
-    
+
     logger1.info('Body waves have been succesfully processed')
     os.chdir(data_folder)
     logger1.info('time until create files: {}'.format(time.time() - time1))
@@ -142,7 +142,7 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     logger1.info('total time spent: {}'.format(time.time() - time1))
     ml.close_log(logger1)
     return
-    
+
 
 def __pre_select_tele(tele_files0, tensor_info, timedelta):
     """Module which pre-selects teleseismic waveforms for processing
@@ -153,11 +153,11 @@ def __pre_select_tele(tele_files0, tensor_info, timedelta):
         sac for sac, sacheader in zip(tele_files0, sacheaders) if
         (sacheader.stla and sacheader.stlo)]
     sacheaders = [SACTrace.read(sac) for sac in tele_sacs]
-    
+
     for sacheader, sac in zip(sacheaders, tele_sacs):
         sacheader.reftime = UTCDateTime(date_origin)
         sacheader.write(sac, byteorder='little')
-    
+
     used_tele_sacs = []
     for sac, sacheader in zip(tele_sacs, sacheaders):
         if not __select_distance(tensor_info, sacheader.stla, sacheader.stlo,
@@ -220,7 +220,7 @@ def __remove_response_body(used_tele_sacs, response_files, tensor_info,
     t_min = 120.0
     t_max = 400.0
     if depth < 300:
-        t_max = 240.0 if time_shift < 80 else 400.0 
+        t_max = 240.0 if time_shift < 80 else 400.0
     freq0 = filtro['freq0']
     freq1 = filtro['low_freq']
     freq2 = filtro['high_freq']
@@ -287,7 +287,7 @@ def __rotation(used_tele_sacs, logger=None):
     """
     input_sac = ''
     string = lambda x, y, z, w: '{}.{}.{}.{}'.format(x, y, z, w)
-    
+
     headers = [SACTrace.read(sac) for sac in used_tele_sacs]
     stations = [header.kstnm for header in headers]
     stations = list(set(stations))
@@ -319,7 +319,7 @@ def __rotation(used_tele_sacs, logger=None):
 
     input_sac = '{}\nquit\n'.format(input_sac)
     out, err = mng.run_sac(input_sac)
-    
+
     if logger:
         logger.debug(out.decode('utf-8'))
         if err: logger.warning(err.decode('utf-8'))
@@ -327,8 +327,8 @@ def __rotation(used_tele_sacs, logger=None):
 
 
 def process_body_waves(tele_files, phase, data_prop, tensor_info):
-    r"""We high pass filter and downsample teleseismic data. 
-    
+    r"""We high pass filter and downsample teleseismic data.
+
     :param phase: string indicating whether phase is P or SH
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
@@ -345,8 +345,8 @@ def process_body_waves(tele_files, phase, data_prop, tensor_info):
     high_freq = filtro['high_freq']
     t_min = 120.0
     t_max = 360.0
-    
-    sacheaders = [SACTrace.read(sac) for sac in tele_files]       
+
+    sacheaders = [SACTrace.read(sac) for sac in tele_files]
     streams = [read(sac) for sac in tele_files]
     for sac, sacheader in zip(tele_files, sacheaders):
         sacheader.t8 = low_freq
@@ -358,7 +358,7 @@ def process_body_waves(tele_files, phase, data_prop, tensor_info):
         for sac, sacheader in zip(tele_files, sacheaders):
             sacheader.kcmpnm = 'SH'
             sacheader.write(sac, byteorder = 'little')
-    
+
     sacheaders = [SACTrace.read(sac) for sac in tele_files]
     streams = [read(sac) for sac in tele_files]
     high_freq = 1 if phase == 'P' else 0.5
@@ -384,8 +384,8 @@ def process_body_waves(tele_files, phase, data_prop, tensor_info):
         stream[0] = tr
         stream.write('{}.tmp0'.format(sac), format='SAC', byteorder = 0)
     return
-    
-    
+
+
 ##########################
 # We proceed to select teleseismic stations
 ##########################
@@ -393,7 +393,7 @@ def process_body_waves(tele_files, phase, data_prop, tensor_info):
 
 def select_tele_stations(files, phase, tensor_info):
     """We select body and/or surface waves to use in finite fault modelling.
-    
+
     :param files: list of used waveforms in sac format
     :param phase: string indicating whether wave is P or SH or Love or Rayleigh
     :type tensor_info: list
@@ -431,11 +431,11 @@ def select_tele_stations(files, phase, tensor_info):
     score = lambda x, y, z, y0, y1, z0:\
         x - (y - y0)*(y - y1)/((y - y0)**2.0 + (y - y1)**2.0)\
         + (z - z0)/(20 - z0)
-    
+
 # Limiting the number of data. Choose one station for every degree in
 # azimuth
 
-    phase = 'LONG' if phase in ['Rayleigh', 'Love'] else phase        
+    phase = 'LONG' if phase in ['Rayleigh', 'Love'] else phase
     with open(os.path.join(phase, 'selected_stations_list'), 'w') as outfile:
         for az0 in range(0, 360, jump):
             az1 = az0 + jump
@@ -511,14 +511,14 @@ def __used_stations(jump, sacfiles, tensor_info):
 
 def select_process_surf_tele(tele_files0, tensor_info):
     """Module for selecting and processing surface wave data.
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param tele_files0: files with surface wave to be selected and processed
     :type tensor_info: dict
     :type tele_files0: list
-    
+
     .. rubric:: Example:
-    
+
     >>> from obspy.core.utcdatetime import UTCDateTime
     >>> import glob
     >>> tensor_info = {
@@ -537,8 +537,8 @@ def select_process_surf_tele(tele_files0, tensor_info):
     >>> tele_files0 = glob.glob('*sac')
     >>> select_process_surf_tele(tele_files0, tensor_info)
     .. note::
-        
-        Currently, this code allows only to process files in sac format, where the 
+
+        Currently, this code allows only to process files in sac format, where the
         instrumental response is in a SACPZ file. Other data formats are not
         supported.
     """
@@ -557,7 +557,7 @@ def select_process_surf_tele(tele_files0, tensor_info):
     logger1.info('Start processing of long period surface waves')
 
     data_folder = os.path.abspath(os.getcwd())
-    
+
     os.chdir(data_folder)
     logger1.info('Get theoretical arrivals of P and S waves')
     model = TauPyModel(model="ak135f_no_mud")
@@ -573,7 +573,7 @@ def select_process_surf_tele(tele_files0, tensor_info):
     os.chdir(os.path.join(data_folder, 'LONG'))
     surf_files = glob.glob('*.BHZ.*DIS') + glob.glob('*.SH.*DIS')
     __create_long_period(surf_files, tensor_info)
-    
+
     logger1.info('Long period surface waves have been succesfully processed')
     os.chdir(data_folder)
     ml.close_log(logger1)
@@ -582,8 +582,8 @@ def select_process_surf_tele(tele_files0, tensor_info):
     files = glob.glob(os.path.join('LONG', '*SH*DIS.tmp0'))
     select_tele_stations(files, 'Love', tensor_info)
     return
-    
-    
+
+
 def __remove_response_surf(used_tele_sacs, response_files, logger=None):
     """We remove instrumental response for surface wave data.
     """
@@ -633,8 +633,8 @@ def __remove_response_surf(used_tele_sacs, response_files, logger=None):
         logger.debug(out.decode('utf-8'))
         if err: logger.warning(err.decode('utf-8'))
     return
-    
-    
+
+
 def __create_long_period(surf_files, tensor_info):
     """We downsample long period data.
     """
@@ -643,7 +643,7 @@ def __create_long_period(surf_files, tensor_info):
         sacheader.kcmpnm = 'SH' if sac.split('.')[1] == 'SH'\
             else sacheader.kcmpnm
         sacheader.write(sac, byteorder = 'little')
-        
+
     for sac in surf_files:
         st = read(sac)
         tr = st[0]
@@ -654,7 +654,7 @@ def __create_long_period(surf_files, tensor_info):
         st[0] = tr
         st.write('{}.tmp0'.format(sac), format='SAC', byteorder = 0)
     return
-    
+
 
 ###################################
 # cgps
@@ -663,7 +663,7 @@ def __create_long_period(surf_files, tensor_info):
 
 def select_process_cgps(cgps_files, tensor_info, data_prop):
     """Routine for selecting and processing cgps data
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
     :param cgps_files: files with cGPS data to be selected and processed
@@ -671,7 +671,7 @@ def select_process_cgps(cgps_files, tensor_info, data_prop):
     :type data_prop: dict
     :type cgps_files: list
     .. rubric:: Example:
-    
+
     >>> from obspy.core.utcdatetime import UTCDateTime
     >>> import glob
     >>> data_prop = {
@@ -710,7 +710,7 @@ def select_process_cgps(cgps_files, tensor_info, data_prop):
     >>> cgps_files0 = glob.glob('*sac')
     >>> select_process_cgps(cgps_files0, tensor_info, data_prop)
     .. note::
-        
+
         Currently, this code allows only to process files in sac format.
         Other data formats are not supported.
     """
@@ -761,7 +761,7 @@ def __select_time(sac, tensor_info):
     st = read(sac)
     return st[0].stats.starttime - origin_time < 20 * 60
 
-    
+
 def __select_cgps_files(cgps_files, tensor_info):
     """We select cgps data. We must make sure our cgps data is not too bad
     """
@@ -792,14 +792,14 @@ def __select_cgps_files(cgps_files, tensor_info):
         if not __select_distance(tensor_info, station_lat, station_lon,
                                  max_distance=distance, use_centroid=True):
             continue
-        indexes = np.isfinite(stream[0].data)        
+        indexes = np.isfinite(stream[0].data)
         if np.max(stream[0].data[indexes]) == np.min(stream[0].data[indexes]):
             continue
-        
+
         stream[0].data = stream[0].data\
             - np.sum(stream[0].data[np.isfinite(stream[0].data)])\
             / np.sum(np.isfinite(stream[0].data))
-        
+
         if np.max(np.abs(stream[0].data)) > 10 ** 4:
             continue
 
@@ -811,7 +811,7 @@ def __select_cgps_files(cgps_files, tensor_info):
                 event_lat, event_lon, station_lat, station_lon)
             distance = 111.11 * distance
             distance2 = np.sqrt(distance ** 2 + depth ** 2)
-    
+
             index0 = distance2 / 5 / delta
             indexes2 = [i for i, value in enumerate(stream[0].data)\
                 if not np.isfinite(value)]
@@ -863,7 +863,7 @@ def __change_start(stations_str, tensor_info, cgps=False):
 
 def new_process_cgps(tensor_info, stations_str, data_prop, logger=None):
     """Routine for processing (filtering and filling header) selected cGPS data.
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param stations_str: list with waveforms (in sac format) to use
     :param data_prop: dictionary with waveform properties
@@ -878,12 +878,12 @@ def new_process_cgps(tensor_info, stations_str, data_prop, logger=None):
     lat_ep = tensor_info['lat']
     lon_ep = tensor_info['lon']
     sampling = data_prop['sampling']
-    dt_cgps = sampling['dt_cgps']       
-       
+    dt_cgps = sampling['dt_cgps']
+
     high_freq = min(filtro_strong['high_freq'], 0.5)
 
     streams = [read(sac) for sac in stations_str]
-    
+
     for st, sac in zip(streams, stations_str):
         if dt_cgps > st[0].stats.delta:
             ratio = int(dt_cgps / st[0].stats.delta)
@@ -895,14 +895,14 @@ def new_process_cgps(tensor_info, stations_str, data_prop, logger=None):
         sacheader.t9 = high_freq
         sacheader.write(sac, byteorder='little')
 
-    sacheaders = [SACTrace.read(sac) for sac in stations_str]        
-    
+    sacheaders = [SACTrace.read(sac) for sac in stations_str]
+
     for sac, sacheader in zip(stations_str, sacheaders):
         begin = sacheader.b
         start_time = UTCDateTime(sacheader.reftime) + begin
         sacheader.o = start - start_time
         sacheader.write(sac, byteorder='little')
-    
+
     _filter_decimate(stations_str, filtro_strong, dt_cgps, corners=4, passes=2,
                      decimate=False, filter='lowpass', logger=logger)
     return
@@ -968,7 +968,7 @@ def _filter_decimate(sac_files, filtro, dt, corners=4, passes=2,
     #                 + 'decimate 3\n' * power3\
     #                 + 'decimate 2\n' * power2
     #         input_sac = input_sac + 'mul 100\nwrite {}.tmp \n'.format(sac)
-    #     
+    #
     #     input_sac = '{}\nquit\n'.format(input_sac)
     #     out, err = mng.run_sac(input_sac)
     #     if logger:
@@ -1004,7 +1004,7 @@ def _filter_decimate(sac_files, filtro, dt, corners=4, passes=2,
 def select_process_strong(strong_files0, tensor_info, data_prop,
                           remove_response=True):
     """Module for selecting and processing strong motion data
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
     :param strong_files0: files with strong motions to be selected and processed
@@ -1012,7 +1012,7 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
     :type data_prop: dict
     :type strong_files0: list
     .. rubric:: Example:
-    
+
     >>> from obspy.core.utcdatetime import UTCDateTime
     >>> import glob
     >>> data_prop = {
@@ -1051,7 +1051,7 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
     >>> strong_files0 = glob.glob('*sac')
     >>> select_process_strong(strong_files0, tensor_info, data_prop)
     .. note::
-        Currently, this code allows only to process files in sac format, where the 
+        Currently, this code allows only to process files in sac format, where the
         instrumental response is in a SACPZ file. Other data formats are not
         supported.
     """
@@ -1074,7 +1074,7 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
         for file in response_files:
             __convert_response_acc(file)
         __remove_response_str(strong_files1, response_files, logger=logger1)
-        
+
     logger1.info('Select strong motion traces')
     os.chdir(os.path.join(data_folder, 'STR'))
     strong_files1 = glob.glob('*ACC')
@@ -1113,8 +1113,8 @@ def __convert_response_acc(resp_file):
         for line in lines2:
             outfile.write(line)
     return resp_file
-    
-    
+
+
 def __select_str_files(strong_files, tensor_info):
     r"""We pre-select strong motion data
     """
@@ -1124,13 +1124,13 @@ def __select_str_files(strong_files, tensor_info):
     depth = tensor_info['depth']
     strong_files2 = []
     distance = 2 if time_shift < 50 else 4
-    
+
     for sac in strong_files:
         select_stat = True
         sacfile = SACTrace.read(sac)
         station_lat = sacfile.stla
         station_lon = sacfile.stlo
-      
+
         st = read(sac)
         syn_len = 20 + 4*time_shift + 7*depth/50
         start, end = [st[0].stats.starttime, st[0].stats.endtime]
@@ -1140,7 +1140,7 @@ def __select_str_files(strong_files, tensor_info):
                                  max_distance=distance, use_centroid=True):
             continue
         strong_files2 = strong_files2 + [sac]
-    
+
     return strong_files2
 
 
@@ -1160,7 +1160,7 @@ def move_str_files(stations_str):
         network = st[0].stats.network
         filename = os.path.join('STR', new_name(name, channel, network))
         st.write(filename, format='SAC', byteorder=0)
-    return   
+    return
 
 
 def __read_paz(paz_file):
@@ -1174,8 +1174,13 @@ def __read_paz(paz_file):
     n_zeros = int(lines2[0][1])
     n_poles = int(lines2[n_zeros + 1][1])
     gain_line = n_zeros + n_poles + 2
-    gain = float(lines2[gain_line][1])
-    zeros = [float(real)+1j*float(imag) for real, imag in lines2[1:n_zeros]]
+    if len(lines2) <= gain_line:
+        gain = 1
+    elif len(lines2[gain_line]) <= 1:
+        gain = 1
+    else:
+        gain = float(lines2[gain_line][1])
+    zeros = [float(real)+1j*float(imag) for real, imag in lines2[1:n_zeros + 1]]
     poles = [float(real)+1j*float(imag) for real, imag in lines2[n_zeros+2:gain_line]]
     paz_dict = {
         'zeros': zeros,
@@ -1216,12 +1221,12 @@ def __remove_response_str(stations_str, response_files, logger=None):
 #     """Remove instrumental response.
 #     """
 #     sacheaders = [SACTrace.read(sac) for sac in stations_str]
-# 
+#
 #     sac_files = []
 #     old_responses = []
 #     names = []
 #     pre_processing = 'rtr\n'
-# 
+#
 #     for sac in stations_str:
 #         st = read(sac)
 #         name = st[0].stats.station
@@ -1236,14 +1241,14 @@ def __remove_response_str(stations_str, response_files, logger=None):
 #         if not os.path.isfile(pzfile2):
 #             os.remove(sac)
 #             continue
-# 
+#
 #         sac_files = sac_files + [sac]
 #         old_responses = old_responses + [pzfile2]
 #         names = names + [sac]
-# 
+#
 #     out, err = response.replace_response_sac(
 #         sac_files, old_responses, names, pre_processing=pre_processing)
-# 
+#
 #     if logger:
 #         logger.debug(out.decode('utf-8'))
 #         if err: logger.warning(err.decode('utf-8'))
@@ -1252,7 +1257,7 @@ def __remove_response_str(stations_str, response_files, logger=None):
 
 def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
     r"""We integrate strong motion to velocity and proceed to downsample it.
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
     :param strong_files: files with strong motion to be resampled and integrated to velocity
@@ -1265,17 +1270,17 @@ def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
     muestreo = data_prop['sampling']
     dt_strong = muestreo['dt_strong']
     filtro_strong = data_prop['strong_filter']
-    
-    low_freq = filtro_strong['low_freq']       
+
+    low_freq = filtro_strong['low_freq']
     high_freq = filtro_strong['high_freq']
-    
+
     sacheaders = [SACTrace.read(sac) for sac in strong_files]
-    
+
     for sacheader, sac in zip(sacheaders, strong_files):
         sacheader.t8 = low_freq
         sacheader.t9 = high_freq
         sacheader.write(sac, byteorder='little')
-    
+
     print('Baseline removal procedure')
     cpus = 6#cpu_count()
     lists = [strong_files[i:i + cpus] for i in range(0, len(strong_files), cpus)]
@@ -1287,7 +1292,7 @@ def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
     pool.close()
     pool.join()
     strong_files2 = glob.glob('*VEL')
-    
+
     _filter_decimate(strong_files2, filtro_strong, dt_strong)
     return
 
@@ -1295,13 +1300,13 @@ def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
 def small_events(select_str_data):
     """A simple method for removing strong motion baselines. Based on Boore et
     al. [2002]_
-    
+
     :param select_st_data: list with waveforms (in sac format) to use
     :type select_st_data: list
-    
+
     This method consists on padding the record with zeros on the extremes and
     applying a low pass filter.
-    
+
     .. [2002] Boore DM: On pads and filters: processing strong-motion data.
         Bulletin of the Seismological Society of America 2005,95(2):745-750.
         10.1785/0120040160
@@ -1418,8 +1423,8 @@ def select_strong_stations(tensor_info, files):
         if not file in select_stations:
             os.remove(file)
     return select_stations
-    
-    
+
+
 if __name__ == '__main__':
     import argparse
 
@@ -1452,7 +1457,7 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     else:
         tensor_info = tensor.get_tensor()
-    if args.tele:      
+    if args.tele:
         tele_files = glob.glob('*BH*SAC') + glob.glob('*BH*sac')
         select_process_tele_body(tele_files, tensor_info, data_prop)
     if args.surface:
@@ -1469,4 +1474,4 @@ if __name__ == '__main__':
     if args.cgps:
         cgps_files = glob.glob('*.L[HXY]*SAC') + glob.glob('*.L[HXY]*sac')
         select_process_cgps(cgps_files, tensor_info, data_prop)
-    
+
