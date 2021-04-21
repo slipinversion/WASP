@@ -70,20 +70,6 @@ contains
      &  (time_max(i, segment)-time_min(i, segment))+time_min(i, segment)
          end do
       end do 
-      open(12,file='Fault.ini')
-      write(12,*) nxs0, nys0, c_depth
-      write(12,*) segments, dxs, dys, nx_p, ny_p, v_min, v_max, tbl, tbr
-      write(12,*) ta0, dta, msou, v_ref, etc
-      do segment = 1, segments
-         subfaults_segment(segment) = nxs_sub(segment)*nys_sub(segment)
-         write(12,*) segment, dip(segment), strike(segment)
-         write(12,*) nxs_sub(segment), nys_sub(segment), delay_seg(segment)
-         do i = 1, subfaults_segment(segment)
-            write(12,*) slip(i, segment), rake(i, segment), &
-            & rupt_time(i, segment), t_rise(i, segment), t_fall(i, segment)
-         end do
-      end do
-      close(12)
    else
       slip(:, :) = slip0(:, :)
       rake(:, :) = rake0(:, :)
@@ -217,20 +203,18 @@ contains
       subfaults_segment(segment) = nys_sub(segment)*nxs_sub(segment)
       subfaults = subfaults+subfaults_segment(segment)
    end do
-   write(*,*)''
+   write(*,'()')
    write(*,*)'averaged misfit error', er0
    write(*,*)'moment error', derr
    write(*,*)'slip smoothness penalization', slip_reg
    write(*,*)'time smoothness penalization', time_reg
    if (static) write(*,*)'static data penalization', gps_misfit
    write(*,*)'total moment of the inversion', moment
-   write(*,*)''
-   write(*,*)'moment error coefficient', coef_moment
+   write(*,'(/A, F10.7)')'moment error coefficient', coef_moment
    write(*,*)'slip smoothness penalization coefficient', coef_slip
    write(*,*)'time smoothness penalization coefficient', coef_time
    if (static) write(*,*)'static data penalization coefficient', coef_gps
-   write(*,*)''
-   write(*,*)'Amount of variables: ', 5 * subfaults
+   write(*,'(/A, I4)')'Amount of variables: ', 5 * subfaults
    write(*,*)'Amount of data values: ', used_data
    emin = er
    ermin = er
@@ -243,13 +227,11 @@ contains
    if (static) write(12,*)'static data penalization', gps_misfit
    write(12,*)'objective function value', er
    write(12,*)'total moment of the inversion', moment
-   write(12,*)''
-   write(12,*)'moment error coefficient', coef_moment
+   write(12,'(/A, F10.7)')'moment error coefficient', coef_moment
    write(12,*)'slip smoothness penalization coefficient', coef_slip
    write(12,*)'time smoothness penalization coefficient', coef_time
    if (static) write(12,*)'static data penalization coefficient', coef_gps
-   write(12,*)''
-   write(12,*)'Amount of variables: ', 5 * subfaults
+   write(12,'(/A, I4)')'Amount of variables: ', 5 * subfaults
    write(12,*)'Amount of data values: ', used_data
    close(12)
    end subroutine print_summary
@@ -512,12 +494,10 @@ contains
          moment0 = moment0+duse*shear(subfault_seg, segment)
          moment = moment0*area
          derr = (moment/moment_input)-1
-         if(derr.ge. 0.10)then
-            derr = sqrt(5*derr+0.5)
-         elseif((-0.1 .lt. derr) .and. (derr .lt. 0.1))then
-            derr = (10*derr)**4
+         if(abs(derr) .ge. 0.10)then
+            derr = sqrt(5*abs(derr)+0.5)
          else
-            derr = sqrt(-5*derr+0.5)
+            derr = (10*abs(derr))**4
          endif
 !         derr = (moment/moment_input)
          amp = 1.0
@@ -845,12 +825,10 @@ contains
          moment0 = moment0+duse*shear(subfault_seg, segment)
          moment = moment0*area
          derr = (moment/moment_input) - 1
-         if(derr.ge.0.1)then
-            derr = sqrt(5*derr+0.5)
-         elseif((-0.1 .lt. derr) .and. (derr .lt. 0.1))then
-            derr = (10*derr)**10
+         if(abs(derr) .ge. 0.10)then
+            derr = sqrt(5*abs(derr)+0.5)
          else
-            derr = sqrt(-5*derr+0.5)
+            derr = (10*abs(derr))**4
          endif
 !         derr = (moment/moment_input)
          amp = 1.0
