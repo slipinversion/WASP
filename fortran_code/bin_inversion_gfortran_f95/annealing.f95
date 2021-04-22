@@ -58,6 +58,7 @@ contains
       k = 0
       do segment = 1, segments
          nxy = nxs_sub(segment)*nys_sub(segment)
+         subfaults_segment(segment) = nxy
          do i = 1, nxy
             k = k + 1
             slip(i, segment) = x(k)
