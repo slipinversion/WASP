@@ -121,7 +121,7 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     string_fun = lambda a, b, c, d, e, f, g, h, i, j:\
         string2.format(a, b, c, d, e, f, g, h, i, j)
 
-    with open('fsp_sol_file', 'w') as outfile:
+    with open('fsp_sol_file.txt', 'w') as outfile:
         outfile.write('%{}FINITE-SOURCE RUPTURE '\
             'MODEL{}\n%\n'.format(string, string))
         outfile.write('% Event : {} {} CSN\n'.format(location, date))

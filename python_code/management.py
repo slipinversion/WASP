@@ -135,38 +135,55 @@ def _distazbaz(station_lat, station_lon, event_lat, event_lon):
     """We compute the distance, azimuth and back_azimuth, between two pairs
     lat lon.
     """
+        if np.abs(event_lat - station_lat) < 10 ** -7\
+    and np.abs(event_lon - station_lon) < 10 ** -7:
+        return 0, 0, 0
     degrees2rad = np.pi / 180.0
-    arco_circulo = locations2degrees(
-            event_lat, event_lon, station_lat, station_lon)
-    distance = degrees2kilometers(arco_circulo)
-    azimuth = np.arctan2(
+    flattening = (298.257223563)**-1
+    event_lat2 = (1 - flattening) * np.tan(event_lat * degrees2rad)
+    event_lat2 = np.arctan(event_lat2)
+    station_lat2 = (1 - flattening) * np.tan(station_lat * degrees2rad)
+    station_lat2 = np.arctan(station_lat2)
+    sigma = np.sin(event_lat2) * np.sin(station_lat2)
+    sigma2 = np.cos(event_lat2) * np.cos(station_lat2)
+    sigma2 = sigma2 * np.cos(np.abs(event_lon - station_lon) * degrees2rad)
+    sigma = np.arccos(sigma + sigma2)
+    p = (event_lat2 + station_lat2) / 2
+    q = (station_lat2 - event_lat2) / 2
+    x = (sigma - np.sin(sigma)) * np.sin(p)**2 * np.cos(q)**2 / (np.cos(sigma/2))**2
+    y = (sigma + np.sin(sigma)) * np.cos(p)**2 * np.sin(q)**2 / (np.sin(sigma/2))**2
+    distance = 6378 * (sigma - 0.5*flattening*(x + y))
+
+    delta = np.abs(station_lon - event_lon)
+    if event_lon <= station_lon:
+        azimuth = np.arctan2(
             np.cos(station_lat * degrees2rad) * np.cos(event_lat * degrees2rad)\
-            * np.sin((station_lon - event_lon) * degrees2rad),
-            np.sin(station_lat * degrees2rad) - np.cos(arco_circulo * degrees2rad)\
+            * np.sin(delta * degrees2rad),
+            np.sin(station_lat * degrees2rad) - np.cos(sigma)\
             * np.sin(event_lat * degrees2rad))
-    azimuth = azimuth / degrees2rad
-    azimuth = np.remainder(azimuth, 360)
-
-    sin_comp_baz = np.sin(
-            (station_lon - event_lon) * degrees2rad)\
-            * np.sin((90 - event_lat) * degrees2rad)\
-            / np.sin(arco_circulo * degrees2rad)
-    back_azimuth = 2 * np.pi - np.arcsin(sin_comp_baz)
-    back_azimuth = back_azimuth / degrees2rad
-    back_azimuth = np.remainder(back_azimuth, 360)
+        azimuth = azimuth / degrees2rad
+    
+        back_azimuth = np.arctan2(
+            np.cos(station_lat * degrees2rad) * np.cos(event_lat * degrees2rad)\
+            * np.sin(delta * degrees2rad),
+            np.sin(event_lat * degrees2rad) - np.cos(sigma)\
+            * np.sin(station_lat * degrees2rad))
+        back_azimuth = 360 - back_azimuth / degrees2rad
+    else:
+        back_azimuth = np.arctan2(
+            np.cos(station_lat * degrees2rad) * np.cos(event_lat * degrees2rad)\
+            * np.sin(delta * degrees2rad),
+            np.sin(event_lat * degrees2rad) - np.cos(sigma)\
+            * np.sin(station_lat * degrees2rad))
+        back_azimuth = back_azimuth / degrees2rad
+    
+        azimuth = np.arctan2(
+            np.cos(station_lat * degrees2rad) * np.cos(event_lat * degrees2rad)\
+            * np.sin(delta * degrees2rad),
+            np.sin(station_lat * degrees2rad) - np.cos(sigma)\
+            * np.sin(event_lat * degrees2rad))
+        azimuth = 360 - azimuth / degrees2rad
     return distance, azimuth, back_azimuth
-
-
-def __bool_finite_fault(tensor_info):
-    """
-    """
-    moment = tensor_info['moment_mag']
-    lat = tensor_info['lat']
-    lon = tensor_info['lon']
-    finite_fault = False if moment < 8 * 10**25 else True
-    if 30 < lat < 40 and -125 < lon < -110:
-        finite_fault = False if moment < 10**25 else True
-    return finite_fault
 
 
 def correct_response_file(tensor_info, pzfile):
@@ -234,3 +251,4 @@ if __name__ == '__main__':
         
     
 
+ 
