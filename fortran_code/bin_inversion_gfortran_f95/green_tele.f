@@ -13,7 +13,7 @@ c
        integer nll
        PARAMETER ( LINST=2048,LDIM=2048,LDIM2=2*LDIM,LGREEN=64*LDIM2
      *             ,LTDE=320000)
-       PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20)
+       PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45)
        real pi, pi2, pi4
        integer mmsou, max_seg, nnxs, nnys, nnxy, nnpx, nnpy, nnpxy,
      *  nxs_sub, nys_sub, nxys
@@ -146,7 +146,7 @@ c
 
       write(*,*)'Get vel_model...'
       open(15,file='vel_model',status='old')
-      lnpt=lnpt_use!-1
+      lnpt=lnpt_use!lnpt_use - 1
       aw=0.01
       read(15,*) jo
       do j=1,jo
@@ -168,8 +168,6 @@ c
 c
 c       make the rise time function
 c
-      open(45,file='source.dat')
-      write(45,*)msou
       do iso=1,msou
          do i=1,nsyn_final
             cr(i)=0.0
@@ -186,20 +184,16 @@ c
                cr(i)=2.*pi*sin(2.*pi*(i-1)*dt/r)/r/r
             enddo
          endif
-         write(45,*)nls,dt
-         write(45,*)(cr(i),i=1,nls)
          call fft(cr,ci,lnpt_use,-1.)
          do j=1,jf
             source(j,iso)=cmplx(cr(j),ci(j))
          enddo
       enddo
-      close(45)
 c
 c       End of Rise Time
 c
 
       OPEN(9,FILE='Readlp.das',STATUS='OLD')
-      OPEN(11,FILE='synm.out',STATUS='UNKNOWN')
       OPEN(13,FILE='Obser.tele',STATUS='UNKNOWN')
 C
 C    1993.6  SYNM6.FOR, SYNHAR.FOR(1996.6), SYNWWW.FOR(1997.1)  BY YAO
@@ -209,7 +203,6 @@ C
       READ(9,*) IDTS
       READ(9,21) EVENTNAME
       READ(9,*) NSTAON
-      WRITE(11,*)NSTAON
       NSTB=0
       AMEVE=0.0
       TMAX=0.0
@@ -393,8 +386,8 @@ c
                   enddo
 c
                   DO I=1,JF_final
-                     CR(I)=REAL(ww(I))
-                     CI(I)=AIMAG(ww(I))
+                     CR(I)=REAL(ww(I)) ! CR(I)=REAL(ww(I))
+                     CI(I)=AIMAG(ww(I)) ! CI(I)=AIMAG(ww(I))
                   enddo
 c	
 c	Back to time domain
@@ -434,8 +427,8 @@ c
      &                     (WW(I),I=1,JF_final)
      
                   DO I=1,JF_final
-                     CR(I)=REAL(ws(I))
-                     CI(I)=AIMAG(ws(I))
+                     CR(I)=REAL(ws(I))  !CR(I)=REAL(ws(I))
+                     CI(I)=AIMAG(ws(I))  !CI(I)=AIMAG(ws(I))
                   enddo
                   CALL REALTR(CR,CI,LNPT_use)
                   CALL FFT(CR,CI,LNPT_use,1.)
@@ -619,10 +612,6 @@ c
          CALL REALTR(CR,CI,LNPT_use)
          CALL FFT(CR,CI,LNPT_use,1.)
          NL=NSYN_final
-         WRITE(11,*)NL,DT
-         do i=1,nl
-            WRITE(11,*)CR(I)
-         enddo
          FMAX=0.0
          DO I=1,1+LENG
             X=ABS(CR(I))
@@ -644,7 +633,6 @@ c200   CONTINUE
       CLOSE(9)
       CLOSE(14)
       CLOSE(10)
-      CLOSE(11)
 c      write(*,*)NEW_LINE('A')
       write(*,'(/A/)')'END PROGRAM TO COMPUTE TELESEISMIC BODY WAVE GF'
 c      write(*,*)NEW_LINE('A')
@@ -834,7 +822,8 @@ c
         DIMENSION XR(*),XI(*),M(25)
         integer lx, i, l, nb, lb, lbh, k, ib, fk, flx, ist, j, jh, ii
         integer j1
-        real v, wkr, wki, qr, qi, holdr, holdi,pi
+        real wkr, wki, qr, qi, holdr, holdi
+        real pi, v
         pi = 4.0*atan(1.0)
         LX = 2**N
         DO I=1,N
@@ -872,7 +861,7 @@ c
         enddo
         K=0
         DO J=1,LX
-           IF(K.LT.J) GOTO 7
+           IF(K.Lt.J) GOTO 7
            HOLDR=XR(J)
            HOLDI=XI(J)
            J1=K+1
@@ -882,12 +871,12 @@ c
            XI(J1)=HOLDI
  7         DO I=1,N
               II=I
-              IF(K.LT.M(I)) GOTO 6
+              IF(K.Lt.M(I)) GOTO 6
               K=K-M(I)
            enddo
  6         K=K+M(II)
         enddo
-        IF(SN.LT.0.) GOTO 9
+        IF(SN.LT.0.) GOTO 9 !IF(SN.LT.0.) GOTO 9
         DO I=1,LX
            XR(I)=XR(I)/FLX
            XI(I)=XI(I)/FLX
@@ -1119,7 +1108,7 @@ c  70  CONTINUE
       real po, depth
       integer love, nbs
       integer inpt, inptd, inpth, nll
-      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20)
+      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45)
       integer idts
       COMMON/SOURECTYPE/IDTS
       real dt, df, aw
@@ -1249,7 +1238,7 @@ c      END IF
       real xk, xk2
       integer n
       integer inpt, inptd, inpth, nll
-      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20)
+      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45)
       real afa, bta, ro, thk, qa, qb
       COMMON/MODEL/AFA(NLL),BTA(NLL),RO(NLL),THK(NLL),QA(NLL),QB(NLL)
       complex cka2, ckb2
@@ -1302,7 +1291,7 @@ c
       complex rufs, respn
       integer n, nbs
       integer inpt, inptd, inpth, nll
-      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20)
+      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45)
       complex rd, td, ru, tu, bs
       COMMON/SAVESH/RD(NLL),TD(NLL),RU(NLL),TU(NLL),BS(NLL)
       complex rdps, tdps, rups, tups, a, b, term, rsur
@@ -1450,7 +1439,7 @@ c
       real xk, xk2
       integer nbs
       integer inpt, inptd, inpth, nll
-      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20)
+      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45)
       COMPLEX RESPN,RDSL,RESPSH,RDSLSH,PD,PU,SVD,SVU,SHD,SHU
       COMMON/RESSAV/RESPN(2,2),RDSL(2,2),RESPSH,RDSLSH
      $,PD(4),PU(4),SVD(4),SVU(4),SHD(3),SHU(3)
@@ -1540,7 +1529,7 @@ C    * SHU(I)
       implicit none
       complex uwv(4,4)
       integer inpt, inptd, inpth, nll
-      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20)
+      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45)
       COMPLEX RESPN,RUFS,RESPSH,RUFSSH,PD,PU,SVD,SVU,SHD,SHU
       COMMON/RESSAV/RESPN(2,2),RUFS(2,2),RESPSH,RUFSSH
      $,PD(4),PU(4),SVD(4),SVU(4),SHD(3),SHU(3)
@@ -1595,7 +1584,7 @@ c200   CONTINUE
       real xk, xk2
       integer n
       integer inpt, inptd, inpth, nll
-      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20)
+      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45)
       real afa, bta, ro, thk, qa, qb
       COMMON/MODEL/AFA(NLL),BTA(NLL),RO(NLL),THK(NLL),QA(NLL),QB(NLL)
       complex cka2, ckb2
@@ -1762,7 +1751,7 @@ c906      CONTINUE
       complex rufs, respn
       integer n, nbs
       integer inpt, inptd, inpth, nll
-      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20)
+      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45)
       complex RD1,TD1,RU1,TU1,RD2,TD2,RU2,TU2
       COMMON/ATPSV/RD1(2,2),TD1(2,2),RU1(2,2),TU1(2,2),
      *  RD2(2,2),TD2(2,2),RU2(2,2),TU2(2,2)
@@ -2004,7 +1993,7 @@ c
       complex w
       integer n, nbs, love, iflag
       integer inpt, inptd, inpth, nll
-      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20)
+      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45)
       complex shrd, shtd, shru, shtu, bsh
       COMMON/SAVESH/SHRD(NLL),SHTD(NLL),SHRU(NLL),SHTU(NLL),BSH(NLL)
       complex cgmau, cgmad
@@ -2299,7 +2288,7 @@ c
 c relacionada con el modelo de velocidad
 c
        integer inpt, inptd, inpth, nll
-       PARAMETER(INPT=2100,INPTD=4200,INPTH=1100,NLL=20)
+       PARAMETER(INPT=2100,INPTD=4200,INPTH=1100,NLL=45)
        integer joo
        real cc, ss, dd, tth, c, s, d, th, qa, qb
        common/smodel/JOO,CC(NLL),SS(NLL),DD(NLL),TTH(NLL)
@@ -2353,7 +2342,7 @@ c       CLOSE(39)
       integer nb, nl, love
       real po, to
       integer inpt, inptd, inpth, nll, nhh
-      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=20,NHH=2)
+      PARAMETER(INPT=2050,INPTD=4100,INPTH=1025,NLL=45,NHH=2)
       real c, bta, ro, thk, qa, qb
       COMMON/MODEL/C(NLL),BTA(NLL),RO(NLL),THK(NLL),QA(NLL),QB(NLL)
 c
