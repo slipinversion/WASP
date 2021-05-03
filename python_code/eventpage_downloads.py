@@ -132,13 +132,12 @@ def write_Okada_displacements(directory=None):
     plt.figure(figsize=(8,6))
     horizontal = (ux**2 + uy**2) **0.5
     horizontal_grid = horizontal.reshape((shape(gridLon)))
-    plt.scatter(gridLon,gridLat,marker='s',c=horizontal*100, lw=0, s=100, vmin=0.0, vmax=max(horizontal)*100, cmap='rainbow')
-    #plt.contourf(gridLon,gridLat,horizontal_grid*100,cmap='rainbow')
-    #plt.imshow(horizontal_grid*100,extent=[gridLon.min(),gridLon.max(),gridLat.min(),gridLat.max()],vmin=0.0,vmax=max(horizontal)*100,cmap='rainbow')
+    horiz = abs(horizontal)
+    horiz.sort()
+    minmax = horiz[-2]
+    plt.scatter(gridLon,gridLat,marker='s',c=horizontal*100, lw=0, s=100, vmin=0.0, vmax=minmax*100, cmap='rainbow')
     cb = plt.colorbar()
     cb.set_label('Horizontal Surface Displacement (cm)')
-    #i = arange(0,len(horizontal),10)
-    #plt.quiver(gridLon[i], gridLat[i], ux[i]/horizontal[i], uy[i]/horizontal[i], pivot='mid', linewidths=0.01, color='k', scale=30)
     plt.xlim([xLons.min(),xLons.max()])
     plt.ylim([xLats.min(),xLats.max()])
     plt.ylabel('Latitude')
@@ -148,9 +147,10 @@ def write_Okada_displacements(directory=None):
 
     plt.figure(figsize=(8,6))
     vertical_grid = uz.reshape((shape(gridLon)))
-    plt.scatter(gridLon,gridLat, marker ='s', c=uz*100,lw=0, s=100, vmin=-max(abs(uz))*100, vmax=max(abs(uz))*100,cmap='coolwarm')
-    #plt.contourf(gridLon,gridLat,vertical_grid*100,cmap='coolwarm')
-    #plt.imshow(vertical_grid*100,extent=[gridLon.min(),gridLon.max(),gridLat.min(),gridLat.max()],vmin=-max(abs(uz))*100, vmax=max(abs(uz))*100,cmap='coolwarm')
+    abs_uz = abs(uz)
+    abs_uz.sort()
+    minmax = abs_uz[-2]
+    plt.scatter(gridLon,gridLat, marker ='s', c=uz*100,lw=0, s=100, vmin=-minmax*100, vmax=minmax*100,cmap='coolwarm')
     cb = plt.colorbar()
     cb.set_label('Vertical Surface Displacement (cm)')
     plt.xlim([xLons.min(),xLons.max()])

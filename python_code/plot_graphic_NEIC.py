@@ -178,11 +178,11 @@ def plot_misfit(used_data_type, forward=False):
                     errno.ENOENT, os.strerror(errno.ENOENT), 'surf_waves.json')
         traces_info = json.load(open('surf_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.str_low')
+                traces_info, syn_file='synm.str_low',margin=0)
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'surf_tele',
-                               start_margin=10, forward=forward)
+                               forward=forward)
     if 'strong_motion' in used_data_type:
         if not os.path.isfile('strong_motion_waves.json'):
             raise FileNotFoundError(
@@ -192,8 +192,8 @@ def plot_misfit(used_data_type, forward=False):
         traces_info = get_outputs.get_data_dict(
                 traces_info, syn_file='synm.str')#, observed=False)
         values = [['HLZ', 'HNZ'], ['HLE', 'HNE'], ['HLN', 'HNN']]
-        for components in values:
-            plot_waveform_fits(traces_info, components, 'strong_motion',
+        #for components in values:
+        plot_waveform_fits(traces_info, values, 'strong_motion',
                                forward=forward, start_margin=10)
     if 'cgps' in used_data_type:
         if not os.path.isfile('cgps_waves.json'):
@@ -203,8 +203,8 @@ def plot_misfit(used_data_type, forward=False):
         traces_info = get_outputs.get_data_dict(
                 traces_info, syn_file='synm.cgps')
         values = [['LXZ', 'LHZ', 'LYZ'], ['LXE', 'LHE', 'LYE'], ['LXN', 'LHN', 'LYN']]
-        for components in values:
-            plot_waveform_fits(traces_info, components, 'cgps',
+        #for components in values:
+        plot_waveform_fits(traces_info, values, 'cgps',
                                 forward=forward, start_margin=10)
     return
 
@@ -809,7 +809,6 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     margin = 1.3 * (stk_subfaults * delta_strike) / 111.19#min(3 * (stk_subfaults * delta_strike) / 111.19, 10)
     lat0 = tensor_info['lat']
     lon0 = tensor_info['lon']
- #   margins = [min_lon, max_lon, min_lat, max_lat]
     tectonic = '{}.shp'.format(default_dirs['trench_graphics'])
     dictn = {
             'projection': ccrs.PlateCarree(),
@@ -818,32 +817,19 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     }
 
     fig, ax = plt.subplots(1, 1, figsize=(15, 15), subplot_kw=dictn)
-    #ax.outline_patch.set_linewidth(2)
     ax.spines['geo'].set_linewidth(2)
     fig.subplots_adjust(hspace=0, wspace=0, top=0.9, bottom=0.1, right=0.8)
     from cartopy.io.img_tiles import Stamen
     tiler = Stamen('terrain-background')
     ax.add_image(tiler, 10)
-#    ax.stock_img()
-
-#    bathymetry = cf.NaturalEarthFeature('physical','bathymetry','10m')
-#    tectonic = cf.ShapelyFeature(
-#            shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
-#            edgecolor='white', facecolor=(198/255., 236/255., 253/255.), lw=4)
     tectonic = cf.ShapelyFeature(
             shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
             edgecolor='white', facecolor="None", lw=4)
     shpfilename = shpreader.natural_earth(
                 resolution='10m', category='cultural', name='admin_0_countries')
-#    countries = cf.ShapelyFeature(
-#            shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
-#            edgecolor='black', facecolor='lightgray')
     countries = cf.ShapelyFeature(
             shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
             edgecolor='black', facecolor='None')
-#    ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries)
-#    ax.plot(lon0, lat0, 'w*', markersize=15, transform=ccrs.PlateCarree(),
-#            zorder=4)
     if files_str is not None:
         for file in files_str:
             name = file['name']
@@ -854,9 +840,9 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             max_lon = max(max_lon, lonp)
             distance = max(np.abs(latp - lat0), np.abs(lonp - lon0))
             margin = max(margin, 1.2 * distance)
-            ax.plot(lonp, latp, 'wo', markersize=10,
+            ax.plot(lonp, latp, 'w', marker='^', markersize=10, lw=0.3, markeredgecolor='k',
                     transform=ccrs.PlateCarree(), zorder=4)
-            ax.text(lonp + 0.1, latp + 0.1, '{}'.format(name),
+            ax.text(lonp + 0.02, latp + 0.02, '{}'.format(name),
                     transform=ccrs.PlateCarree(), zorder=4)
     if stations_gps is not None:
         max_obs = np.zeros(3)
@@ -872,10 +858,10 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             distance = max(np.abs(sta_lat - lat0), np.abs(sta_lon - lon0))
             margin = max(margin, 1.2 * distance)
         max_obs = np.max(max_obs)
-        plt.text(lon0 + margin - 2, lat0 + margin - 0.25,
-                 '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
-        plt.text(lon0 + margin - 2, lat0 + margin - 0.45,
-                 '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
+        #plt.text(lon0 + margin - 2, lat0 + margin - 0.25,
+        #         '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
+        #plt.text(lon0 + margin - 2, lat0 + margin - 0.45,
+        #         '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
         for name, sta_lat, sta_lon, obs, syn, error in stations_gps2:
             #plt.plot(sta_lon, sta_lat, 'ks', transform=ccrs.PlateCarree(),
             #         markersize=14)
@@ -917,7 +903,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         #          transform=ccrs.PlateCarree())
     max_slip = max([np.amax(slip_fault) for slip_fault in slip])\
         if not max_slip else max_slip
-    margins = [min_lon - 2, max_lon + 2, min_lat - 2, max_lat + 2]
+    margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
     #ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries)
     ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries, bathymetry=None)
     ax.plot(lon0, lat0, '*', markersize=15, transform=ccrs.PlateCarree(),

@@ -18,6 +18,7 @@ plt.rc('font', size=12)
 def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, color='blue', custom=None):
     """
     """
+    #nPlot=0
     for ax, time, waveform, weight in zip(axes, times, waveforms, weights):
         if weight == 0.0:
             ax.plot(time, waveform, color=color, linewidth=2, linestyle='dashed')
@@ -30,10 +31,10 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
             min_val, max_val = ax.get_ylim()
             min_val = np.minimum(np.min(waveform), min_val)
             max_val = np.maximum(np.max(waveform), max_val)
-            if type_str == 'cgps' or type_str == 'strong_motion':
-                if max_val < 1 and min_val > -1:
-                    max_val = 1
-                    min_val = -1
+            #if type_str == 'cgps' or type_str == 'strong_motion':
+            #    if max_val < 1 and min_val > -1:
+            #        max_val = 1
+            #        min_val = -1
             ax.set_ylim([-(max(abs(min_val), max_val)),max(abs(min_val), max_val)])
             min_val, max_val = ax.get_ylim()
             ax.vlines(0, min_val, max_val,'k', lw=1)
@@ -46,6 +47,7 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                 ax.text(np.max(time), 0.6*max_val, 
                    '{:0.3f}'.format(max(abs(min_val),max_val)),ha='right',va='center')
                 ax.hlines(0, -350, np.max(time), 'k', lw=1)
+                #ax.set_xlim([-350,3000])
                 ax.set_xlim([-350, np.max(time)])
             elif type_str == 'cgps' or type_str == 'strong_motion':
                 min_wval = np.min(waveform)
@@ -60,15 +62,16 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                 ax.set_xlim([-15,np.max(time)])
             min_time, max_time = ax.get_xlim()
             if type_str == 'tele_body' and comp == 'BHZ':
-                ax.text(1.4*min_time,0.2*max(abs(min_val),max_val),'P',ha='right',va='bottom')
+                ax.text(1.1*min_time,0.2*max(abs(min_val),max_val),'P',ha='right',va='bottom')
             if type_str == 'tele_body' and comp == 'SH':
-                ax.text(1.4*min_time,0.2*max(abs(min_val),max_val),'SH',ha='right',va='bottom')
+                ax.text(1.1*min_time,0.2*max(abs(min_val),max_val),'SH',ha='right',va='bottom')
             if type_str == 'surf_tele' and comp == 'BHZ':
-                ax.text(1.4*min_time,0.2*max(abs(min_val),max_val),'Z',ha='right',va='bottom')
+                ax.text(1.2*min_time,0.2*max(abs(min_val),max_val),'Z',ha='right',va='bottom')
             if type_str == 'surf_tele' and comp == 'SH':
-                ax.text(1.4*min_time,0.2*max(abs(min_val),max_val),'T',ha='right',va='bottom')
-            if type_str == 'cgps' or type_str == 'strong_motion':
-                ax.text(1.4*min_time, 0.2*max(abs(min_val),max_val),comp,ha='right',va='bottom')
+                ax.text(1.2*min_time,0.2*max(abs(min_val),max_val),'T',ha='right',va='bottom')
+            #if type_str == 'cgps' or type_str == 'strong_motion':
+            #    ax.text(1.4*min_time, 0.2*max(abs(min_val),max_val),None,ha='right',va='bottom')
+                #nPlot+=1
         if custom == 'syn':
             max_val = np.maximum(abs(min(waveform)),max(waveform))
             tmin, tmax = ax.get_xlim()
@@ -123,6 +126,9 @@ def add_metadata(axes, **kwargs):
                for ax, dist in zip(axes, kwargs['distances']):
                    ax.text(0.01, 0.46, '{:0.2f}'.format(dist), ha='left',
                            va='top', transform=ax.transAxes)
+            if 'comps' in kwargs:
+               for ax, comp in zip(axes, kwargs['comps']):
+                   ax.text(-0.07, 0.65, comp, ha='right', va='center', transform=ax.transAxes)
         else:
             if 'names' in kwargs:
                 for ax, name in zip(axes, kwargs['names']):
@@ -132,6 +138,9 @@ def add_metadata(axes, **kwargs):
                     ax.text(
                         0.01, 0.46, '{:0.0f}'.format(dist), ha='left',
                         va='top', transform=ax.transAxes)
+            #if 'comps' in kwargs:
+            #    for ax, comp in zip(axes, kwargs['comps']):
+            #        ax.text(-0.02, 0.40, comp, ha='right', va='center', transform=ax.transAxes)
     if 'azimuths' in kwargs:
         for ax, az in zip(axes, kwargs['azimuths']):
             ax.text(
@@ -150,9 +159,12 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
                        test=False, forward=False):
     """
     """
-    print('Creating Waveform Fit Plot: ' + str(type_str) + ' ' + str(components[0]))
-    files = [file for file in files if file['component'] in components]
-#    plot_spectra(files, 0.02)
+    if type_str == 'tele_body' or type_str == 'surf_tele':
+        files = [file for file in files if file['component'] in components]
+        print('Creating Waveform Fit Plot: ' + str(type_str) + ' ' + str(components[0]))
+    if type_str == 'cgps' or type_str == 'strong_motion':
+        files = [file for file in files]
+        print('Creating Waveform Fit Plot: ' + str(type_str))
     files = sorted(files, key=lambda k: k['azimuth'])
     sampling = [file['dt'] for file in files]
     names = [file['name'] for file in files]
@@ -180,28 +192,27 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     for ax in axes2[len(files):]:
         ax.axis('off')
 
-    axes2 = plot_waveforms(axes2, obs_times, obs_waveforms, weights, type_str=type_str, 
-            comp=comp[0], color='black', custom='fill')
-    axes2 = plot_waveforms(axes2, syn_times, syn_waveforms, weights, type_str=type_str,
-            comp=comp[0], color='red', custom='syn')
+    if type_str == 'tele_body' or type_str == 'surf_tele':
+        axes2 = plot_waveforms(axes2, obs_times, obs_waveforms, weights, type_str=type_str, 
+                comp=comp[0], color='black', custom='fill')
+        axes2 = plot_waveforms(axes2, syn_times, syn_waveforms, weights, type_str=type_str,
+                comp=comp[0], color='red', custom='syn')
+    if type_str == 'cgps' or type_str == 'strong_motion':
+        axes2 = plot_waveforms(axes2, obs_times, obs_waveforms, weights, type_str=type_str,
+                comp=comp, color='black', custom='fill')
+        axes2 = plot_waveforms(axes2, syn_times, syn_waveforms, weights, type_str=type_str,
+                comp=comp, color='red', custom='syn')
+   
+    
     dict = {
         'weights': weights,
         'azimuths': azimuths,
         'names': names,
         'distances': distances,
-        'type_str': type_str
+        'type_str': type_str,
+        'comps':comp
     }
     axes2 = add_metadata(axes2, **dict)
-
-    if type_str == 'cgps':
-        if 'LXZ' in components: plot_name = 'LXZ_cgps_waves.png'
-        if 'LXN' in components: plot_name = 'LXN_cgps_waves.png'
-        if 'LXE' in components: plot_name = 'LXE_cgps_waves.png'
-
-    if type_str == 'strong_motion':
-        if 'HNZ' in components: plot_name = 'HNZ_strong_motion_waves.png'
-        if 'HNN' in components: plot_name = 'HNN_strong_motion_waves.png'
-        if 'HNE' in components: plot_name = 'HNE_strong_motion_waves.png'
 
     if type_str == 'tele_body':
         if 'BHZ' in components: plot_name = 'P_body_waves.png'
@@ -210,6 +221,12 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     if type_str == 'surf_tele':
         if 'BHZ' in components: plot_name = 'Rayleigh_surf_waves.png'
         if 'SH' in components: plot_name = 'Love_surf_waves.png'
+
+    if type_str == 'cgps':
+        plot_name = 'cGPS_waves.png'
+
+    if type_str == 'strong_motion':
+        plot_name = 'strong_motion_waves.png'
 
     plt.savefig(plot_name, dpi=300)#bbox_inches='tight')
     plt.close()
