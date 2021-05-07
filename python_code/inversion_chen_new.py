@@ -8,7 +8,7 @@ import os
 import json
 import logging
 import subprocess
-from shutil import copy2
+from shutil import copy2, move
 import glob
 from data_acquisition import acquisition
 import velocity_models as mv
@@ -583,6 +583,9 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=N
                                    input_model, solution)
         plot._PlotComparisonMap(tensor_info, segments, point_sources,
                                 input_model, solution)
+    plot_files = glob.glob('*png')
+    for plot_file in plot_files:
+        move(plot_file, 'plots')
     
 
 def delete_binaries():

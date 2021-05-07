@@ -12,6 +12,7 @@ the files with the waveforms-
 import numpy as np
 from obspy.io.sac import SACTrace
 from obspy import read
+from obspy.geodetics import locations2degrees, kilometers2degrees
 import glob
 import os
 import json
@@ -24,46 +25,51 @@ from obspy.taup import TauPyModel
 
 
 def _dict_trace(file, name_station, channel, azimuth, distance, dt, duration,
-               n_start_obs, trace_weight, wavelet_weight, synthetic_trace,
-               observed_trace=None, location=None, derivative=False):
+                n_start_obs, trace_weight, wavelet_weight, synthetic_trace,
+                observed_trace=None, location=None, derivative=False):
     """
     """
     info = {
-            'file': file,
-            'dt': dt,
-            'duration': duration,
-            'wavelet_weight': wavelet_weight,
-            'start_signal': n_start_obs,
-            'trace_weight': trace_weight,
-            'synthetic': synthetic_trace,
-            'observed': observed_trace,
-            'name': name_station,
-            'component': channel,
-            'azimuth': azimuth,
-            'distance': distance,
-            'location': location,
-            'derivative': derivative
+        'file': file,
+        'dt': dt,
+        'duration': duration,
+        'wavelet_weight': wavelet_weight,
+        'start_signal': n_start_obs,
+        'trace_weight': trace_weight,
+        'synthetic': synthetic_trace,
+        'observed': observed_trace,
+        'name': name_station,
+        'component': channel,
+        'azimuth': azimuth,
+        'distance': distance,
+        'location': location,
+        'derivative': derivative
     }
     return info
-    
+
 
 def tele_body_traces(files, tensor_info, data_prop):
     """Write json dictionary with specified properties for teleseismic data
-    
+
     :param files: list of waveform files in sac format
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
     :type files: list
     :type tensor_info: dict
     :type data_prop: dict
-    
+
     .. warning::
-        
+
         Make sure the filters of teleseismic data agree with the values in
-        sampling_filter.json! 
+        sampling_filter.json!
     """
     if len(files) == 0:
         return
+    p_files = [file for file in files if '_BHZ.' in file]
+    sh_files = [file for file in files if '_SH.' in file]
+    p_files = select_tele_stations(p_files, 'P', tensor_info)
+    sh_files = select_tele_stations(sh_files, 'SH', tensor_info)
+    files = p_files + sh_files
     origin_time = tensor_info['date_origin']
     headers = [SACTrace.read(file) for file in files]
     streams = [read(file) for file in files]
@@ -73,17 +79,17 @@ def tele_body_traces(files, tensor_info, data_prop):
     filter0 = data_prop['tele_filter']
     duration = duration_tele_waves(tensor_info, dt)
     wavelet_weight0, wavelet_weight1 = wavelets_body_waves(
-            duration, filter0, dt, n0, n1)
+        duration, filter0, dt, n0, n1)
     info_traces = []
     event_lat = tensor_info['lat']
     event_lon = tensor_info['lon']
     depth = tensor_info['depth']
     model = TauPyModel(model="ak135f_no_mud")
-    
+
     for file, header, stream in zip(files, headers, streams):
         __failsafe(filter0, header)
         distance, azimuth, back_azimuth = mng._distazbaz(
-                header.stla, header.stlo, event_lat, event_lon)
+            header.stla, header.stlo, event_lat, event_lon)
         arrivals = mng.theoretic_arrivals(model, distance / 111.11, depth)
         if header.kcmpnm == 'BHZ':
             arrival = arrivals['p_arrival'][0].time
@@ -97,20 +103,20 @@ def tele_body_traces(files, tensor_info, data_prop):
         begin = starttime - origin_time
         n_start_obs = int((arrival - begin) / dt + 0.5)
         info = _dict_trace(
-                file, header.kstnm, header.kcmpnm, azimuth, distance / 111.11,
-                dt, duration, n_start_obs, weight, wavelet_weight, [],   ##!!!!!!!!!!
-                location=[header.stla, header.stlo], derivative=False)
+            file, header.kstnm, header.kcmpnm, azimuth, distance / 111.11,
+            dt, duration, n_start_obs, weight, wavelet_weight, [],  # !!!!!!!!!!
+            location=[header.stla, header.stlo], derivative=False)
         info_traces.append(info)
-    with open('tele_waves.json','w') as f:
-         json.dump(
-                 info_traces, f, sort_keys=True, indent=4,
-                 separators=(',', ': '), ensure_ascii=False)
+    with open('tele_waves.json', 'w') as f:
+        json.dump(
+            info_traces, f, sort_keys=True, indent=4,
+            separators=(',', ': '), ensure_ascii=False)
     return info_traces
-    
-    
+
+
 def tele_surf_traces(files, tensor_info, data_prop):
     """Write json dictionary with specified properties for surface wave data
-    
+
     :param files: list of waveform files in sac format
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
@@ -120,6 +126,11 @@ def tele_surf_traces(files, tensor_info, data_prop):
     """
     if len(files) == 0:
         return
+    p_files = [file for file in files if '_BHZ.' in file]
+    sh_files = [file for file in files if '_SH.' in file]
+    p_files = select_tele_stations(p_files, 'Rayleigh', tensor_info)
+    sh_files = select_tele_stations(sh_files, 'Love', tensor_info)
+    files = p_files + sh_files
     origin_time = tensor_info['date_origin']
     n0, n1 = data_prop['wavelet_scales']
     wavelet_weight = wavelets_surf_tele(n0, n1)
@@ -143,31 +154,31 @@ def tele_surf_traces(files, tensor_info, data_prop):
         if 900 >= (npts - n_start):
             length = npts - n_start if n_start > 0 else npts
         distance, azimuth, back_azimuth = mng._distazbaz(
-                header.stla, header.stlo, event_lat, event_lon)
+            header.stla, header.stlo, event_lat, event_lon)
         info = _dict_trace(
-                file, header.kstnm, header.kcmpnm, azimuth, distance / 111.11,
-                4.0, length, n_start, 1.0, wavelet_weight, [],
-                location=[header.stla, header.stlo])
+            file, header.kstnm, header.kcmpnm, azimuth, distance / 111.11,
+            4.0, length, n_start, 1.0, wavelet_weight, [],
+            location=[header.stla, header.stlo])
         info_traces.append(info)
-    with open('surf_waves.json','w') as f:
-         json.dump(
-                 info_traces, f, sort_keys=True, indent=4,
-                 separators=(',', ': '), ensure_ascii=False)
+    with open('surf_waves.json', 'w') as f:
+        json.dump(
+            info_traces, f, sort_keys=True, indent=4,
+            separators=(',', ': '), ensure_ascii=False)
     return info_traces
     
     
 def strong_motion_traces(files, tensor_info, data_prop):
     """Write json dictionary with specified properties for strong motion data
-    
+
     :param files: list of waveform files in sac format
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
     :type files: list
     :type tensor_info: dict
     :type data_prop: dict
-    
+
     .. warning::
-        
+
         Make sure the filters of strong motion data agree with the values in
         sampling_filter.json!
     """
@@ -180,28 +191,27 @@ def strong_motion_traces(files, tensor_info, data_prop):
     headers = [SACTrace.read(file) for file in files]
     dt_strong = headers[0].delta
     dt_strong = round(dt_strong, 2)
-    values = [mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)\
-        for header in headers]
+    values = [mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)
+              for header in headers]
     distances = [value[0] for value in values]
     zipped = zip(distances, headers)
     arrivals = [np.sqrt(dist**2 + depth**2) / 5 for dist in distances]
     filter0 = data_prop['strong_filter']
     duration = duration_strong_motion(
-            distances, arrivals, tensor_info, dt_strong)
+        distances, arrivals, tensor_info, dt_strong)
     n0, n1 = data_prop['wavelet_scales']
-    wavelet_weight = wavelets_strong_motion(
-            duration, filter0, dt_strong, n0, n1)
+    wavelet_weight = wavelets_strong_motion(duration, filter0, dt_strong, n0, n1)
     black_list = {
-            'PB02': [
-                    'HNE',
-                    'HNN',
-                    'HLE',
-                    'HLN'
-                    ],
-            'PX02': [
-                    'HNE',
-                    'HLE'
-                    ]
+        'PB02': [
+            'HNE',
+            'HNN',
+            'HLE',
+            'HLN'
+            ],
+        'PX02': [
+            'HNE',
+            'HLE'
+            ]
     }
     
     info_traces = []
@@ -214,15 +224,15 @@ def strong_motion_traces(files, tensor_info, data_prop):
         for weight, header in zip(weights, headers)]
     
     zipped = zip(files, headers, weights, streams, arrivals)
-        
+
     for file, header, weight, stream, arrival in zipped:
         start = origin_time - stream[0].stats.starttime
         distance, azimuth, back_azimuth = mng._distazbaz(
-                header.stla, header.stlo, event_lat, event_lon)
+            header.stla, header.stlo, event_lat, event_lon)
         info = _dict_trace(
-                file, header.kstnm, header.kcmpnm, azimuth, distance / 111.11,
-                dt_strong, duration, int(start / dt_strong), weight,
-                wavelet_weight, [], location=[header.stla, header.stlo])
+            file, header.kstnm, header.kcmpnm, azimuth, distance / 111.11,
+            dt_strong, duration, int(start / dt_strong), weight,
+            wavelet_weight, [], location=[header.stla, header.stlo])
         info_traces.append(info)
     with open('strong_motion_waves.json','w') as f:
          json.dump(
@@ -237,16 +247,16 @@ def strong_motion_traces(files, tensor_info, data_prop):
 
 def cgps_traces(files, tensor_info, data_prop):
     """Write json dictionary with specified properties for cGPS data
-    
+
     :param files: list of waveform files in sac format
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
     :type files: list
     :type tensor_info: dict
     :type data_prop: dict
-    
+
     .. warning::
-        
+
         Make sure the filters of cGPS data agree with the values in
         sampling_filter.json!
     """
@@ -268,34 +278,34 @@ def cgps_traces(files, tensor_info, data_prop):
     filter0 = data_prop['strong_filter']
     n0, n1 = data_prop['wavelet_scales']
     wavelet_weight = wavelets_strong_motion(
-            duration, filter0, dt_cgps, n0, n1, cgps=True)
+        duration, filter0, dt_cgps, n0, n1, cgps=True)
     info_traces = []
     vertical = ['LXZ', 'LHZ', 'LYZ']
     headers = [SACTrace.read(file) for file in files]
     streams = [read(file) for file in files]
-    channels = [header.kcmpnm for header in headers]
+    channels = [st[0].stats.channel for st in streams]
     weights = [1.2 if not channel in vertical else 0.6 for file, channel in\
                zip(files, channels)]
 
     for file, header, stream, weight in zip(files, headers, streams, weights):
         start = origin_time - stream[0].stats.starttime
         distance, azimuth, back_azimuth = mng._distazbaz(
-                header.stla, header.stlo, event_lat, event_lon)
+            header.stla, header.stlo, event_lat, event_lon)
         info = _dict_trace(
-                file, header.kstnm, header.kcmpnm, azimuth, distance / 111.11,
-                dt_cgps, duration, int(start // dt_cgps), weight,
-                wavelet_weight, [], location=[header.stla, header.stlo])
+            file, header.kstnm, header.kcmpnm, azimuth, distance / 111.11,
+            dt_cgps, duration, int(start // dt_cgps), weight,
+            wavelet_weight, [], location=[header.stla, header.stlo])
         info_traces.append(info)
     with open('cgps_waves.json','w') as f:
-         json.dump(
-                 info_traces, f, sort_keys=True, indent=4,
-                 separators=(',', ': '), ensure_ascii=False)
+        json.dump(
+            info_traces, f, sort_keys=True, indent=4,
+            separators=(',', ': '), ensure_ascii=False)
     return info_traces
 
 
 def static_data(tensor_info, unit='cm'):
     """Write json dictionary for static GPS data
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param unit: units of static data
     :type tensor_info: dict
@@ -310,7 +320,7 @@ def static_data(tensor_info, unit='cm'):
 
         names = [file['name'] for file in cgps_data]
         names = list(set(names))
-    
+
         for name in names:
             observed = [0, 0, 0]
             weights = [0, 0, 0]
@@ -325,7 +335,7 @@ def static_data(tensor_info, unit='cm'):
                 stream = read(file['file'])
                 trace = stream[0].data
                 # if len(trace) < 200:
-                    # continue
+                # continue
                 baseline0 = np.mean(trace[:20])
                 baseline1 = np.mean(trace[-70:-20])
                 # baseline1 = np.mean(trace[-100:])
@@ -338,8 +348,8 @@ def static_data(tensor_info, unit='cm'):
                 weights[index] = str(weight)
                 error[index] = str(variance)
             info = _dict_trace(
-                    [], name, [], [], [], [], 1, 10, weights,
-                    [], [], observed_trace=observed, location=[lat, lon])
+                [], name, [], [], [], [], 1, 10, weights,
+                [], [], observed_trace=observed, location=[lat, lon])
             info['data_error'] = error
             info_traces.append(info)
 
@@ -352,7 +362,7 @@ def static_data(tensor_info, unit='cm'):
             factor = 1 / 10
         with open('gps_data', 'r') as infile:
             lines = [line.split() for line in infile]
-    
+
         for line in lines[2:200]:
             name = line[0]
             lon = float(line[1])
@@ -375,16 +385,125 @@ def static_data(tensor_info, unit='cm'):
             observed = [str(obs) for obs in observed]
             weights = [str(w) for w in weights]
             info = _dict_trace(
-                    [], name, [], [], [], [], 1, 10, weights,
-                    [], [], observed_trace=observed, location=[lat, lon])
+                [], name, [], [], [], [], 1, 10, weights,
+                [], [], observed_trace=observed, location=[lat, lon])
             info['data_error'] = error
-            info_traces.append(info) 
-        
-    with open('static_data.json','w') as f:
-         json.dump(
-                 info_traces, f, sort_keys=True, indent=4,
-                 separators=(',', ': '), ensure_ascii=False)
+            info_traces.append(info)
+
+    with open('static_data.json', 'w') as f:
+        json.dump(
+            info_traces, f, sort_keys=True, indent=4,
+            separators=(',', ': '), ensure_ascii=False)
     return info_traces
+
+
+def select_tele_stations(files, phase, tensor_info):
+    """We select body and/or surface waves to use in finite fault modelling.
+    
+    :param files: list of used waveforms in sac format
+    :param phase: string indicating whether wave is P or SH or Love or Rayleigh
+    :type tensor_info: list
+    :type phase: string
+    """
+    event_lat = tensor_info['lat']
+    event_lon = tensor_info['lon']
+    weight = 1.0 if not phase == 'SH' else 0.5
+    if phase in ['P', 'Rayleigh']:
+        min_snr = 6.0 if phase == 'P' else 4.0
+        window = 100 if phase == 'P' else 1500
+        jump = 2
+        total = __used_stations(jump, files, tensor_info)
+        if total > 50:
+            jump = 4
+            total = __used_stations(jump, files, tensor_info)
+        if total > 50:
+            jump = 8
+    if phase in ['SH', 'Love']:
+        min_snr = 3.0#4.0
+        window = 200 if phase == 'SH' else 1500
+        jump = 8
+        total = __used_stations(jump, files, tensor_info)
+        if total > 30:
+            jump = 10
+            total = __used_stations(jump, files, tensor_info)
+        if total > 30:
+            jump = 12
+
+    sacheaders = [SACTrace.read(sac) for sac in files]
+    signal2noise = [__s2nr(sacfile, phase, window) for sacfile in files]
+    min_signal2noise = len(
+        [ratio for ratio in signal2noise if ratio > min_snr])
+    if min_signal2noise < 4: min_snr = min_snr / 2.0
+    score = lambda x, y, z, y0, y1, z0:\
+        x - (y - y0)*(y - y1)/((y - y0)**2.0 + (y - y1)**2.0)\
+        + (z - z0)/(20 - z0)
+    
+# Limiting the number of data. Choose one station for every degree in
+# azimuth
+
+    phase = 'LONG' if phase in ['Rayleigh', 'Love'] else phase
+    new_files = []   
+    for az0 in range(0, 360, jump):
+        az1 = az0 + jump
+        best = ''
+        best_sta = ''
+        best_score = -1.0
+        add_channel = False
+        for sacheader, snr, sac in zip(sacheaders, signal2noise, files):
+            dis, az, baz = mng._distazbaz(
+                sacheader.stla, sacheader.stlo, event_lat, event_lon)
+            if az0 > az or az >= az1 or snr <= min_snr: continue
+            value = 1 if kilometers2degrees(dis) >= 45 else 0
+            value = value if phase in ['P', 'SH'] else 1.0
+            value = score(value, az, snr, az0, az1, min_snr)
+            if value > best_score:
+                add_channel = True
+                best_score = value
+                best_sta = sac
+        new_files = new_files + [best_sta] if add_channel else new_files
+
+    return new_files
+
+
+def __s2nr(sacfile, phase, signal_length):
+    r"""Signal to noise ratio for data.
+    """
+    sacheader = SACTrace.read(sacfile)
+    stream = read(sacfile)
+    trace = stream[0].data
+    begin = sacheader.b
+    dt = sacheader.delta
+    arrival = sacheader.t1 if phase == 'P' else sacheader.t5
+    error_window = 5.0 if phase == 'P' else 10.0
+    if phase in ['Rayleigh', 'Love']:
+        arrival = sacheader.t1
+        error_window = 100.0
+    arrival = int((arrival - begin) / dt)
+    length = int(signal_length / dt + 0.1)
+    error_window = int(error_window / dt)
+    length = min(length, arrival - error_window)
+    begin_signal = arrival + error_window - 1
+    signal = trace[begin_signal:begin_signal + length]
+    begin_noise = arrival - error_window - length + 1
+    noise = trace[begin_noise:begin_noise + length]
+    signal_std = np.std(signal)
+    noise_std = np.std(noise)
+    return min(20, signal_std / noise_std)
+
+
+def __used_stations(jump, sacfiles, tensor_info):
+    sacheaders = [SACTrace.read(sac) for sac in sacfiles]
+    event_lat = tensor_info['lat']
+    event_lon = tensor_info['lon']
+    values = [mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)\
+              for header in sacheaders]
+    azimuths = [az for dis, az, baz in values]
+    total = 0
+    for az0 in range(0, 360, jump):
+        list_ = [az for az in azimuths if az0 <= az < az0 + jump]
+        if list_:
+            total = total + 1
+    return total
 
 
 def __failsafe(filtro, header, cgps=False):
@@ -408,7 +527,7 @@ def __failsafe(filtro, header, cgps=False):
 def filling_data_dicts(tensor_info, data_type, data_prop, data_folder):
     """Routine to fill JSON dictionaries containing data properties, for all
     data types selected.
-    
+
     :param tensor_info: dictionary with moment tensor information
     :param data_type: list with data types to use in modelling.
     :param data_prop: dictionary with moment tensor information
@@ -418,9 +537,9 @@ def filling_data_dicts(tensor_info, data_type, data_prop, data_folder):
     :type data_prop: dict
     :type data_folder: string
 
-        
+
     .. rubric:: Example:
-    
+
     >>> data_prop = {
             "sampling": {
                 "dt_strong": 0.4,
@@ -488,30 +607,27 @@ def filling_data_dicts(tensor_info, data_type, data_prop, data_folder):
 def get_traces_files(data_type):
     """Get list with waveform files (in sac format) for stations and
     channels selected for modelling
-    
+
     :param data_type: list with data types to use in modelling.
     :type data_type: list
     """
     if data_type == 'tele_body':
-        p_traces_files = glob.glob(os.path.join('P', '*tmp'))
-        sh_traces_files = glob.glob(os.path.join('SH', '*tmp'))
+        p_traces_files = glob.glob(os.path.join('P', 'final*'))
+        sh_traces_files = glob.glob(os.path.join('SH', 'final*'))
         traces_files = p_traces_files + sh_traces_files
     if data_type == 'surf_tele':
-        p_traces_files = glob.glob(os.path.join('LONG', '*.BHZ.*tmp'))
-        sh_traces_files = glob.glob(os.path.join('LONG', '*.SH.*tmp'))
-        traces_files = p_traces_files + sh_traces_files
+        traces_files = glob.glob(os.path.join('LONG', 'final*'))
     if data_type == 'strong_motion':
-        traces_files = glob.glob(os.path.join('STR', '*.H[LN][ENZ]*.VEL.tmp'))
-        traces_files = traces_files + glob.glob(os.path.join('STR', '*.BN[ENZ]*.VEL.tmp'))
+        traces_files = glob.glob(os.path.join('STR', 'final*'))
     if data_type == 'cgps':
-        traces_files = glob.glob(os.path.join('cGPS', '*.L[HXY]*tmp'))
+        traces_files = glob.glob(os.path.join('cGPS', 'final*'))
     traces_files = [os.path.abspath(file) for file in traces_files]
     return traces_files
 
 
 def wavelets_body_waves(duration, filtro_tele, dt_tele, n_begin, n_end):
     """Automatic determination of weight of wavelet scales
-    
+
     :param duration: length of signal to be considered for modelling
     :param filtro_tele: filtering properties for body waves
     :param dt_tele: sampling interval for body waves
@@ -540,8 +656,8 @@ def wavelets_body_waves(duration, filtro_tele, dt_tele, n_begin, n_end):
     s_wavelet_weight = ' '.join(s_wavelet_weight[n_begin - 1:n_end])
     s_wavelet_weight = ''.join([s_wavelet_weight, '\n'])
     return p_wavelet_weight, s_wavelet_weight
-    
-    
+
+
 def wavelets_surf_tele(n_begin, n_end):
     """Automatic determination of weight of wavelet scales
 
@@ -558,7 +674,7 @@ def wavelets_surf_tele(n_begin, n_end):
 
 def __wavelets_dart(n_begin, n_end):
     """Automatic determination of weight of wavelet scales
-    
+
     :param n_begin: minimum wavelet scale
     :param n_end: maximum wavelet scale
     :type n_begin: int
@@ -573,7 +689,7 @@ def __wavelets_dart(n_begin, n_end):
 def wavelets_strong_motion(duration, filtro_strong, dt_strong, n_begin, n_end,
                            cgps=False):
     """Automatic determination of weight of wavelet scales
-    
+
     :param duration: length of signal to be considered for modelling
     :param filtro_strong: filtering properties for strong motion data
     :param dt_strong: sampling interval for strong motion data
@@ -605,11 +721,11 @@ def wavelets_strong_motion(duration, filtro_strong, dt_strong, n_begin, n_end,
     wavelet_weight = ' '.join(wavelet_weight[n_begin - 1:n_end])
     wavelet_weight = ''.join([wavelet_weight, '\n'])
     return wavelet_weight
-    
-    
+
+
 def duration_tele_waves(tensor_info, dt_tele):
     """Source duration plus depth phases
-    
+
     :param tensor_info: dictionary with properties of strong motion data
     :param dt_tele: sampling interval for body waves
     :type tensor_info: dict
@@ -625,11 +741,11 @@ def duration_tele_waves(tensor_info, dt_tele):
     tele_syn_len = min(int(rdur * 1.5 / dt_tele), int(max_length / dt_tele))
     tele_syn_len = max(int(60 / dt_tele), tele_syn_len)
     return tele_syn_len
-    
-    
+
+
 def duration_strong_motion(distances, arrivals, tensor_info, dt_strong):
     """Maximum duration estimation for strong motion records
-    
+
     :param distances: distances from stations to hypocenter
     :param arrivals: estimation of first arrival from hypocenter to station
     :param dt_strong: sampling interval for strong motion data
@@ -652,13 +768,13 @@ def duration_strong_motion(distances, arrivals, tensor_info, dt_strong):
     max_arrival = max([arrival for arrival in arrivals])
     syn_len = 4 * time_shift + 7 * depth / 50
     syn_len = min(
-            int((min(syn_len, max_len) + 2 * max_arrival) / dt_strong), 950)
+        int((min(syn_len, max_len) + 2 * max_arrival) / dt_strong), 950)
     return syn_len
 
 
 def duration_dart(distances, arrivals, tensor_info, dt_dart):
     """Maximum duration estimation for DART records
-    
+
     :param distances: distances from stations to hypocenter
     :param arrivals: estimation of first arrival from hypocenter to station
     :param dt_dart: sampling interval for dart data
@@ -675,10 +791,10 @@ def duration_dart(distances, arrivals, tensor_info, dt_dart):
     max_len = 300
     syn_len = 4 * time_shift + 15 * max_dist / 111.11 + 7 * depth / 50
     syn_len = min(
-            int((min(syn_len, max_len) + max_arrival) / dt_dart), 950)
+        int((min(syn_len, max_len) + max_arrival) / dt_dart), 950)
     return syn_len
-    
-    
+
+
 def __is_number(string):
     try:
         float(string)
@@ -711,8 +827,8 @@ if __name__ == '__main__':
     data_folder = args.data_folder
     if not os.path.isfile('sampling_filter.json'):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT),
-                'sampling_filter.json')
+            errno.ENOENT, os.strerror(errno.ENOENT),
+            'sampling_filter.json')
     data_prop = json.load(open('sampling_filter.json'))
     os.chdir(args.folder)
     if args.gcmt_tensor:

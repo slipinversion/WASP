@@ -17,6 +17,8 @@ import get_outputs
 import load_ffm_model
 import json
 import errno
+from shutil import copy2, move
+import glob
 #from clawpack.geoclaw import dtopotools
 #
 # local modules
@@ -197,7 +199,7 @@ def plot_misfit(used_data_type, forward=False):
                     errno.ENOENT, os.strerror(errno.ENOENT), 'surf_waves.json')
         traces_info = json.load(open('surf_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.str_low')
+                traces_info, syn_file='synm.str_low', margin=0)
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'surf_tele',
@@ -1158,3 +1160,9 @@ if __name__ == '__main__':
 
     plot_beachballs(tensor_info, used_data)
     plot_misfit(used_data)#, forward=True)
+    plot_files = glob.glob(os.path.join('plots', '*png'))
+    for plot_file in plot_files:
+        os.remove(plot_file)
+    plot_files = glob.glob('*png')
+    for plot_file in plot_files:
+        move(plot_file, 'plots')

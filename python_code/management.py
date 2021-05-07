@@ -57,11 +57,11 @@ def update_data(tensor_info, data_type=None):
     """
     if not data_type:
         data_type = [
-                'tele_body',
-                'surf_tele',
-                'strong_motion',
-                'cgps',
-                'gps'
+            'tele_body',
+            'surf_tele',
+            'strong_motion',
+            'cgps',
+            'gps'
         ]
 #    data_type = inversion_data(tensor_info) if not data_type else data_type
     data_type2 = []
@@ -94,23 +94,23 @@ def default_dirs():
     get_near_gf = paths['get_near_gf']
     modelling = paths['modelling']
     default_dirs = {
-            'root_dir': paths['code_path'],
-            'long_gf_bank': paths['surf_gf_bank'],
-            'crust_codes': os.path.join(info, 'CNtype2.txt'),
-            'models_codes': os.path.join(info, 'CNtype2_key.txt'),
-            'litho_model': os.path.join(info, 'LITHO1.0.nc'),
-            'gf_bank': paths['surf_gf_bank'],
-            'strong_motion_gf_bank2': os.path.join(
-                    compute_near_gf, 'green_bank_openmp_f95'),
-            'strong_motion_gf': os.path.join(get_near_gf, 'get_strong_motion'),
-            'cgps_gf_bank': os.path.join(get_near_gf, 'cgps'),
-            'gps_gf': os.path.join(compute_near_gf, 'gf_static_f95'),
-            'tele_gf': os.path.join(modelling, 'green_tele'),
-            'finite_fault': os.path.join(modelling, 'run_modelling'),
-            'forward': os.path.join(modelling, 'run_forward'),
-            'trench_graphics': os.path.join(
-                    paths['cartopy_files'], 'PB2002_plates'),
-            'sac_exec': paths['sac_exec']
+        'root_dir': paths['code_path'],
+        'long_gf_bank': paths['surf_gf_bank'],
+        'crust_codes': os.path.join(info, 'CNtype2.txt'),
+        'models_codes': os.path.join(info, 'CNtype2_key.txt'),
+        'litho_model': os.path.join(info, 'LITHO1.0.nc'),
+        'gf_bank': paths['surf_gf_bank'],
+        'strong_motion_gf_bank2': os.path.join(
+                compute_near_gf, 'green_bank_openmp_f95'),
+        'strong_motion_gf': os.path.join(get_near_gf, 'get_strong_motion'),
+        'cgps_gf_bank': os.path.join(get_near_gf, 'cgps'),
+        'gps_gf': os.path.join(compute_near_gf, 'gf_static_f95'),
+        'tele_gf': os.path.join(modelling, 'green_tele'),
+        'finite_fault': os.path.join(modelling, 'run_modelling'),
+        'forward': os.path.join(modelling, 'run_forward'),
+        'trench_graphics': os.path.join(
+                paths['cartopy_files'], 'PB2002_plates'),
+        'sac_exec': paths['sac_exec']
     }
     return default_dirs
 
@@ -135,7 +135,7 @@ def _distazbaz(station_lat, station_lon, event_lat, event_lon):
     """We compute the distance, azimuth and back_azimuth, between two pairs
     lat lon.
     """
-        if np.abs(event_lat - station_lat) < 10 ** -7\
+    if np.abs(event_lat - station_lat) < 10 ** -7\
     and np.abs(event_lon - station_lon) < 10 ** -7:
         return 0, 0, 0
     degrees2rad = np.pi / 180.0

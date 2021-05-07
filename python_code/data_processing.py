@@ -12,7 +12,9 @@ from obspy import read
 from obspy.io.sac import SACTrace
 from obspy.taup import TauPyModel
 from obspy.core.utcdatetime import UTCDateTime
-from obspy.geodetics import locations2degrees, kilometers2degrees
+from obspy.geodetics import locations2degrees, kilometers2degrees, gps2dist_azimuth
+from obspy.signal.invsim import simulate_seismometer
+from obspy.signal import rotate
 import numpy as np
 import os
 import glob
@@ -120,25 +122,21 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     logger1.info('Rotate horizontal components body waves')
 #
     os.chdir(os.path.join(data_folder, 'SH'))
-    horizontal_sacs = glob.glob('*DIS')
-    __rotation(horizontal_sacs, logger=logger1)
-
+    horizontal_sacs = glob.glob('*sac')
+    __rotation(tensor_info, horizontal_sacs, logger=logger1)
+    
     logger1.info('Process body waves')
     os.chdir(data_folder)
     os.chdir(os.path.join(data_folder, 'P'))
-    p_files = glob.glob('*BHZ*DIS')
+    p_files = glob.glob('*_BHZ*sac')
     process_body_waves(p_files, 'P', data_prop, tensor_info)
     os.chdir(os.path.join(data_folder, 'SH'))
-    s_files = glob.glob('*SH*DIS')
+    s_files = glob.glob('*_SH*sac')
     process_body_waves(s_files, 'SH', data_prop, tensor_info)
 
     logger1.info('Body waves have been succesfully processed')
     os.chdir(data_folder)
     logger1.info('time until create files: {}'.format(time.time() - time1))
-    files = glob.glob(os.path.join('P', '*BHZ*DIS.tmp0'))
-    select_tele_stations(files, 'P', tensor_info)
-    files = glob.glob(os.path.join('SH', '*SH*DIS.tmp0'))
-    select_tele_stations(files, 'SH', tensor_info)
     logger1.info('total time spent: {}'.format(time.time() - time1))
     ml.close_log(logger1)
     return
@@ -201,55 +199,51 @@ def __remove_response_body(used_tele_sacs, response_files, tensor_info,
     instrumental response
     """
     string = [
-            'ZEROS             2\n',
-            '0.               0.\n',
-            '0.               0.\n',
-            'POLES             4\n',
-            '-6.17E-03  6.17E-03\n',
-            '-6.17E-03 -6.17E-03\n',
-            '-39.18        49.12\n',
-            '-39.18       -49.12\n',
-            'CONSTANT         3948'
+        'ZEROS             2\n',
+        '0.               0.\n',
+        '0.               0.\n',
+        'POLES             4\n',
+        '-6.17E-03  6.17E-03\n',
+        '-6.17E-03 -6.17E-03\n',
+        '-39.18        49.12\n',
+        '-39.18       -49.12\n',
+        'CONSTANT         3948'
     ]
     string = ''.join(string)
-    with open('response_file', 'w') as resp_file:
+    with open('response_file.txt', 'w') as resp_file:
         resp_file.write(string)
+    paz_dict2 = __read_paz('response_file.txt')
     filtro = data_prop['tele_filter']
     depth = tensor_info['depth']
     time_shift = tensor_info['time_shift']
     t_min = 120.0
     t_max = 400.0
     if depth < 300:
-        t_max = 240.0 if time_shift < 80 else 400.0
+        t_max = 240.0 if time_shift < 80 else 400.0 
     freq0 = filtro['freq0']
     freq1 = filtro['low_freq']
     freq2 = filtro['high_freq']
     freq3 = filtro['freq3']
+    freqs = [freq0, freq1, freq2, freq3]
 
     sacheaders = [SACTrace.read(sac) for sac in used_tele_sacs]
+    streams = [read(sac) for sac in used_tele_sacs]
     full_signal1 = lambda arrival, begin, end:\
         arrival - t_min >= begin and arrival + t_max <= end
-    new_name = lambda station, channel, network:\
-        os.path.join('{}.{}.{}.DIS'.format(station, channel, network))
+    new_name = lambda network, station, channel:\
+        os.path.join('{}_{}_{}.sac'.format(network, station, channel))
 
-    sac_files = []
-    old_responses = []
-    names = []
-
-    for sacheader, sac in zip(sacheaders, used_tele_sacs):
-        channel = sacheader.kcmpnm
+    for stream, sacheader, sac in zip(streams, sacheaders, used_tele_sacs):
+        channel = stream[0].stats.channel
         phase = 'P' if channel == 'BHZ' else 'SH'
         arrival = sacheader.t1 if channel == 'BHZ' else sacheader.t5
         begin = sacheader.b
         end = sacheader.e
         full_signal = full_signal1(arrival, begin, end)
-        name = sacheader.kstnm
-        network = sacheader.knetwk
-        str_name = os.path.join(phase, new_name(name, channel, network))
-        loc_code = sacheader.khole# if sacheader.khole else '--'
-        # pz_files = [response for response in response_files\
-        #             if name in response and channel in response\
-        #             and loc_code in response]
+        name = stream[0].stats.station
+        network = stream[0].stats.network
+        str_name = os.path.join(phase, new_name(network, name, channel))
+        loc_code = stream[0].stats.location
         pz_files0 = [response for response in response_files\
                      if name in response and channel in response]
         if loc_code == '00':
@@ -263,67 +257,226 @@ def __remove_response_body(used_tele_sacs, response_files, tensor_info,
         pzfile_val = next(iter(pz_files))#
         if not os.path.isfile(pzfile_val):
             continue
+        paz_dict = __read_paz(pzfile_val)
 
         if full_signal:
-            sac_files = sac_files + [sac]
-            old_responses = old_responses + [pzfile_val]
-            names = names + [str_name]
-
-    pre_processing = 'rtr \ntaper \nhp c {} n 2 p 2 \n'.format(freq1)
-    out, err = response.replace_response_sac(
-        sac_files, old_responses, names, new_response='response_file',
-        pre_processing=pre_processing, add_response=True, freq0=freq0,
-        freq1=freq1, freq2=freq2, freq3=freq3)
-
-    if logger:
-        logger.debug(out.decode('utf-8'))
-        if err: logger.warning(err.decode('utf-8'))
+            stream[0].detrend('linear')
+            stream[0].taper(max_percentage=0.05)
+            nyq = 0.5 * stream[0].stats.sampling_rate
+            low_freq2 = freq1 / nyq
+            b, a = butter(2, low_freq2, btype='highpass')
+            filt_data = filtfilt(b, a, stream[0].data)
+            stream[0].data = filt_data
+            stream[0].data = simulate_seismometer(
+                stream[0].data,
+                stream[0].stats.sampling_rate,
+                paz_remove=paz_dict,
+                paz_simulate=paz_dict2,
+                pre_filt=freqs,
+                taper=False
+            )
+            stream.write(str_name, format='SAC', byteorder = 0)
     return
 
 
-def __rotation(used_tele_sacs, logger=None):
+# def __remove_response_body_old(used_tele_sacs, response_files, tensor_info,
+#                            data_prop, logger=None):
+#     """We remove instrumental response for data, and replace it for a common
+#     instrumental response
+#     """
+#     string = [
+#         'ZEROS             2\n',
+#         '0.               0.\n',
+#         '0.               0.\n',
+#         'POLES             4\n',
+#         '-6.17E-03  6.17E-03\n',
+#         '-6.17E-03 -6.17E-03\n',
+#         '-39.18        49.12\n',
+#         '-39.18       -49.12\n',
+#         'CONSTANT         3948'
+#     ]
+#     string = ''.join(string)
+#     with open('response_file.txt', 'w') as resp_file:
+#         resp_file.write(string)
+#     filtro = data_prop['tele_filter']
+#     depth = tensor_info['depth']
+#     time_shift = tensor_info['time_shift']
+#     t_min = 120.0
+#     t_max = 400.0
+#     if depth < 300:
+#         t_max = 240.0 if time_shift < 80 else 400.0 
+#     freq0 = filtro['freq0']
+#     freq1 = filtro['low_freq']
+#     freq2 = filtro['high_freq']
+#     freq3 = filtro['freq3']
+# 
+#     sacheaders = [SACTrace.read(sac) for sac in used_tele_sacs]
+#     full_signal1 = lambda arrival, begin, end:\
+#         arrival - t_min >= begin and arrival + t_max <= end
+#     new_name = lambda station, channel, network:\
+#         os.path.join('{}.{}.{}.DIS'.format(station, channel, network))
+# 
+#     sac_files = []
+#     old_responses = []
+#     names = []
+# 
+#     for sacheader, sac in zip(sacheaders, used_tele_sacs):
+#         channel = sacheader.kcmpnm
+#         phase = 'P' if channel == 'BHZ' else 'SH'
+#         arrival = sacheader.t1 if channel == 'BHZ' else sacheader.t5
+#         begin = sacheader.b
+#         end = sacheader.e
+#         full_signal = full_signal1(arrival, begin, end)
+#         name = sacheader.kstnm
+#         network = sacheader.knetwk
+#         str_name = os.path.join(phase, new_name(network, name, channel))
+#         loc_code = sacheader.khole
+#         pz_files0 = [response for response in response_files\
+#                      if name in response and channel in response]
+#         if loc_code == '00':
+#             pz_files = [response for response in pz_files0 if '00' in response]
+#         if loc_code in [None, '']:
+#             pz_files = [response for response in pz_files0 if '--' in response]
+#             pz_files = pz_files +\
+#                 [response for response in pz_files0 if '__' in response]
+#         if not pz_files:
+#             continue
+#         pzfile_val = next(iter(pz_files))#
+#         if not os.path.isfile(pzfile_val):
+#             continue
+# 
+#         if full_signal:
+#             sac_files = sac_files + [sac]
+#             old_responses = old_responses + [pzfile_val]
+#             names = names + [str_name]
+# 
+#     pre_processing = 'rtr \ntaper \nhp c {} n 2 p 2 \n'.format(freq1)
+#     out, err = response.replace_response_sac(
+#         sac_files, old_responses, names, new_response='response_file',
+#         pre_processing=pre_processing, add_response=True, freq0=freq0,
+#         freq1=freq1, freq2=freq2, freq3=freq3)
+# 
+#     if logger:
+#         logger.debug(out.decode('utf-8'))
+#         if err: logger.warning(err.decode('utf-8'))
+#     return
+
+
+def __rotation(tensor_info, used_tele_sacs, logger=None):
     """We rotate horizontal body waves to match transverse and radial
     directions to the event.
     """
-    input_sac = ''
-    string = lambda x, y, z, w: '{}.{}.{}.{}'.format(x, y, z, w)
+    event_lat = tensor_info['lat']
+    event_lon = tensor_info['lon']
+    string = lambda x, y, z: '{}_{}_{}.sac'.format(x, y, z)
 
-    headers = [SACTrace.read(sac) for sac in used_tele_sacs]
-    stations = [header.kstnm for header in headers]
+    streams = [read(sac) for sac in used_tele_sacs]
+    stations = [st[0].stats.station for st in streams]
     stations = list(set(stations))
-
+    
     for sta in stations:
-        file1 = glob.glob('{}.BH[N1]*DIS'.format(sta))
-        file2 = glob.glob('{}.BH[E2]*DIS'.format(sta))
-        if file1 and file2:
-            file1 = file1[0]
-            head1 = SACTrace.read(file1)
-            file2 = file2[0]
-            head2 = SACTrace.read(file2)
-            sta = head1.kstnm
-            net = head1.knetwk
-            transverse = string(sta, 'SH', net, 'DIS')
-            radial = string(sta, 'RD', net, 'DIS')
-            cmpaz1 = head1.cmpaz
-            cmpaz2 = head2.cmpaz
-            if np.remainder(abs(cmpaz1 - cmpaz2), 90.0) == 0:
-                east0 = head2.b
-                east1 = head2.e
-                north0 = head1.b
-                north1 = head1.e
-                begin = min(east0, north0) + 1
-                end = max(east1, north1) - 1
-                input_sac = '{}\ncut {} {} \n'.format(input_sac, begin, end)\
-                            + 'r {} {} \n'.format(file1, file2)\
-                            + 'rot \n write {} {}'.format(radial, transverse)
-
-    input_sac = '{}\nquit\n'.format(input_sac)
-    out, err = mng.run_sac(input_sac)
-
-    if logger:
-        logger.debug(out.decode('utf-8'))
-        if err: logger.warning(err.decode('utf-8'))
+        streams2 = [st for st in streams if st[0].stats.station == sta]
+        
+        streams_n1 = [st for st in streams2 if st[0].stats.channel[-1] in ['N', '1']]
+        streams_e2 = [st for st in streams2 if st[0].stats.channel[-1] in ['E', '2']]
+        if len(streams_n1) + len(streams_e2) < 2:
+            continue
+        stream = streams_n1[0] + streams_e2[0]
+        starttime1 = stream[0].stats.starttime
+        starttime2 = stream[1].stats.starttime
+        endtime1 = stream[0].stats.endtime
+        endtime2 = stream[1].stats.endtime
+        diff1 = starttime1 - starttime2
+        diff2 = endtime1 - endtime2
+        starttime = starttime1 if diff1 >= 0 else starttime2
+        endtime = endtime1 if diff2 <= 0 else endtime2
+        stream.trim(starttime=starttime, endtime=endtime)
+        station_lat = stream[0].stats.sac.stla
+        station_lon = stream[0].stats.sac.stlo
+#
+# previous rotation for not NE components
+#
+        if stream[0].stats.channel[-1] == '1':
+            cmpaz1 = stream[0].stats.sac.cmpaz
+            cmpaz2 = stream[1].stats.sac.cmpaz
+            dip1 = stream[0].stats.sac.cmpinc
+            dip2 = stream[1].stats.sac.cmpinc
+            data1 = stream[0].data
+            data2 = stream[1].data
+            data0 = np.ones(len(data1))
+            # baz = stream[0].stats.sac.cmpaz
+            # data1, data2 = rotate.rotate_rt_ne(data1, data2, 360 - baz)
+            data0, data1, data2 = rotate.rotate2zne(
+                data0,
+                0,
+                -90,
+                data1,
+                cmpaz1,
+                0,
+                data2,
+                cmpaz2,
+                0
+            )
+            stream[0].data = data1
+            stream[1].data = data2
+            stream[0].stats.channel = 'BHN'
+            stream[1].stats.channel = 'BHE'
+        net = stream[0].stats.network
+        transverse = string(net, sta, 'SH')
+        radial = string(net, sta, 'RD')
+        dist, az, baz = gps2dist_azimuth(
+            event_lat, event_lon, station_lat, station_lon)
+        stream.rotate(method='NE->RT', back_azimuth=baz)
+        stream_radial = stream.select(channel="*R")
+        stream_transverse = stream.select(channel="*T")
+        stream_transverse.write(transverse, format='SAC', byteorder = 0)
+        stream_radial.write(radial, format='SAC', byteorder = 0)
     return
+
+
+# def __rotation_old(tensor_info, used_tele_sacs, logger=None):
+#     """We rotate horizontal body waves to match transverse and radial
+#     directions to the event.
+#     """
+#     input_sac = ''
+#     string = lambda x, y, z, w: '{}.{}.{}.{}'.format(x, y, z, w)
+#     
+#     headers = [SACTrace.read(sac) for sac in used_tele_sacs]
+#     stations = [header.kstnm for header in headers]
+#     stations = list(set(stations))
+# 
+#     for sta in stations:
+#         file1 = glob.glob('{}.BH[N1]*DIS'.format(sta))
+#         file2 = glob.glob('{}.BH[E2]*DIS'.format(sta))
+#         if file1 and file2:
+#             file1 = file1[0]
+#             head1 = SACTrace.read(file1)
+#             file2 = file2[0]
+#             head2 = SACTrace.read(file2)
+#             sta = head1.kstnm
+#             net = head1.knetwk
+#             transverse = string(sta, 'SH', net, 'DIS')
+#             radial = string(sta, 'RD', net, 'DIS')
+#             cmpaz1 = head1.cmpaz
+#             cmpaz2 = head2.cmpaz
+#             if np.remainder(abs(cmpaz1 - cmpaz2), 90.0) == 0:
+#                 east0 = head2.b
+#                 east1 = head2.e
+#                 north0 = head1.b
+#                 north1 = head1.e
+#                 begin = min(east0, north0) + 1
+#                 end = max(east1, north1) - 1
+#                 input_sac = '{}\ncut {} {} \n'.format(input_sac, begin, end)\
+#                             + 'r {} {} \n'.format(file1, file2)\
+#                             + 'rot \n write {} {}'.format(radial, transverse)
+# 
+#     input_sac = '{}\nquit\n'.format(input_sac)
+#     out, err = mng.run_sac(input_sac)
+#     
+#     if logger:
+#         logger.debug(out.decode('utf-8'))
+#         if err: logger.warning(err.decode('utf-8'))
+#     return
 
 
 def process_body_waves(tele_files, phase, data_prop, tensor_info):
@@ -369,7 +522,7 @@ def process_body_waves(tele_files, phase, data_prop, tensor_info):
         end = date_origin + arrival + t_max
         tr = stream[0]
         tr.trim(starttime=start, endtime=end)
-        nyq = 0.5 / sacheader.delta
+        nyq = 0.5 * tr.stats.sampling_rate
         high_freq2 = high_freq / nyq
         b, a = butter(2, high_freq2, btype='lowpass')
         filt_data = filtfilt(b, a, tr.data)
@@ -377,131 +530,13 @@ def process_body_waves(tele_files, phase, data_prop, tensor_info):
         factor = dt * tr.stats.sampling_rate
         if abs(int(round(factor)) - factor) > 10 ** - 2: continue
         tr.decimate(int(round(factor)), no_filter=True)
-        tr.data = tr.data - tr.data[0]#tr.data)
+        tr.data = tr.data - tr.data[0]
         if phase == 'SH': tr.detrend(type='linear')
         tr.data = 10 ** 6 * tr.data
         if np.max(np.abs(tr.data)) > 5 * 10 ** 5: continue
         stream[0] = tr
-        stream.write('{}.tmp0'.format(sac), format='SAC', byteorder = 0)
+        stream.write('final_{}'.format(sac), format='SAC', byteorder = 0)
     return
-
-
-##########################
-# We proceed to select teleseismic stations
-##########################
-
-
-def select_tele_stations(files, phase, tensor_info):
-    """We select body and/or surface waves to use in finite fault modelling.
-
-    :param files: list of used waveforms in sac format
-    :param phase: string indicating whether wave is P or SH or Love or Rayleigh
-    :type tensor_info: list
-    :type phase: string
-    """
-    event_lat = tensor_info['lat']
-    event_lon = tensor_info['lon']
-    weight = 1.0 if not phase == 'SH' else 0.5
-    if phase in ['P', 'Rayleigh']:
-        min_snr = 6.0 if phase == 'P' else 4.0
-        window = 100 if phase == 'P' else 1500
-        jump = 2
-        total = __used_stations(jump, files, tensor_info)
-        if total > 50:
-            jump = 4
-            total = __used_stations(jump, files, tensor_info)
-        if total > 50:
-            jump = 8
-    if phase in ['SH', 'Love']:
-        min_snr = 3.0#4.0
-        window = 200 if phase == 'SH' else 1500
-        jump = 8
-        total = __used_stations(jump, files, tensor_info)
-        if total > 30:
-            jump = 10
-            total = __used_stations(jump, files, tensor_info)
-        if total > 30:
-            jump = 12
-
-    sacheaders = [SACTrace.read(sac) for sac in files]
-    signal2noise = [__s2nr(sacfile, phase, window) for sacfile in files]
-    min_signal2noise = len(
-        [ratio for ratio in signal2noise if ratio > min_snr])
-    if min_signal2noise < 4: min_snr = min_snr / 2.0
-    score = lambda x, y, z, y0, y1, z0:\
-        x - (y - y0)*(y - y1)/((y - y0)**2.0 + (y - y1)**2.0)\
-        + (z - z0)/(20 - z0)
-
-# Limiting the number of data. Choose one station for every degree in
-# azimuth
-
-    phase = 'LONG' if phase in ['Rayleigh', 'Love'] else phase
-    with open(os.path.join(phase, 'selected_stations_list'), 'w') as outfile:
-        for az0 in range(0, 360, jump):
-            az1 = az0 + jump
-            best = ''
-            best_sta = ''
-            best_score = -1.0
-            for sacheader, snr, sac in zip(sacheaders, signal2noise, files):
-                dis, az, baz = mng._distazbaz(
-                    sacheader.stla, sacheader.stlo, event_lat, event_lon)
-                # az = sacheader.az
-                if az0 > az or az >= az1 or snr <= min_snr: continue
-                value = 1 if kilometers2degrees(dis) >= 45 else 0
-                value = value if phase in ['P', 'SH'] else 1.0
-                value = score(value, az, snr, az0, az1, min_snr)
-                if value > best_score:
-                    best = '{}\nsnr: {}\nbody wave weight: {}\n'\
-                    'surf wave weight: 1.0\n'.format(sac, snr, weight)
-                    best_score = value
-                    best_sta = sac
-
-            if best_sta:
-                outfile.write(best)
-                copy2(best_sta, best_sta[:-1])
-
-    return
-
-
-def __s2nr(sacfile, phase, signal_length):
-    r"""Signal to noise ratio for data.
-    """
-    sacheader = SACTrace.read(sacfile)
-    stream = read(sacfile)
-    trace = stream[0].data
-    begin = sacheader.b
-    dt = sacheader.delta
-    arrival = sacheader.t1 if phase == 'P' else sacheader.t5
-    error_window = 5.0 if phase == 'P' else 10.0
-    if phase in ['Rayleigh', 'Love']:
-        arrival = sacheader.t1
-        error_window = 100.0
-    arrival = int((arrival - begin) / dt)
-    length = int(signal_length / dt + 0.1)
-    error_window = int(error_window / dt)
-    length = min(length, arrival - error_window)
-    begin_signal = arrival + error_window - 1
-    signal = trace[begin_signal:begin_signal + length]
-    begin_noise = arrival - error_window - length + 1
-    noise = trace[begin_noise:begin_noise + length]
-    signal_std = np.std(signal)
-    noise_std = np.std(noise)
-    return min(20, signal_std / noise_std)
-
-
-def __used_stations(jump, sacfiles, tensor_info):
-    sacheaders = [SACTrace.read(sac) for sac in sacfiles]
-    event_lat = tensor_info['lat']
-    event_lon = tensor_info['lon']
-    values = [mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)\
-              for header in sacheaders]
-    azimuths = [az for dis, az, baz in values]
-    total = 0
-    for az0 in range(0, 360, jump):
-        list_ = [az for az in azimuths if az0 <= az < az0 + jump]
-        if list_:
-            total = total + 1
-    return total
 
 
 ##################################
@@ -567,41 +602,85 @@ def select_process_surf_tele(tele_files0, tensor_info):
     __remove_response_surf(tele_files1, response_files, logger=logger1)
     logger1.info('Rotate horizontal components for surface waves')
     os.chdir(os.path.join(data_folder, 'LONG'))
-    horizontal_sacs = glob.glob('*BH[EN12]*DIS')
-    __rotation(horizontal_sacs)
+    horizontal_sacs = glob.glob('*_BH[EN12]*sac')
+    __rotation(tensor_info, horizontal_sacs)
     logger1.info('Get final surface waves')
     os.chdir(os.path.join(data_folder, 'LONG'))
-    surf_files = glob.glob('*.BHZ.*DIS') + glob.glob('*.SH.*DIS')
+    surf_files = glob.glob('*_BHZ*.sac') + glob.glob('*_SH*.sac')
     __create_long_period(surf_files, tensor_info)
 
     logger1.info('Long period surface waves have been succesfully processed')
     os.chdir(data_folder)
     ml.close_log(logger1)
-    files = glob.glob(os.path.join('LONG', '*BHZ*DIS.tmp0'))
-    select_tele_stations(files, 'Rayleigh', tensor_info)
-    files = glob.glob(os.path.join('LONG', '*SH*DIS.tmp0'))
-    select_tele_stations(files, 'Love', tensor_info)
     return
+    
+    
+# def __remove_response_surf_old(used_tele_sacs, response_files, logger=None):
+#     """We remove instrumental response for surface wave data.
+#     """
+#     sacheaders = [SACTrace.read(sac) for sac in used_tele_sacs]
+#     new_name = lambda station, channel, network:\
+#         os.path.join('{}.{}.{}.DIS'.format(station, channel, network))
+# 
+#     streams = [read(sac) for sac in used_tele_sacs]
+#     sac_files = []
+#     old_responses = []
+#     names = []
+# 
+#     for stream, sac in zip(streams, used_tele_sacs):
+#         name = stream[0].stats.station
+#         channel = stream[0].stats.channel
+#         loc_code = stream[0].stats.location
+#         pz_files0 = [response for response in response_files\
+#                      if name in response and channel in response]
+#         if loc_code == '00':
+#             pz_files = [response for response in pz_files0 if '00' in response]
+#         if loc_code in [None, '']:
+#             pz_files = [response for response in pz_files0 if '--' in response]
+#             pz_files = pz_files +\
+#                 [response for response in pz_files0 if '__' in response]
+#         if not pz_files:
+#             continue
+#         pzfile_val = next(iter(pz_files))
+#         if not os.path.isfile(pzfile_val):
+#             continue
+#         netwk = stream[0].stats.network
+#         str_name = os.path.join('LONG', new_name(name, channel, netwk))
+# 
+#         sac_files = sac_files + [sac]
+#         old_responses = old_responses + [pzfile_val]
+#         names = names + [str_name]
+# 
+#     pre_processing = 'dif \ntaper \nint \n'
+#     out, err = response.replace_response_sac(
+#         sac_files, old_responses, names, pre_processing=pre_processing,
+#         freq0=0.003, freq1=0.004, freq2=0.006, freq3=0.007)
+# 
+#     if logger:
+#         logger.debug(out.decode('utf-8'))
+#         if err: logger.warning(err.decode('utf-8'))
+#     return
 
 
 def __remove_response_surf(used_tele_sacs, response_files, logger=None):
     """We remove instrumental response for surface wave data.
     """
     sacheaders = [SACTrace.read(sac) for sac in used_tele_sacs]
-    new_name = lambda station, channel, network:\
-        os.path.join('{}.{}.{}.DIS'.format(station, channel, network))
+    new_name = lambda network, station, channel:\
+        os.path.join('{}_{}_{}.sac'.format(network, station, channel))
 
-    sac_files = []
-    old_responses = []
-    names = []
+    streams = [read(sac) for sac in used_tele_sacs]
+    freqs = [0.003, 0.004, 0.006, 0.007]
 
-    for sacheader, sac in zip(sacheaders, used_tele_sacs):
-        name = sacheader.kstnm
-        channel = sacheader.kcmpnm
-        loc_code = sacheader.khole# if sacheader.khole else '--'
-        # pz_files = [response for response in response_files\
-        #             if name in response and channel in response\
-        #             and loc_code in response]
+    for stream, sac in zip(streams, used_tele_sacs):
+        name = stream[0].stats.station
+        channel = stream[0].stats.channel
+        loc_code = stream[0].stats.location
+        starttime1 = stream[0].stats.starttime
+        endtime1 = stream[0].stats.endtime
+        diff1 = endtime1 - starttime1
+        if diff1 < 60 * 60:
+            continue
         pz_files0 = [response for response in response_files\
                      if name in response and channel in response]
         if loc_code == '00':
@@ -610,28 +689,26 @@ def __remove_response_surf(used_tele_sacs, response_files, logger=None):
             pz_files = [response for response in pz_files0 if '--' in response]
             pz_files = pz_files +\
                 [response for response in pz_files0 if '__' in response]
-        # print(name, channel, loc_code)
-        # print(pz_files)
         if not pz_files:
             continue
         pzfile_val = next(iter(pz_files))#
-        netwk = sacheader.knetwk
-        str_name = os.path.join('LONG', new_name(name, channel, netwk))
         if not os.path.isfile(pzfile_val):
             continue
-
-        sac_files = sac_files + [sac]
-        old_responses = old_responses + [pzfile_val]
-        names = names + [str_name]
-
-    pre_processing = 'dif \ntaper \nint \n'
-    out, err = response.replace_response_sac(
-        sac_files, old_responses, names, pre_processing=pre_processing,
-        freq0=0.003, freq1=0.004, freq2=0.006, freq3=0.007)
-
-    if logger:
-        logger.debug(out.decode('utf-8'))
-        if err: logger.warning(err.decode('utf-8'))
+        paz_dict = __read_paz(pzfile_val)
+        netwk = stream[0].stats.network
+        str_name = os.path.join('LONG', new_name(netwk, name, channel))
+        
+        stream[0].differentiate()
+        stream[0].taper(max_percentage=0.05)
+        stream[0].integrate()
+        stream[0].data = simulate_seismometer(
+            stream[0].data,
+            stream[0].stats.sampling_rate,
+            paz_remove=paz_dict,
+            pre_filt=freqs,
+            taper=False
+        )
+        stream.write(str_name, format='SAC', byteorder = 0)
     return
 
 
@@ -640,8 +717,8 @@ def __create_long_period(surf_files, tensor_info):
     """
     sacheaders = [SACTrace.read(sac) for sac in surf_files]
     for sac, sacheader in zip(surf_files, sacheaders):
-        sacheader.kcmpnm = 'SH' if sac.split('.')[1] == 'SH'\
-            else sacheader.kcmpnm
+        sacheader.kcmpnm = 'SH'\
+        if not sacheader.kcmpnm == 'BHZ' else sacheader.kcmpnm
         sacheader.write(sac, byteorder = 'little')
 
     for sac in surf_files:
@@ -652,7 +729,7 @@ def __create_long_period(surf_files, tensor_info):
         tr.data = 1000 * tr.data
         if np.max(np.abs(tr.data)) < 10 ** -3: continue
         st[0] = tr
-        st.write('{}.tmp0'.format(sac), format='SAC', byteorder = 0)
+        st.write('final_{}'.format(sac), format='SAC', byteorder = 0)
     return
 
 
@@ -726,12 +803,12 @@ def select_process_cgps(cgps_files, tensor_info, data_prop):
     __select_cgps_files(cgps_files, tensor_info)
     logger1.info('Process selected cGPS traces')
     os.chdir(os.path.join(os.getcwd(), 'cGPS'))
-    cgps_files1 = glob.glob('*.L[HXY]*.sac') + glob.glob('*.L[HXY]*SAC')
+    cgps_files1 = glob.glob('*L[HXY]*.sac') + glob.glob('*L[HXY]*.SAC')
     __change_start(cgps_files1, tensor_info, cgps=True)
     new_process_cgps(tensor_info, cgps_files1, data_prop, logger=logger1)
     os.chdir(data_folder)
     logger1.info('cGPS waves have been succesfully processed')
-    strong_files3 = glob.glob(os.path.join('cGPS', '*tmp'))
+    strong_files3 = glob.glob(os.path.join('cGPS', 'final*'))
     select_strong_stations(tensor_info, strong_files3)
     ml.close_log(logger1)
     return
@@ -828,7 +905,7 @@ def __select_cgps_files(cgps_files, tensor_info):
 
         station = stream[0].stats.station
         channel = stream[0].stats.channel
-        name = os.path.join('cGPS', '{}.{}.sac'.format(station, channel))
+        name = os.path.join('cGPS', '{}_{}.sac'.format(station, channel))
         stream.write(name, format='SAC', byteorder=0)
 
 
@@ -944,38 +1021,6 @@ def _filter_decimate(sac_files, filtro, dt, corners=4, passes=2,
     low_freq = filtro['low_freq']
     high_freq = filtro['high_freq']
     power = lambda m, n: max([d for d in range(10) if m % (n**d) == 0])
-    # if decimate:
-    #     input_sac = ''
-    #     for sac in sac_files:
-    #         sacheader = SACTrace.read(sac)
-    #         delta = sacheader.delta
-    #         ratio = int(round(dt / delta))
-    #         power5 = power(ratio, 5)
-    #         power2 = power(ratio, 2)
-    #         power3 = power(ratio, 3)
-    #         if ratio > 2**power2 * 3**power3 * 5**power5:
-    #             continue
-    #         input_sac = '{}\nread {} \n'.format(input_sac, sac)
-    #         if filter == 'bandpass':
-    #             input_sac = input_sac + 'bp c {} {} n {} p {} \n'.format(
-    #                 low_freq, high_freq, corners, passes)
-    #         elif filter == 'lowpass':
-    #             input_sac = input_sac + 'lp c {} n {} p {} \n'.format(
-    #                 high_freq, corners, passes)
-    #         if decimate:
-    #             input_sac = input_sac\
-    #                 + 'decimate 5\n' * power5\
-    #                 + 'decimate 3\n' * power3\
-    #                 + 'decimate 2\n' * power2
-    #         input_sac = input_sac + 'mul 100\nwrite {}.tmp \n'.format(sac)
-    #
-    #     input_sac = '{}\nquit\n'.format(input_sac)
-    #     out, err = mng.run_sac(input_sac)
-    #     if logger:
-    #         logger.debug(out.decode('utf-8'))
-    #         if err:
-    #             logger.warning(err.decode('utf-8'))
-    # else:
     for sac in sac_files:
         st = read(sac)
         if decimate:
@@ -991,7 +1036,7 @@ def _filter_decimate(sac_files, filtro, dt, corners=4, passes=2,
             b, a = butter(corners, high_freq2, btype='lowpass')
         filt_data = filtfilt(b, a, st[0].data)
         st[0].data = 100*filt_data
-        st.write('{}.tmp'.format(sac), format='SAC', byteorder=0)
+        st.write('final_{}'.format(sac), format='SAC', byteorder=0)
     return
 
 
@@ -1068,7 +1113,7 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
     response_files = glob.glob('SACPZ*') + glob.glob('SAC_PZs*')
     response_files = [os.path.abspath(response) for response in response_files]
     os.chdir(os.path.join(data_folder, 'STR'))
-    strong_files1 = glob.glob('*ACC')
+    strong_files1 = glob.glob('acc*')
     if remove_response:
         logger1.info('Remove response for selected strong motion traces')
         for file in response_files:
@@ -1077,14 +1122,14 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
 
     logger1.info('Select strong motion traces')
     os.chdir(os.path.join(data_folder, 'STR'))
-    strong_files1 = glob.glob('*ACC')
+    strong_files1 = glob.glob('acc*')
     strong_files2 = __select_str_files(strong_files1, tensor_info)
     logger1.info('Update duration of traces')
     __change_start(strong_files2, tensor_info)
     logger1.info('Process selected strong motion traces')
     process_strong_motion(strong_files2, tensor_info, data_prop, logger=logger1)
     os.chdir(data_folder)
-    strong_files3 = glob.glob(os.path.join('STR', '*tmp'))
+    strong_files3 = glob.glob(os.path.join('STR', 'final*'))
     select_strong_stations(tensor_info, strong_files3)
     logger1.info('Strong motion waves have been succesfully processed')
     ml.close_log(logger1)
@@ -1149,9 +1194,8 @@ def move_str_files(stations_str):
     """
     sacheaders = [SACTrace.read(sac) for sac in stations_str]
 
-    channel_name = lambda x: '{}N{}'.format(x[0], x[2])
-    new_name = lambda station, channel, network:\
-        'STR.{}.{}.{}.ACC'.format(station, channel_name(channel), network)
+    new_name = lambda network, station, channel:\
+        'acc_{}_{}_{}.sac'.format(network, station, channel)
 
     for sac in stations_str:
         st = read(sac)
@@ -1217,44 +1261,6 @@ def __remove_response_str(stations_str, response_files, logger=None):
     return
 
 
-# def __remove_response_str(stations_str, response_files, logger=None):
-#     """Remove instrumental response.
-#     """
-#     sacheaders = [SACTrace.read(sac) for sac in stations_str]
-#
-#     sac_files = []
-#     old_responses = []
-#     names = []
-#     pre_processing = 'rtr\n'
-#
-#     for sac in stations_str:
-#         st = read(sac)
-#         name = st[0].stats.station
-#         channel = st[0].stats.channel
-#         network = st[0].stats.network
-#         pz_files = [response for response in response_files\
-#                     if name in response and channel in response]
-#         if not pz_files:
-#             os.remove(sac)
-#             continue
-#         pzfile2 = next(iter(pz_files))
-#         if not os.path.isfile(pzfile2):
-#             os.remove(sac)
-#             continue
-#
-#         sac_files = sac_files + [sac]
-#         old_responses = old_responses + [pzfile2]
-#         names = names + [sac]
-#
-#     out, err = response.replace_response_sac(
-#         sac_files, old_responses, names, pre_processing=pre_processing)
-#
-#     if logger:
-#         logger.debug(out.decode('utf-8'))
-#         if err: logger.warning(err.decode('utf-8'))
-#     return
-
-
 def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
     r"""We integrate strong motion to velocity and proceed to downsample it.
 
@@ -1291,8 +1297,8 @@ def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
     [result.get() for result in results]
     pool.close()
     pool.join()
-    strong_files2 = glob.glob('*VEL')
-
+    strong_files2 = glob.glob('vel*')
+    
     _filter_decimate(strong_files2, filtro_strong, dt_strong)
     return
 
@@ -1332,7 +1338,7 @@ def small_events(select_str_data):
 #
         data = filtfilt(b, a, data)
         st_vel[0].data = data[t_pad:-t_pad]
-        st_vel.write('{}.VEL'.format(sac[:-4]), format='SAC')
+        st_vel.write('vel_{}'.format(sac[4:]), format='SAC')
     return
 
 
@@ -1346,7 +1352,7 @@ def __worker(select_str_data):
         st_vel = wang1.wang_process(sac)
         if not st_vel:
             continue
-        st_vel.write('{}.VEL'.format(sac[:-4]), format='SAC')
+        st_vel.write('vel_{}'.format(sac[4:]), format='SAC')
     return
 
 
@@ -1403,9 +1409,8 @@ def select_strong_stations(tensor_info, files):
                            if name == header.kstnm)
             station_lat = header0.stla
             station_lon = header0.stlo
-            dist, azimuth, baz = mng._distazbaz(station_lat, station_lon, lat, lon)
-            # azimuth = next(header.az for header in sacheaders
-            #                if name == header.kstnm)
+            dist, azimuth, baz = mng._distazbaz(
+                station_lat, station_lon, lat, lon)
             if not az0 <= azimuth < az1:
                 continue
             streams2 = [st for i, st in enumerate(streams) if i in indexes]
