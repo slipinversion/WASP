@@ -8,7 +8,7 @@ F77=gfortran -ffixed-line-length-132 -mcmodel=medium -O2 -Wall -g#-fbacktrace -f
 #
 
 modules = constants.o retrieve_gf.o bessel2.o vel_model_data.o wave_travel.o fk_source.o haskell.o prop.o fk_kernel.o fk.o bessel.o $(SUBS)
-modules2 = constants.o fast_fourier_trans.o retrieve_gf.o bessel2.o vel_model_data.o wave_travel.o layer.o fk_source.o haskell.o prop.o fk_kernel.o fk_openmp.o bessel.o $(SUBS)
+modules2 = constants.o retrieve_gf.o bessel2.o vel_model_data.o wave_travel.o layer.o fk_source.o haskell.o prop.o fk_kernel.o fk_openmp.o bessel.o $(SUBS)
 modules3 = constants.o retrieve_gf.o bessel2.o vel_model_data.o wave_travel.o layer.o fk_source.o st_haskell.o prop.o fk_st_kernel.o fk_static.o bessel.o $(SUBS)
 SUBS = fft.o Complex.o 
 all: green_bank_openmp gf_static clean 
