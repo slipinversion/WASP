@@ -61,7 +61,7 @@ contains
       s_layer = s_layer - 1
    endif
 
-   slowness = 1. / new_vel_p ** 2
+   slowness(:n_layers+1) = 1. / new_vel_p(:n_layers+1) ** 2
 
    end subroutine update_model
 
