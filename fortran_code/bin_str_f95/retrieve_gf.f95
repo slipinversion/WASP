@@ -87,6 +87,7 @@ contains
          endif
       enddo
    enddo
+   close(50)
    end subroutine get_gf 
 
 

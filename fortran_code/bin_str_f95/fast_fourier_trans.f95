@@ -4,7 +4,7 @@ module fast_fourier_trans
 
    use constants, only : twopi
    implicit none
-   real, private :: cos_fft(4200, 15), sin_fft(4200, 15)
+   real, private :: cos_fft(4200), sin_fft(4200)!, 15), sin_fft(4200, 15)
    integer, private :: kkk(4200,15)
 
 
@@ -17,29 +17,27 @@ contains
 ! in this subroutine, we load into memory certain coeficients and values which are frequently used 
 ! in the method of the cfft. 
 !
-   integer :: i, n, ib, k, power, power3, power2, l
+   integer :: i, n, ib, k, power, power3, power2
    real*8 :: omega
 
-   cos_fft(:, :) = 0.
-   sin_fft(:, :) = 0.
-   kkk(:, :) = 0.
+   cos_fft(:) = 0.
+   sin_fft(:) = 0.
+   kkk(:, :) = 0
         
    do n =2, 12
       power2 = 2 ** n
-      do l=1,n
-         k = 0
-         power = 2 ** (l - 1)
-         do ib = 1, power
-            omega = twopi*k/power2
-            cos_fft(ib, l) = cos(omega)
-            sin_fft(ib, l) = sin(omega)
-            do i = 2, n
-               power3 = 2 ** (n - i)
-               if(k.lt.power3) exit
-               k = k - power3
-            enddo
-            k = k + power3
+      k=0
+      power = 2 ** (n - 1)
+      do ib = 1, power
+         omega = twopi*dble(k)/dble(power2)
+         cos_fft(ib) = cos(omega)
+         sin_fft(ib) = sin(omega)
+         do i = 2, n
+            power3 = 2 ** (n - i)
+            if(k.lt.power3) exit
+            k = k - power3
          enddo
+         k = k + power3
       enddo
       k = 0
       do ib = 1, power2
@@ -60,7 +58,8 @@ contains
    integer :: n, sn
    real :: xr(*), xi(*)
    integer :: lx, l, lb, lbh, ib, ist, j, j1, k, nb
-   real :: flx, real_exp, imag_exp, qr, qi, holdr, holdi
+   real :: flx, qr, qi, holdr, holdi
+   real :: real_exp, imag_exp
    LX = 2 ** N
    FLX = real(lx)
    DO L = 1, N
@@ -68,8 +67,8 @@ contains
       LB = LX / NB
       LBH = LB / 2
       DO IB = 1, NB
-         real_exp = cos_fft(ib, l)
-         imag_exp = real(sn) * sin_fft(ib, l)
+         real_exp = cos_fft(ib)
+         imag_exp = real(sn) * sin_fft(ib)
          IST = LB * (IB - 1)
          do J = 1 + IST, LBH + IST
             j1 = J + LBH
