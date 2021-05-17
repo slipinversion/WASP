@@ -47,7 +47,7 @@ program gf_static
 !
 !	pause
    write(*,'(/A/)')'PROGRAM TO COMPUTE STATIC GF WITH FK METHOD'
-   open(12, file='Readlp.static', status='old')
+   open(12, file='static_data.txt', status='old')
    read(12,*)ir_max
    read(12,*)
    do ir=1,ir_max
@@ -57,7 +57,7 @@ program gf_static
 !
 !	Input the Latitude and Longtitude and depth of epicenter
 !
-   open(22, file='Fault.time', status='old')
+   open(22, file='fault&rise_time.txt', status='old')
    read(22,*)nxs0,nys0,c_depth
    read(22,*)n_seg,dxs,dys,nxp,nyp
    read(22,*)ta0,dta,msou
@@ -75,7 +75,7 @@ program gf_static
 !
 !	Input the position of point source and epicenter position
 !
-   open(22, file='Fault.pos', status='old')
+   open(22, file='point_sources.txt', status='old')
    do i_seg=1,n_seg
       read(22,*)io_seg
       do iys=1,nys_sub(i_seg)
@@ -96,7 +96,7 @@ program gf_static
 !
 ! input velocity model
 !
-   vel_model = 'vel_model'
+   vel_model = 'vel_model.txt'
    vel_model = trim(vel_model)
    call read_vel_model(vel_model)
    do ll=1,3000
@@ -207,7 +207,7 @@ program gf_static
 !
 !       Save Green functions for each subfault
 !
-   open(13,file='Green_static_subfault')
+   open(13,file='Green_static_subfault.txt')
    write(13,*)ir_max
    do ir=1,ir_max
       write(13,*)ir
