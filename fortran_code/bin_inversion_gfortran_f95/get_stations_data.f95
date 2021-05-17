@@ -7,7 +7,8 @@ module get_stations_data
    implicit none
    integer, parameter :: nnsta_tele = 80
    real :: weight(max_stations), wave_obs(wave_pts2, max_stations), wmax(max_stations), dt_channel(max_stations)
-   integer :: misfit_type(12, max_stations), t_max(max_stations), t_max_val(max_stations)
+   integer :: misfit_type(12, max_stations), t_max_val(max_stations)
+   integer :: t_min(max_stations), t_max(max_stations)
    real :: wavelet_weight(12, max_stations)
    character(len=6) :: sta_name1(max_stations), sta_name2(max_stations), sta_name3(max_stations), &
          &     sta_name4(max_stations), sta_name5(max_stations)
@@ -81,8 +82,8 @@ contains
 !  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
 !       subfault is 3e+21. The gfs is for Mo = 1e+20
 !
-   open(9,file='Readlp.inf',status='old')
-   open(15,file='Wave.str', status='old')
+   open(9,file='channels_strong.txt',status='old')
+   open(15,file='wavelets_strong.txt', status='old')
    read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
@@ -112,7 +113,7 @@ contains
    close(9)
 !   write(*,*)'n_chan: ', n_chan3
 
-   filename = 'Obser.str'
+   filename = 'waveforms_strong.txt'
    filename = trim(filename)
    call get_waveforms(filename, ir_max, ll_in, ll_out, cgps)
 
@@ -162,8 +163,8 @@ contains
 !  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
 !       subfault is 3e+21. The gfs is for Mo = 1e+20
 !
-   open(9, file='Readlp.cgps', status='old')
-   open(15, file='Wave.cgps', status='old')
+   open(9, file='channels_cgps.txt', status='old')
+   open(15, file='wavelets_cgps.txt', status='old')
    read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
@@ -192,19 +193,9 @@ contains
    end do
    close(9)
 
-   filename = 'Obser.cgps'
+   filename = 'waveforms_cgps.txt'
    filename = trim(filename)
    call get_waveforms(filename, ir_max, ll_in, ll_out, cgps) 
-
-   open(25, file='cgps_wavelet')
-   do ir = 1, ir_max
-      write(25, *)ir
-      ll_g = ir + ll_in
-      do k = 1, nlen
-         write(25, *)wave_obs(k, ll_g)
-      enddo
-   enddo
-   close(25)
 
    do ir = 1, ir_max
 
@@ -252,8 +243,8 @@ contains
 !  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
 !       subfault is 3e+21. The gfs is for Mo = 1e+20
 !
-   open(9, file='Readlp.das', status='old')
-   open(14, file='Weight', status='old')
+   open(9, file='channels_body.txt', status='old')
+   open(14, file='body_wave_weight.txt', status='old')
    if (max_freq .gt. npuse) then
       write(*,*)'You should stop and check dimension sww,sws'
       stop
@@ -265,7 +256,7 @@ contains
    call error1(ll_in, nstaon)
    nlen = 2 ** lnpt
 
-   open(15, file='Wave.tele', status='old')
+   open(15, file='wavelets_body.txt', status='old')
    read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
@@ -278,7 +269,7 @@ contains
 !   write(*,*)'n_chan: ', n_chan3
    n_chan = nstaon 
    
-   filename = 'Obser.tele'
+   filename = 'waveforms_body.txt'
    filename = trim(filename)
    call get_waveforms(filename, nstaon, ll_in, ll_out, cgps)
 
@@ -338,9 +329,9 @@ contains
 !       subfault is 3e+21. The gfs is for Mo = 1e+20
 !
  
-   open(9, file='Readlp.inf_low', status='old')
+   open(9, file='channels_surf.txt', status='old')
 
-   open(15, file='Wave.str_low', status='old')
+   open(15, file='wavelets_surf.txt', status='old')
    read(15,*) jmin, jmax, max_freq
    read(15,'(a)')modes
    read(15,*) n_wave_weight
@@ -390,7 +381,7 @@ contains
       end if
    end do
    
-   filename = 'Obser.str_low'
+   filename = 'waveforms_surf.txt'
    filename = trim(filename)
    call get_waveforms(filename, n_chan, ll_in, ll_out, cgps) 
 
@@ -510,8 +501,8 @@ contains
    filename = trim(filename)
    open(13, file=filename, status='old')
    do ir = 1, ir_max
-      write(43, *)ir
       ll_g = ir+ll_in
+      t_min(ll_g) = 0
       read(13,*)
       read(13,*)
       read(13,*) string, dto
@@ -520,6 +511,7 @@ contains
       read(13,*)
       read(13,*)(obse(i, ll_g), i = 1, no)
       mean = sum(obse(no - 20:no, ll_g)) / 20.0
+!      no = min(2**lnpt - 20, no)
       do i = 1, wave_pts2
          cz(i) = 0.0
          cr(i) = 0.0
@@ -527,8 +519,24 @@ contains
             obser(i) = obse(i, ll_g)
          else
             obser(i) = 0.0
-            if (cgps) obser(i) = mean
-         end if
+            if (cgps) obser(i) = mean 
+         endif
+         
+!         if (cgps) then
+!            if (i .lt. no) then
+!               obser(i) = obse(i, ll_g)
+!            elseif (i .lt. (2**lnpt - 20)) then
+!               obser(i) = mean
+!            else
+!               obser(i) = obse(1, ll_g)
+!            endif
+!         else
+!            if (i .lt. no) then
+!               obser(i) = obse(i, ll_g)
+!            else
+!               obser(i) = obse(1, ll_g) 
+!            endif
+!         end if
       end do
       do i = 1,nlen
          cr(i) = obser(i)
@@ -546,7 +554,7 @@ contains
             end if
          end do
       else
-         do i = 8, nlen
+         do i = 1, nlen
             if (amp_max .lt. abs(obser(i))) then
                amp_max = abs(obser(i))
                nm = i
