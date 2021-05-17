@@ -40,7 +40,7 @@ contains
 !     Input Fault position to memory
 !
    write(*,*)'Read and store fault segments data to memory...'
-   open(12, file='Fault.time', status='old')
+   open(12, file='fault&rise_time.txt', status='old')
    read(12,*) nxs0, nys0, c_depth
    read(12,*) segments, dxs, dys, nx_p, ny_p, v_min, v_max, tbl, tbr
    read(12,*) ta0, dta, msou, v_ref, io_v_d
@@ -61,7 +61,7 @@ contains
 !
 !     Input Fault model to memory
 !
-   open(12, file='Fault.pos', status='old')
+   open(12, file='point_sources.txt', status='old')
    do segment = 1, segments
       read(12,*) io_seg, dip_s, stk_s
       if ((abs(dip_s-dip(segment)) .gt. 1.e-2).or. &
@@ -101,8 +101,8 @@ contains
             t_ref = dist/v_ref
             t_max = dist/v_min
             t_min = dist/v_max
-!            if (t_ref .gt. t_latest) t_ref = t_latest
-!            if (t_min .gt. t_latest) t_min = t_latest
+            if (t_ref .gt. t_latest) t_ref = t_latest
+            if (t_min .gt. t_latest) t_min = t_latest
             if (t_max .gt. t_latest) t_max = t_latest
             delta = t_min-t_ref
             if (tbl .lt. delta) then
@@ -123,7 +123,7 @@ contains
 !  
 !  Input shear modulous Model
 !
-   open(12, file='Niu_model', status='old')
+   open(12, file='shear_model.txt', status='old')
    read(12,*) n_s
    if (n_s.ne.segments) then
       write(*,*)'Amount of fault segments is different between mu file and Fault file'
@@ -135,7 +135,6 @@ contains
       read(12,*)(shear(k, i_s), k = 1, nxys(i_s))
    end do 
    close(12)
-!   write(*,*)shear(:nxys(1), 1)
    end subroutine get_faults_data
 
 
@@ -228,7 +227,7 @@ contains
    integer :: io_seg, nmed, nleft2, nright2, nup2, ndown2, nangle, npv, nb, nsour
    integer :: nx, ny, i, j, k_s, i_ss, i_x, i_y
    real :: surface(1000, 4), xyb(nx0, ny0, 3), xr(5), u0(max_subfaults2, 4)
-   open(17, file='bound.in', status='old')
+   open(17, file='model_space.txt', status='old')
    read(17,*) io_surf
    if (io_surf .eq. 1) then
       open(16, file='surface.constrain', status='old')
@@ -427,7 +426,7 @@ contains
 !
 !  special boundary
 !
-   open(12, file='bound.special', status='old')
+   open(12, file='special_model_space.txt', status='old')
    read(12,*) nm
    do nn = 1, nm
       read(12,*) iss, ixs, iys
@@ -478,7 +477,7 @@ contains
          end do
       end do
    end do
-   open(22, file='continue', status='old')
+   open(22, file='regularization_borders.txt', status='old')
    do I_s = 1, segments 
 !       
       read(22,*)
@@ -513,7 +512,7 @@ contains
       end do
    end do
    close(22)   
-   open(22, file='continue.special', status='old')
+   open(22, file='special_regularization_borders.txt', status='old')
    read(22,*) nn_use
    do k = 1, nn_use
       read(22,'(a)')aaaa

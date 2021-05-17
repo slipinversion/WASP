@@ -33,10 +33,10 @@ contains
    real*8 :: disp
    logical is_file
 !
-   inquire( file = 'Readlp.static', exist = is_file )
+   inquire( file = 'static_data.txt', exist = is_file )
    if (is_file) then 
       weight_sum = 0.d0
-      open(9, file='Readlp.static', status='old')
+      open(9, file='static_data.txt', status='old')
       read(9,*) n_chan
       read(9,*)
       do i = 1, n_chan
@@ -47,7 +47,7 @@ contains
       end do
       close(9) 
 
-      open(33, file='Green_static_subfault', status='old')
+      open(33, file='Green_static_subfault.txt', status='old')
       read(33,*) n_tt
       do channel = 1, n_chan
          read(33,*)
@@ -84,7 +84,7 @@ contains
             syn_disp(channel, k) = disp
          end do
       end do 
-      open(10,file='synm.static')
+      open(10,file='static_synthetics.txt')
       write(10,*) n_chan
       do channel = 1, n_chan
          write(10,*) channel, sta_name(channel), lat(channel), lon(channel),(syn_disp(channel, k), k=1, 3)

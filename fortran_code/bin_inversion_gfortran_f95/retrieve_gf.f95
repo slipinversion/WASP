@@ -82,7 +82,7 @@ contains
 !
    block = dxs * dys * (1.e-10) 
 
-   open(9, file='Readlp.inf', status='old')
+   open(9, file='channels_strong.txt', status='old')
 
    read(9,*)
    read(9,*)
@@ -167,7 +167,7 @@ contains
 !
    block = dxs * dys * (1.e-10) 
 
-   open(9, file='Readlp.cgps', status='old')
+   open(9, file='channels_cgps.txt', status='old')
 
    read(9,*)
    read(9,*) 
@@ -179,7 +179,6 @@ contains
    df = 1.0/tlen
 
    read(9,*) channel_max, n_chan
-!   read(9,*)
    close(9)
    channel = 0
    io_chan = 0
@@ -227,9 +226,6 @@ contains
       end do
       close(12)
    end do
-!   close(15)
-!   close(9)
-!   close(13)
    ll_out = ll_in+n_chan
    end subroutine get_cgps_gf
 
@@ -265,7 +261,7 @@ contains
    write(*,*)'Store body waves GF in memory...'
    z0 = cmplx(0.0, 0.0)
 
-   open(9, file='Readlp.das', status='old')
+   open(9, file='channels_body.txt', status='old')
 !   open(13,file='Obser.tele',status='unknown')
    read(9,*)
    read(9,*)
@@ -469,9 +465,8 @@ contains
    area = dxs*dys
    block = 1000.0*area*(1.e-10)
   
-   open(9, file='Readlp.inf_low', status='old')
- 
-   open(15, file='Wave.str_low', status='old')
+   open(9, file='channels_surf.txt', status='old')
+   open(15, file='wavelets_surf.txt', status='old')
    read(15,*)
    read(15,'(a)')modes
  
@@ -513,7 +508,7 @@ contains
       if (k .gt. nf3 .and. k .lt. nf4 .and. ((nf4-nf3) .gt. 0)) then
          filter(k) = 0.5*(1.0+cos(pi*(k-nf3)/(nf4-nf3)))
       end if
-      filter(k) = filter(k)*block
+      filter(k) = filter(k)*block!/nlen !filter(k) = filter(k)*block
    end do
 
    io_chan = 0

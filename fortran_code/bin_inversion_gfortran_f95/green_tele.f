@@ -101,14 +101,14 @@ C
       deg_arc=pi/180.0
       Z0=CMPLX(0.0,0.0)
       
-      open(1,file='filtro_tele')
+      open(1,file='filtro_tele.txt')
       read(1,*)string, low_freq, high_freq
       read(1,*)string, dt
       close(1)
       
 c
       write(*,*)'Get fault segments data...'
-      OPEN(22,FILE='Fault.time')
+      OPEN(22,FILE='fault&rise_time.txt')
       READ(22,*)NXS0,NYS0,c_depth,lnpt_use
       READ(22,*)n_seg,DXS,DYS,nx_p,ny_p
       READ(22,*)TA0,DTA,MSOU,v_min,io_v_d
@@ -125,7 +125,7 @@ c
       enddo
       close(22)
 
-      open(22,file='Fault.pos')
+      open(22,file='point_sources.txt')
       do i_seg=1,n_seg
          read(22,*)io_seg
          kxy=0
@@ -145,7 +145,7 @@ c
       close(22)
 
       write(*,*)'Get vel_model...'
-      open(15,file='vel_model',status='old')
+      open(15,file='vel_model.txt',status='old')
       lnpt=lnpt_use!lnpt_use - 1
       aw=0.01
       read(15,*) jo
@@ -193,8 +193,8 @@ c
 c       End of Rise Time
 c
 
-      OPEN(9,FILE='Readlp.das',STATUS='OLD')
-      OPEN(13,FILE='Obser.tele',STATUS='UNKNOWN')
+      OPEN(9,FILE='channels_body.txt',STATUS='OLD')
+      OPEN(13,FILE='waveforms_body.txt',STATUS='UNKNOWN')
 C
 C    1993.6  SYNM6.FOR, SYNHAR.FOR(1996.6), SYNWWW.FOR(1997.1)  BY YAO
 C    M1=M33, M2=M13, M3=M23, M4=M11, M5=M22, M6=M12
@@ -2506,7 +2506,7 @@ c
         COMPLEX S,FLT(1024)
         integer i,ii,irr,jff,jj,nsta 
         IF(IFLAG.EQ.0) THEN
-           open(14,file='instrumental_response',status='unknown')
+           open(14,file='instrumental_response.txt',status='unknown')
            READ(14,*)NSTA
            DO IRR=1,nsta
 c	 READ(14,12)A0(IRR),DS(IRR),DTT,NPOLES(IRR),NZEROES(IRR)

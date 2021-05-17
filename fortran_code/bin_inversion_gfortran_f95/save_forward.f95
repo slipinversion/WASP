@@ -66,7 +66,7 @@ contains
    integer ll_in, ll_out, ll_g, isl, isr, ll, channel_max, &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys
    real slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-   &  tr(max_subf, max_seg), tl(max_subf, max_seg), &
+   &  tr(max_subf, max_seg), tl(max_subf, max_seg), integral, &
    &  cr(wave_pts2), cz(wave_pts2), r, t1, t2, time, a, b, ww, dt, rake2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
@@ -75,7 +75,7 @@ contains
 
    write(*,*)'Return strong motion synthetics from input kinematic model...'
    z0 = cmplx(0.0, 0.0)
-   open(9,file='Readlp.inf',status='old')
+   open(9,file='channels_strong.txt',status='old')
    read(9,*)
    read(9,*)
    read(9,*)
@@ -92,16 +92,17 @@ contains
    dt = dt_channel(ll_in + 1)
    jf = 2**(lnpt-1)+1
    df = 1.0/(2**lnpt)/dt
-   open(120,file='Source_function')
   
    do isl = 1, msou
       do isr = 1, msou
+         source2(:, isl, isr) = cmplx(0.0, 0.0)
          cr(:) = 0.0
          cz(:) = 0.0
          t1 = ta0+(isl-1)*dta
          t2 = ta0+(isr-1)*dta
          r = t1+t2 
          k = int(r/dt+0.5)+1
+         integral = 0.0
          do i = 1, k
             time = (i-1)*dt
             if (time .lt. t1) then
@@ -109,26 +110,25 @@ contains
             else
                cr(i) = (1.0+cos(2*pi*(time-t1)/(2*t2)))/r
             end if
+            integral = integral + cr(i) * dt
          end do
-         write(120,*)'k: ', k
-         write(120,*)'(t1, t2): ', t1, t2
-         write(120,*)'STF: ', (cr(i),i=1,512)
+         cr = cr/integral
          CALL FFT(CR, CZ, LNPT,-1.)
          do i = 1, jf
-            write(120,*)'freq: ', (i - 1) * df
-            write(120,*)'F[STF]: ', (cmplx(cr(i),cz(i))) * dt
             call fourier_asym_cosine((i-1)*df, t1, t2, source2(i, isl, isr))
 !                SOURCE(i, ISL, isr) = CMPLX(CR(i), CZ(i))*dt
-            write(120,*)'F[STF]: ', source2(i,isl,isr)
          end do
+         cr(:nlen) = real(source2(:nlen, isl, isr)) / dt
+         cz(:nlen) = aimag(source2(:nlen, isl, isr)) / dt
+         call realtr(cr, cz, lnpt)
+         call fft(cr, cz, lnpt, 1.)
       end do
    end do
 
-   close(120)
 !
 !  end of rise time 
 !       
-   open(18,file='synm.str')
+   open(18,file='synthetics_strong.txt')
    k = 0
 !       
 !  set up the green function for every subfault
@@ -202,7 +202,7 @@ contains
    write(*,*)'Return cGPS synthetics from input kinematic model...'
    z0 = cmplx(0.0, 0.0)
    
-   open(9,file='Readlp.cgps',status='old')
+   open(9,file='channels_cgps.txt',status='old')
    read(9,*)
    read(9,*)
    read(9,*)
@@ -233,7 +233,7 @@ contains
 !
 !  end of rise time 
 !       
-   open(18,file='synm.cgps')
+   open(18,file='synthetics_cgps.txt')
    k = 0
 !       
 !  set up the green function for every subfault
@@ -300,7 +300,7 @@ contains
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
 
    write(*,*)'Return body wave synthetics from input kinematic model...'
-   open(9,file='Readlp.das',status='old')
+   open(9,file='channels_body.txt',status='old')
    read(9,*)
    read(9,*)
    read(9,*)
@@ -326,7 +326,7 @@ contains
 !
 !  End of Rise Time 
 !
-   OPEN(18,FILE = 'synm.tele')
+   OPEN(18,FILE = 'synthetics_body.txt')
 
    k = 0
 !       
@@ -406,7 +406,7 @@ contains
    write(*,*)'Return long period surface wave synthetics from input kinematic model...'
    z0 = cmplx(0.0, 0.0)
 
-   open(9,file='Readlp.inf_low',status='old')
+   open(9,file='channels_surf.txt',status='old')
    read(9,*)
    read(9,*)
    read(9,*)
@@ -437,7 +437,7 @@ contains
 !
 !  end of rise time 
 !       
-   open(18,file='synm.str_low')
+   open(18,file='synthetics_surf.txt')
    k = 0
 !       
 !  set up the green function for every subfault
