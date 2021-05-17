@@ -86,8 +86,8 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
         p2.wait()
     
     files = [
-            'Green.in',
-            'Green_cgps.in',
+            'Green_strong.txt',
+            'Green_cgps.txt',
             'modelling_stats.json',
             os.path.join('data', 'gps_data'),
             'strong_motion_gf.json',
@@ -171,14 +171,65 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
 #
 # write solution in FSP format
 #
-    # segments, rise_time, point_sources = pl_mng.__read_planes_info()
     solution = get_outputs.read_solution_static_format(segments)
     static_to_fsp(tensor_info, segments_data, data_type, velmodel, solution)
     for file in glob.glob('*png'):
         if os.path.isfile(os.path.join(dirname, base, file)):
             copy2(os.path.join(dirname, base, file),
                   os.path.join(dirname, 'plots'))
+
+
+def modelling_new_data(
+        tensor_info,
+        data_type,
+        default_dirs,
+        data_folder,
+        st_response=True):
+    """Routine for manual finite fault modelling with new data types.
     
+    :param tensor_info: dictionary with moment tensor properties
+    :param data_type: list with data types to be used in modelling
+    :param default_dirs: dictionary with default directories to be used
+    :type default_dirs: dict
+    :type tensor_info: dict
+    :type data_type: list
+    """
+    sol_folder = os.getcwd()
+    sol_folder = os.path.abspath(sol_folder)
+    data_prop = json.load(open('sampling_filter.json'))
+    os.chdir(os.path.join(data_folder))
+    time2 = time.time()
+    processing(tensor_info, data_type, data_prop, st_response=st_response)
+    os.chdir(sol_folder)
+    dm.filling_data_dicts(tensor_info, data_type, data_prop, data_folder)
+    gf_bank_str = os.path.join(sol_folder, 'GF_strong')
+    gf_bank_cgps = os.path.join(sol_folder, 'GF_cgps')
+    get_gf_bank = default_dirs['strong_motion_gf_bank2']
+    if 'cgps' in data_type:
+        green_dict = gf.fk_green_fun1(data_prop, tensor_info, gf_bank_cgps, cgps=True)
+        input_files.write_green_file(green_dict, cgps=True)
+        with open(os.path.join('logs', 'GF_cgps_log'), "w") as out_gf_cgps:
+            p1 = subprocess.Popen([get_gf_bank, 'cgps'], stdout=out_gf_cgps)
+        p1.wait()
+    if 'strong_motion' in data_type:
+        green_dict = gf.fk_green_fun1(data_prop, tensor_info, gf_bank_str)
+        input_files.write_green_file(green_dict)
+        with open(os.path.join('logs', 'GF_strong_log'), "w") as out_gf_strong:
+            p2 = subprocess.Popen([get_gf_bank, ], stdout=out_gf_strong)
+        p2.wait()
+    data_type2 = []
+    if os.path.isfile('tele_waves.json'):
+        data_type2 = data_type2 + ['tele_body']
+    if os.path.isfile('surf_waves.json'):
+        data_type2 = data_type2 + ['surf_tele']
+    if os.path.isfile('strong_motion_waves.json'):
+        data_type2 = data_type2 + ['strong_motion']
+    if os.path.isfile('cgps_waves.json'):
+        data_type2 = data_type2 + ['cgps']
+    if os.path.isfile('static_data.json'):
+        data_type2 = data_type2 + ['gps']
+    manual_modelling(tensor_info, data_type2, default_dirs)
+    return
 
 
 def manual_modelling(tensor_info, data_type, default_dirs):
@@ -583,6 +634,9 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=N
                                    input_model, solution)
         plot._PlotComparisonMap(tensor_info, segments, point_sources,
                                 input_model, solution)
+    plot_files = glob.glob(os.path.join('plots', '*png'))
+    for plot_file in plot_files:
+        os.remove(plot_file)
     plot_files = glob.glob('*png')
     for plot_file in plot_files:
         move(plot_file, 'plots')
@@ -598,8 +652,11 @@ def delete_binaries():
 
 
 def __ask_velrange():
-    min_vel = float(input('Minimum rupture velocity: '))
-    max_vel = float(input('Maximum rupture velocity: '))
+    with open('fault&rise_time.txt', 'r') as infile:
+        lines = [line.split() for line in infile]
+
+    min_vel = float(lines[1][5])
+    max_vel = float(lines[1][6])
     return min_vel, max_vel
             
             
@@ -622,7 +679,8 @@ if __name__ == '__main__':
                                 'checker_mod',
                                 'checker_noise',
                                 'point_source_err',
-                                'forward_patch'
+                                'forward_patch',
+                                'add_data'
                         ],
                         required=True, help="which method to run")
     parser.add_argument("-d", "--data",
@@ -675,7 +733,22 @@ if __name__ == '__main__':
                     copy2(os.path.join(args.data, file), 'data')
         data_type = data_type if len(data_type) >= 1 else ['tele_body']
         automatic_usgs(tensor_info, data_type, default_dirs, velmodel=velmodel,
-                       dt_cgps=0.2, st_response=args.st_response)
+                       dt_cgps=None, st_response=args.st_response)
+    if args.option == 'add_data':
+        if args.gcmt_tensor:
+            cmt_file = args.gcmt_tensor
+            tensor_info = tensor.get_tensor(cmt_file=cmt_file)
+        else:
+            tensor_info = tensor.get_tensor()
+        if len(data_type) == 0:
+            raise RuntimeError('You must input at least one data type')
+        data_folder = args.data if args.data else None
+        modelling_new_data(
+            tensor_info,
+            data_type,
+            default_dirs,
+            data_folder,
+            st_response=args.st_response)
     if args.option == 'manual':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor

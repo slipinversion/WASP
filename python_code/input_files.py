@@ -38,7 +38,7 @@ def write_velmodel(velmodel):
     qa = velmodel['qa']
     qb = velmodel['qb']
     zipped = zip(p_vel, s_vel, dens, thick, qa, qb)
-    with open('vel_model', 'w') as outfile:
+    with open('vel_model.txt', 'w') as outfile:
         outfile.write('{}\n'.format(len(thick)))
         for pv, sv, rho, th, qaa, qbb in zipped:
             outfile.write(
@@ -101,7 +101,7 @@ def forward_model(tensor_info, segments_data, model, vel0, vel1):
     trup_segs2 = [rupt_seg - time for time, rupt_seg in zip(times, trup_segs)]
 
     zipped = zip(segments, slip_segs, rake_segs, trup_segs2, tris_segs, tfall_segs)
-    with open('Fault.time', 'w') as outfile:
+    with open('fault&rise_time.txt', 'w') as outfile:
         outfile.write('{} {} {} 10\n'.format(hyp_stk, hyp_dip, depth))
         outfile.write(
                 '{} {} {} {} {} {} {} {} {}\n'.format(
@@ -166,7 +166,7 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
     disp_or_vel = 0
     string = '{} {} {} {} {}\n'
 
-    with open('Fault.time', 'w') as outfile:
+    with open('fault&rise_time.txt', 'w') as outfile:
         outfile.write('{} {} {} 10\n'.format(hyp_stk, hyp_dip, depth))
         outfile.write(
                 '{} {} {} {} {} {} {} {} {}\n'.format(
@@ -187,7 +187,7 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
                     slip = 300 if j == hyp_stk - 1 and i == hyp_dip - 1 else 0
                     outfile.write(string.format(slip, rake, 0, t1, t1))
 
-    with open('Fault.pos', 'w') as outfile:
+    with open('point_sources.txt', 'w') as outfile:
         for i_segment, (ps_seg, segment)\
         in enumerate(zip(point_sources, segments)):
             dip = segment['dip']
@@ -203,7 +203,7 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
                                 '{} {} {} {} {} {} {}\n'.format(
                                     *ps_seg[j1, i1, j2, i2]))
 
-    with open('Niu_model', 'w') as outfile:
+    with open('shear_model.txt', 'w') as outfile:
         outfile.write('{}\n'.format(len(shear)))
         for i_segment, (shear_seg, segment) in enumerate(zip(shear, segments)):
             n_stk = segment['stk_subfaults']
@@ -278,7 +278,7 @@ def input_chen_tele_body(tensor_info, data_prop):
     low_freq = filtro['low_freq']
     high_freq = filtro['high_freq']
 
-    with open('filtro_tele', 'w') as outfile:
+    with open('filtro_tele.txt', 'w') as outfile:
         outfile.write('Corners: {} {}\n'.format(low_freq, high_freq))
         outfile.write('dt: {}'.format(dt))
 
@@ -300,7 +300,7 @@ def input_chen_tele_body(tensor_info, data_prop):
     string.format(
         i, name, dist, az, lat, lon, angle_fun(s_slowness), disp_or_vel, 4.0, 2)
 
-    with open('Readlp.das', 'w') as outfile:
+    with open('channels_body.txt', 'w') as outfile:
         outfile.write('30 30 30 0 0 0 0 0 0 1.1e+20\n')
         outfile.write(
             '3 10 {}\n{}{}{}{}{}{}.{}\n{}\n'.format(
@@ -313,7 +313,7 @@ def input_chen_tele_body(tensor_info, data_prop):
             channel = file['component']
             lat, lon = file['location']
             dist, az, back_azimuth = mng._distazbaz(
-                    lat, lon, event_lat, event_lon)
+                lat, lon, event_lat, event_lon)
             dist = kilometers2degrees(dist)
             derivative = False if not 'derivative' in file\
                 else file['derivative']
@@ -329,7 +329,7 @@ def input_chen_tele_body(tensor_info, data_prop):
                                           s_slowness, derivative))
             i = i + 1
 
-    with open('Wave.tele', 'w') as file1, open('Obser.tele', 'w') as file2:
+    with open('wavelets_body.txt', 'w') as file1, open('waveforms_body.txt', 'w') as file2:
         write_files_wavelet_observed(file1, file2, dt, data_prop, traces_info)
 #
 # instrumental response common to all body waves
@@ -337,13 +337,13 @@ def input_chen_tele_body(tensor_info, data_prop):
     string2 = '\n3\n' + '0. 0.\n' * 3 + '4\n-6.17E-03  6.17E-03\n'\
               '-6.17E-03 -6.17E-03\n-39.18    49.12\n-39.18   '\
               '-49.12\n3948\n'
-    with open('instrumental_response', 'w') as outfile:
+    with open('instrumental_response.txt', 'w') as outfile:
         outfile.write('{}\n'.format(nsta))
         outfile.write(string2 * len(traces_info))
 
-    write_wavelet_freqs(dt, 'Wavelets_tele_body')
+    write_wavelet_freqs(dt, 'Wavelets_tele_body.txt')
 
-    with open('Weight', 'w') as outfile:
+    with open('body_wave_weight.txt', 'w') as outfile:
         for info in traces_info:
             sta = info['name']
             channel = info['component']
@@ -380,7 +380,7 @@ def input_chen_tele_surf(tensor_info, data_prop):
         string.format(i, name, lat, lon, a, b, c, d, e,
                       weight, weight, weight)
 
-    with open('Readlp.inf_low', 'w') as outfile:
+    with open('channels_surf.txt', 'w') as outfile:
         outfile.write('{}{}{}{}{}{}.{}\n'.format(
                 date_origin.year, date_origin.month, date_origin.day,
                 date_origin.hour, date_origin.minute, date_origin.second,
@@ -407,11 +407,11 @@ def input_chen_tele_surf(tensor_info, data_prop):
                     string_fun(i + 1, name, lat, lon, 0, 1, 0, 90, 0, weight))
             i = i + 1
 
-    with open('Wave.str_low', 'w') as file1, open('Obser.str_low', 'w') as file2:
+    with open('wavelets_surf.txt', 'w') as file1, open('waveforms_surf.txt', 'w') as file2:
         write_files_wavelet_observed(file1, file2, 4.0, data_prop, traces_info,
                                      gf_bank=gf_bank)
 
-    write_wavelet_freqs(4.0, 'Wavelets_surf_tele')
+    write_wavelet_freqs(4.0, 'Wavelets_surf_tele.txt')
     return
 
 
@@ -446,7 +446,7 @@ def input_chen_strong_motion(tensor_info, data_prop):
 
     nsta = len(traces_info)
 
-    with open('filtro_strong', 'w') as outfile:
+    with open('filtro_strong.txt', 'w') as outfile:
         outfile.write('Corners: {} {}'.format(low_freq, high_freq))
 
     disp_or_vel = 0
@@ -454,7 +454,7 @@ def input_chen_strong_motion(tensor_info, data_prop):
     string_fun = lambda i, name, lat, lon, a, w:\
         string.format(i + 1, name, lat, lon, a, w)
 
-    with open('Readlp.inf', 'w') as outfile:
+    with open('channels_strong.txt', 'w') as outfile:
         outfile.write('{}{}{}{}{}{}{}\n'.format(
                 date_origin.year, date_origin.month, date_origin.day,
                 date_origin.hour, date_origin.minute, date_origin.second,
@@ -471,11 +471,11 @@ def input_chen_strong_motion(tensor_info, data_prop):
             lat, lon = file['location']
             outfile.write(string_fun(i, name, lat, lon, channel, weight))
 
-    with open('Wave.str', 'w') as file1, open('Obser.str', 'w') as file2:
+    with open('wavelets_strong.txt', 'w') as file1, open('waveforms_strong.txt', 'w') as file2:
         write_files_wavelet_observed(file1, file2, dt_strong, data_prop,
                                      traces_info)
 
-    write_wavelet_freqs(dt_strong, 'Wavelets_strong_motion')
+    write_wavelet_freqs(dt_strong, 'Wavelets_strong_motion.txt')
     return 'strong_motion'
 
 
@@ -511,7 +511,7 @@ def input_chen_cgps(tensor_info, data_prop):
 
     nsta = len(traces_info)
 
-    with open('filtro_strong', 'w') as outfile:
+    with open('filtro_strong.txt', 'w') as outfile:
         outfile.write('Corners: {} {}'.format(low_freq, high_freq))
 
     io_vd = 0
@@ -519,7 +519,7 @@ def input_chen_cgps(tensor_info, data_prop):
     string_fun = lambda i, name, lat, lon, a, w:\
     string.format(i + 1, name, lat, lon, a, w)
 
-    with open('Readlp.cgps', 'w') as outfile:
+    with open('channels_cgps.txt', 'w') as outfile:
         outfile.write('{}{}{}{}{}{}{}\n'.format(
                 date_origin.year, date_origin.month, date_origin.day,
                 date_origin.hour, date_origin.minute, date_origin.second,
@@ -536,8 +536,8 @@ def input_chen_cgps(tensor_info, data_prop):
             weight = file['trace_weight']
             outfile.write(string_fun(i, name, lat, lon, channel, weight))
 
-    with open('Wave.cgps', 'w') as file1, open('Obser.cgps', 'w') as file2:
-        write_files_wavelet_observed(file1, file2, 1.0, data_prop,
+    with open('wavelets_cgps.txt', 'w') as file1, open('waveforms_cgps.txt', 'w') as file2:
+        write_files_wavelet_observed(file1, file2, dt_cgps, data_prop,
                                      traces_info, zero_start=True)
     return 'cgps'
 
@@ -556,7 +556,7 @@ def input_chen_static(tensor_info):
     string = '{0:3d} {1:>5}{2:>10.3f}{3:>10.3f} {4} {5} {6} {7} {8} {9}\n'
     string_fun = lambda i, name, lat, lon, a, b, c, d, e, f:\
         string.format(i, name, lat, lon, a, b, c, d, e, f)
-    with open('Readlp.static', 'w') as outfile:
+    with open('static_data.txt', 'w') as outfile:
         outfile.write('{}\n\n'.format(len(static_info)))
         for i, info in enumerate(static_info):
             name = info['name']
@@ -612,7 +612,7 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
         wavelet_file.write(string(name, channel, error_norm, file['wavelet_weight']))
         if file['file']:
             start = file['start_signal']
-            stream = read(file['file'])
+            stream = read(file['file'], format='SAC')
             waveform = stream[0].data[start:]
             if zero_start:
                 stream[0].data = stream[0].data - waveform[0]
@@ -621,6 +621,7 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
             waveform = np.diff(waveform) if derivative else waveform
         else:
             waveform = [0 for i in range(ffm_duration)]
+            del stream
         write_observed_file(file, dt, obse_file, waveform, dart=dart)
     return
 
@@ -646,8 +647,8 @@ def write_observed_file(file, dt, data_file, waveform, dart=False):
     trace = ['{}\n'.format(val) for val in waveform]
     trace = ''.join(trace)
     data_file.write(
-            'name: {}\nchannel: {}\ndt: {}\nlength: {}\nffm_duration: {}\n'\
-            'data: \n'.format(name, channel, dt, length, ffm_duration))
+        'name: {}\nchannel: {}\ndt: {}\nlength: {}\nffm_duration: {}\n'\
+        'data: \n'.format(name, channel, dt, length, ffm_duration))
     data_file.write(trace)
     return
 
@@ -668,8 +669,8 @@ def write_wavelet_freqs(dt, name):
         for j in range(1, 9):
             min_freq = float(2**j) / float(3 * 2**10 * dt)
             outfile.write(
-                    'j :{}\nFrequency range for these wavelet coefficients is'\
-                    ': {:.4f} {:.4f} Hz\n'.format(j, min_freq, 4 * min_freq))
+                'j :{}\nFrequency range for these wavelet coefficients is'\
+                ': {:.4f} {:.4f} Hz\n'.format(j, min_freq, 4 * min_freq))
 
 
 def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
@@ -691,8 +692,8 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
     nyq = 0.5 / dt if not data_type == 'gps' else 10000
     if data_type == 'strong_motion':
         max_val = 0.1
-        syn_file = 'synm.str'
-        obser_file = 'Obser.str'
+        syn_file = 'synthetics_strong.txt'
+        obser_file = 'waveforms_strong.txt'
         std_shift = 2
         low_freq = filtro_strong['low_freq']
         high_freq = filtro_strong['high_freq']
@@ -702,8 +703,8 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
     if data_type == 'cgps':
         max_val = 0.1
         # dt = 1.0
-        syn_file = 'synm.cgps'
-        obser_file = 'Obser.cgps'
+        syn_file = 'synthetics_cgps.txt'
+        obser_file = 'waveforms_cgps.txt'
         std_shift = 0.5
         low_freq = 0
         high_freq = filtro_strong['high_freq']
@@ -712,8 +713,8 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
         orders = [4]
     if data_type == 'tele_body':
         max_val = 10#1
-        syn_file = 'synm.tele'
-        obser_file = 'Obser.tele'
+        syn_file = 'synthetics_body.txt'
+        obser_file = 'waveforms_body.txt'
         std_shift = 0.5
         high_freq = 1.0
         low_freq = filtro_strong['low_freq']
@@ -724,8 +725,8 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
     if data_type == 'surf_tele':
         max_val = 0.01#0.005
         # dt = 4.0
-        syn_file = 'synm.str_low'
-        obser_file = 'Obser.str_low'
+        syn_file = 'synthetics_surf.txt'
+        obser_file = 'waveforms_surf.txt'
         std_shift = 2
         low_freq = 0.004
         high_freq = 0.006
@@ -772,9 +773,9 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
                 write_observed_file(file, dt, outfile, waveform, dart=dart)
     else:
         names, lats, lons, observed, synthetic, error = get_outputs.retrieve_gps()
-        with open('Readlp.static', 'r') as infile:
+        with open('static_data.txt', 'r') as infile:
             orig_lines = [line.split() for line in infile]
-        with open('Readlp.static', 'w') as outfile:
+        with open('static_data.txt', 'w') as outfile:
             outfile.write('{}\n\n'.format(orig_lines[0][0]))
             for i, line in enumerate(orig_lines[2:]):
                 name = line[1]
@@ -818,7 +819,7 @@ def inputs_simmulated_annealing(dictionary, data_type):
 
     type_of_inversion = 1#dm.set_data_type(data_type)
 
-    with open('HEAT.IN', 'w') as filewrite:
+    with open('annealing.txt', 'w') as filewrite:
         filewrite.write('{} -7 {} {} 90\n'.format(
                 iters, type_of_inversion, moment_mag))
         filewrite.write('{} {} {} 0.1 {} {} {}\n'.format(initial_temp,
@@ -840,7 +841,7 @@ def model_space(segments):
         Shouldn't yet be used for several fault planes.
     """
 
-    with open('bound.in', 'w') as filewrite:
+    with open('model_space.txt', 'w') as filewrite:
         filewrite.write('0\n')
         for i, segment in enumerate(segments):
             peak_upper_slip = segment['max_upper_slip']
@@ -865,11 +866,11 @@ def model_space(segments):
             filewrite.write('2.6 2.4 3\n')
             filewrite.write('5 8\n')
 
-    with open('continue', 'w') as file:
+    with open('regularization_borders.txt', 'w') as file:
         file.write('1\n' + '0 0\n' * 4)
-    with open('bound.special', 'w') as filewrite:
+    with open('special_model_space.txt', 'w') as filewrite:
         filewrite.write('0\n')
-    with open('continue.special', 'w') as file:
+    with open('special_regularization_borders.txt', 'w') as file:
         file.write('0\n')
     return
 
@@ -895,9 +896,9 @@ def write_green_file(green_dict, cgps=False):
     max_dist = green_dict['max_dist']
     location = green_dict['location']
     time_corr = green_dict['time_corr']
-    name = 'Green.in' if not cgps else 'Green_cgps.in'
+    name = 'Green_strong.txt' if not cgps else 'Green_cgps.txt'
     with open(name, 'w') as green_file:
-        green_file.write('vel_model\n{} {} 1\n{} {} 1\n'.format(
+        green_file.write('vel_model.txt\n{} {} 1\n{} {} 1\n'.format(
                 max_depth, min_depth, max_dist, min_dist))
         green_file.write('10 {} 50000 {}\n'.format(dt, time_corr))
         green_file.write(location)

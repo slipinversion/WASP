@@ -188,7 +188,7 @@ def plot_misfit(used_data_type, forward=False):
                     errno.ENOENT, os.strerror(errno.ENOENT), 'tele_waves.json')
         traces_info = json.load(open('tele_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.tele')
+                traces_info, syn_file='synthetics_body.txt')
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'tele_body',
@@ -199,7 +199,7 @@ def plot_misfit(used_data_type, forward=False):
                     errno.ENOENT, os.strerror(errno.ENOENT), 'surf_waves.json')
         traces_info = json.load(open('surf_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.str_low', margin=0)
+                traces_info, syn_file='synthetics_surf.txt', margin=0)
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'surf_tele',
@@ -211,7 +211,7 @@ def plot_misfit(used_data_type, forward=False):
                     'strong_motion_waves.json')
         traces_info = json.load(open('strong_motion_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.str')
+                traces_info, syn_file='synthetics_strong.txt')
         values = [['HLZ', 'HNZ'], ['HLE', 'HNE'], ['HLN', 'HNN']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'strong_motion',
@@ -222,7 +222,7 @@ def plot_misfit(used_data_type, forward=False):
                     errno.ENOENT, os.strerror(errno.ENOENT), 'cgps_waves.json')
         traces_info = json.load(open('cgps_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.cgps')
+                traces_info, syn_file='synthetics_cgps.txt')
         values = [['LXZ', 'LHZ', 'LYZ'], ['LXE', 'LHE', 'LYE'], ['LXN', 'LHN', 'LYN']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'cgps',
