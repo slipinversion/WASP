@@ -41,7 +41,7 @@ def load_ffm_model(segments_data, point_sources, option='Solucion.txt',
         trise = solution['trise']
         tfall = solution['tfall']
 
-    with open('Fault.time', 'r') as input_file:
+    with open('fault&rise_time.txt', 'r') as input_file:
         jk = [line.split() for line in input_file]
 
     faults_data = [index + 4 for index, (line0, line1)\
@@ -51,7 +51,7 @@ def load_ffm_model(segments_data, point_sources, option='Solucion.txt',
                in enumerate(zip(jk[3:-1], jk[4:])) if len(line0) >= 5\
                and len(line1) <= 3]
     headers = headers[:] + [len(jk)]
-    if option == 'Fault.time':
+    if option == 'fault&rise_time.txt':
         for segment, point_source_seg, start, end\
         in zip(segments, point_sources, faults_data, headers):
 #
