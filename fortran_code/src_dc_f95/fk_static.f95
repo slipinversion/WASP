@@ -75,7 +75,6 @@ contains
    subroutine sub_bs_dc(nx,x,t0,green,disp)
 !
    IMPLICIT NONE
-!   include 'omp_lib.h'
    integer stype,updn
    complex*16 :: ka(nlay),kb(nlay),att,w,w2
    logical dynamic, disp
@@ -244,7 +243,7 @@ contains
       k = omega*pmin + 0.5d0*dk
       n = (sqrt(kc+(pmax*omega)**2)-k)/dk                           ! kmax
       do i=1,n                                                      ! start k-loop
-         call kernel(k, u, ka, kb)
+         call kernel(k, u)!, ka, kb)
          do ix=1,nx
             z = k*x(ix)
             call besselFn(z, aj0,aj1,aj2)
