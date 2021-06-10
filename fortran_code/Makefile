@@ -1,51 +1,22 @@
-MY_BIN=.
-
-modules = constants.o modelling_inputs.o model_parameters.o wavelet_param.o wavelets.o get_stations_data.o retrieve_surf_gf.o rad_pattern.o geodesics.o rise_time.o retrieve_gf.o save_forward.o
-modules2 = $(modules) static_data.o misfit_eval.o regularization.o random_gen.o annealing.o
-
-#Linux
-#F95= ifort -shared-intel -mcmodel=large -O2 -assume byterecl -p#-p -132 -shared-intel
-#F77= ifort -O3 -132  -assume byterecl
-F95= gfortran -O3 -fno-range-check -mcmodel=medium -g #-mavx2 -Wall -ftree-loop-vectorize -ftree-loop-distribution#-fno-omit-frame-pointer -ffpe-trap=overflow,invalid#-ffpe-trap=overflow -funroll-loops -fcheck=all
-F77= gfortran -O1 -fno-range-check -mcmodel=large -g -fbacktrace
+all: finite_fault get_gf compute_gf clean
 
 
-all: run_forward run_modelling green_tele clean
+finite_fault: 
+	$(MAKE) -C bin_inversion_gfortran_f95
 
 
-run_forward: $(modules) static_data.o run_forward.o
-	$(F95) -o run_forward $(modules) static_data.o run_forward.o
-
-run_modelling: $(modules2) run_modelling.o
-	$(F95) -o run_modelling -fopenmp $(modules2) run_modelling.o #-fopenmp
-
-green_tele: bpfilter.o ddis.o green_tele.o
-	$(F77) -o green_tele bpfilter.o ddis.o green_tele.o
+get_gf: 
+	$(MAKE) -C bin_str_f95
 
 
-annealing.mod: annealing.o annealing.f95
-	$(F95) -fopenmp -c annealing.f95 #-fopenmp
-
-%.mod: %.o %.f95
-	$(F95) -c $<
+compute_gf: 
+	$(MAKE) -C src_dc_f95
 
 
-bpfilter.o : bpfilter.f
-	$(F77) -c bpfilter.f
-
-green_tele.o : green_tele.f
-	$(F77) -c green_tele.f
-
-ddis.o : ddis.f
-	$(F77) -c ddis.f
-
-annealing.o: annealing.f95
-	$(F95) -fopenmp -c annealing.f95 #-fopenmp
-
-%.o: %.f95
-	$(F95) -c $<
-
- 
 clean:
-	\rm -f *.o
-	\rm -f *.mod
+	\rm -f bin_inversion_gfortran_f95/*.o
+	\rm -f bin_inversion_gfortran_f95/*.mod
+	\rm -f bin_str_f95/*.o
+	\rm -f bin_str_f95/*.mod
+	\rm -f src_dc_f95/*.o
+	\rm -f src_dc_f95/*.mod
