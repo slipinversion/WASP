@@ -78,7 +78,7 @@ contains
    complex fre(wave_pts2)
    complex cc
 
-   lcc = 2**(lnpt-1)
+   lcc = nlen/2!2**(lnpt-1)
    lb = lcc-1
    lcc = lcc+1
    do i = 1, lb
@@ -129,9 +129,9 @@ contains
    real wkr, wki, qr, qi, holdr, holdi, flx
    LX = 2**N
    FLX = real(LX)
+   NB = 1
+   LB = LX
    DO L = 1, N
-      NB = 2**(L-1)
-      LB = LX/NB
       LBH = LB/2
       DO IB = 1, NB           ! 2 ** (l-1) operaciones
          WKR = cos_fft(ib)
@@ -147,6 +147,8 @@ contains
             XI(J) = (XI(J)+QI)
          end do
       end do
+      NB = 2*NB
+      LB = LB / 2
    end do
    K = 0
    DO J = 1, LX
@@ -178,9 +180,9 @@ contains
    integer k, ib, nb, lx, l, lb, lbh, ist, jh, j1, j
    real wkr, wki, qr, qi, holdr
    LX = 2**N
+   NB = 1
+   LB = LX
    DO L = 1, N
-      NB = 2**(L-1)
-      LB = LX/NB
       LBH = LB/2
       DO IB = 1, NB           ! 2 ** n operations
          WKR = cos_fft(ib)
@@ -196,6 +198,8 @@ contains
             XI(J) = XI(J)+QI
          ENDDO
       ENDDO
+      NB = 2*NB
+      LB = LB / 2
    ENDDO
    K = 0
    DO J = 1, LX
