@@ -63,6 +63,9 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     time2 = time.time() - time2
     logger.info('Time spent processing traces: {}'.format(time2))
     os.chdir(sol_folder)
+    data_folder = os.path.join(sol_folder, 'data')
+    dm.filling_data_dicts(tensor_info, data_type, data_prop, data_folder)
+    writing_inputs0(tensor_info, data_type)
     logger.info('Compute GF bank')
     if not velmodel:
         velmodel = mv.select_velmodel(tensor_info, default_dirs)
@@ -94,6 +97,13 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
             'cgps_gf.json',
             'sampling_filter.json'
     ]
+    files2 = glob.glob('channels_*txt')
+    files3 = glob.glob('wavelets_*txt')
+    files4 = glob.glob('waveforms_*txt')
+    files5 = glob.glob('*waves.json')
+    files6 = glob.glob('static*')
+    files7 = glob.glob('filtro*')
+    files = files + files2 + files3 + files4 + files5 + files6 + files7
     folders = ['NP1', 'NP2']
     for folder in folders:
         for file in files:
@@ -253,6 +263,7 @@ def manual_modelling(tensor_info, data_type, default_dirs):
     logger.info('Write input files')
     tensor.write_tensor(tensor_info)
     writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel)
+    writing_inputs0(tensor_info, data_type, segments_data, min_vel, max_vel)
     inversion(tensor_info, data_type, default_dirs, logger)
     logger.info('Plot data in folder {}'.format(os.getcwd()))
     execute_plot(tensor_info, data_type, segments_data, default_dirs)
@@ -470,6 +481,27 @@ def processing(tensor_info, data_type, data_prop, st_response=True):
         proc.select_process_cgps(cgps_files, tensor_info, data_prop)
 
 
+def writing_inputs0(tensor_info, data_type):
+    """
+    """
+    if not os.path.isfile('sampling_filter.json'):
+        raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), 'sampling_filter.json')
+    data_prop = json.load(open('sampling_filter.json'))
+    if 'tele_body' in data_type:            
+        input_files.input_chen_tele_body(tensor_info, data_prop)
+    if 'surf_tele' in data_type:
+        input_files.input_chen_tele_surf(tensor_info, data_prop)
+    if 'strong_motion' in data_type:
+        input_files.input_chen_strong_motion(tensor_info, data_prop)
+    if 'cgps' in data_type:
+        input_files.input_chen_cgps(tensor_info, data_prop)
+    if 'gps' in data_type:
+        input_files.input_chen_static(tensor_info)
+    if 'dart' in data_type:
+        input_files.input_chen_dart(tensor_info, data_prop)
+
+
 def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
                    moment_mag=None, forward_model=None):
     """Write all required text files from the information found in the JSONs.
@@ -496,22 +528,22 @@ def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
     if forward_model:
         input_files.forward_model(tensor_info, segments_data, forward_model,
                                   min_vel, max_vel)
-    if not os.path.isfile('sampling_filter.json'):
-        raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), 'sampling_filter.json')
-    data_prop = json.load(open('sampling_filter.json'))
-    if 'tele_body' in data_type:            
-        input_files.input_chen_tele_body(tensor_info, data_prop)
-    if 'surf_tele' in data_type:
-        input_files.input_chen_tele_surf(tensor_info, data_prop)
-    if 'strong_motion' in data_type:
-        input_files.input_chen_strong_motion(tensor_info, data_prop)
-    if 'cgps' in data_type:
-        input_files.input_chen_cgps(tensor_info, data_prop)
-    if 'gps' in data_type:
-        input_files.input_chen_static(tensor_info)
-    if 'dart' in data_type:
-        input_files.input_chen_dart(tensor_info, data_prop)
+    # if not os.path.isfile('sampling_filter.json'):
+    #     raise FileNotFoundError(
+    #             errno.ENOENT, os.strerror(errno.ENOENT), 'sampling_filter.json')
+    # data_prop = json.load(open('sampling_filter.json'))
+    # if 'tele_body' in data_type:            
+    #     input_files.input_chen_tele_body(tensor_info, data_prop)
+    # if 'surf_tele' in data_type:
+    #     input_files.input_chen_tele_surf(tensor_info, data_prop)
+    # if 'strong_motion' in data_type:
+    #     input_files.input_chen_strong_motion(tensor_info, data_prop)
+    # if 'cgps' in data_type:
+    #     input_files.input_chen_cgps(tensor_info, data_prop)
+    # if 'gps' in data_type:
+    #     input_files.input_chen_static(tensor_info)
+    # if 'dart' in data_type:
+    #     input_files.input_chen_dart(tensor_info, data_prop)
     if not os.path.isfile('annealing_prop.json'):
         raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), 'annealing_prop.json')

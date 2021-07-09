@@ -611,17 +611,23 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
             error_norm = '3 ' * (5 - n_begin) + '4 ' * (n_end - 5) + '4\n'
         wavelet_file.write(string(name, channel, error_norm, file['wavelet_weight']))
         if file['file']:
+            # print(file['file'], os.getcwd())
             start = file['start_signal']
-            stream = read(file['file'], format='SAC')
-            waveform = stream[0].data[start:]
-            if zero_start:
-                stream[0].data = stream[0].data - waveform[0]
-                stream.write(file['file'], format='SAC', byteorder=0)
-                waveform = waveform - waveform[0]
-            waveform = np.diff(waveform) if derivative else waveform
+            try:
+                stream = read(file['file'], format='SAC')
+                waveform = stream[0].data[start:]
+                if zero_start:
+                    stream[0].data = stream[0].data - waveform[0]
+                    stream.write(file['file'], format='SAC', byteorder=0)
+                    waveform = waveform - waveform[0]
+                waveform = np.diff(waveform) if derivative else waveform
+                del stream
+            except IndexError:
+                print('Obspy bug when reading the file {}. '\
+                      'Waveform set to zero'.format(file['file']))
+                waveform = [0 for i in range(ffm_duration)]
         else:
             waveform = [0 for i in range(ffm_duration)]
-            del stream
         write_observed_file(file, dt, obse_file, waveform, dart=dart)
     return
 
