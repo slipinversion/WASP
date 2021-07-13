@@ -257,7 +257,7 @@ def __remove_response_body(used_tele_sacs, response_files, tensor_info,
         pzfile_val = next(iter(pz_files))#
         if not os.path.isfile(pzfile_val):
             continue
-        paz_dict, is_paz = __read_paz(pzfile2)
+        paz_dict, is_paz = __read_paz(pzfile_val)
         if not is_paz:
             if logger:
                 logger.warning(
@@ -525,7 +525,7 @@ def __remove_response_surf(used_tele_sacs, response_files, logger=None):
         pzfile_val = next(iter(pz_files))#
         if not os.path.isfile(pzfile_val):
             continue
-        paz_dict, is_paz = __read_paz(pzfile2)
+        paz_dict, is_paz = __read_paz(pzfile_val)
         if not is_paz:
             if logger:
                 logger.warning(
