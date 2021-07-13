@@ -103,7 +103,7 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     files5 = glob.glob('*waves.json')
     files6 = glob.glob('static*')
     files7 = glob.glob('filtro*')
-    files8 = ['instrumental_response', 'body_wave_weight']
+    files8 = ['instrumental_response.txt', 'body_wave_weight.txt']
     files = files + files2 + files3 + files4 + files5 + files6 + files7 + files8
     folders = ['NP1', 'NP2']
     for folder in folders:
