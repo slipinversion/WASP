@@ -212,7 +212,7 @@ def __remove_response_body(used_tele_sacs, response_files, tensor_info,
     string = ''.join(string)
     with open('response_file.txt', 'w') as resp_file:
         resp_file.write(string)
-    paz_dict2 = __read_paz('response_file.txt')
+    paz_dict2, is_paz = __read_paz('response_file.txt')
     filtro = data_prop['tele_filter']
     depth = tensor_info['depth']
     time_shift = tensor_info['time_shift']
