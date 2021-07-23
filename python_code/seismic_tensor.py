@@ -145,20 +145,29 @@ def read_quake_file(quake_file):
     mrp = int(next(child.text for child in MRP)) * 10 ** 7
     MTP = next(elem for elem in tensor.iter() if 'Mtp' in elem.tag)
     mtp = int(next(child.text for child in MTP)) * 10 ** 7
-    time_shift = next(elem.text for elem in tensor.iter() if 'riseTime' in elem.tag)
     M0 = next(elem for elem in tensor.iter() if 'scalarMoment' in elem.tag)
     m0 = float(next(child.text for child in M0)) * 10 ** 7
+    is_rise_time = False
+    for elem in tensor.iter():
+        if 'riseTime' in elem.tag:
+            is_rise_time = True
+            break
+    if is_rise_time:
+        time_shift = next(elem.text for elem in tensor.iter() if 'riseTime' in elem.tag)
+    else:
+        time_shift = 5
     half_duration = 1.2 * 10**-8 * m0**(1/3)
 
-    origins = [elem for elem in root.iter() if 'origin' in elem.tag]
+    origins = [elem for elem in root.iter() if 'origin' in elem.tag[-6:]]
     first_origin = []
     second_origin = []
-    for origin in origins:
+    for i, origin in enumerate(origins):
         values = ['depthType' in elem.tag for elem in origin.iter()]
-        if not any(values):
-            first_origin = origin
-        else:
-            second_origin = origin
+        if any(values):
+            if i == 0:
+                first_origin = origin
+            else:
+                second_origin = origin
 
     Event_Lat = next(elem for elem in first_origin.iter() if 'latitude' in elem.tag)
     event_lat = float(next(child.text for child in Event_Lat))

@@ -124,7 +124,7 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     os.chdir(os.path.join(data_folder, 'SH'))
     horizontal_sacs = glob.glob('*sac')
     __rotation(tensor_info, horizontal_sacs, logger=logger1)
-    
+
     logger1.info('Process body waves')
     os.chdir(data_folder)
     os.chdir(os.path.join(data_folder, 'P'))
@@ -212,14 +212,14 @@ def __remove_response_body(used_tele_sacs, response_files, tensor_info,
     string = ''.join(string)
     with open('response_file.txt', 'w') as resp_file:
         resp_file.write(string)
-    paz_dict2 = __read_paz('response_file.txt')
+    paz_dict2, is_paz = __read_paz('response_file.txt')
     filtro = data_prop['tele_filter']
     depth = tensor_info['depth']
     time_shift = tensor_info['time_shift']
     t_min = 120.0
     t_max = 400.0
     if depth < 300:
-        t_max = 240.0 if time_shift < 80 else 400.0 
+        t_max = 240.0 if time_shift < 80 else 400.0
     freq0 = filtro['freq0']
     freq1 = filtro['low_freq']
     freq2 = filtro['high_freq']
@@ -257,7 +257,13 @@ def __remove_response_body(used_tele_sacs, response_files, tensor_info,
         pzfile_val = next(iter(pz_files))#
         if not os.path.isfile(pzfile_val):
             continue
-        paz_dict = __read_paz(pzfile_val)
+        paz_dict, is_paz = __read_paz(pzfile_val)
+        if not is_paz:
+            if logger:
+                logger.warning(
+                    'PZ response unavailable at station {}, channel {}'.format(
+                        name, channel))
+            continue
 
         if full_signal:
             stream[0].detrend('linear')
@@ -279,89 +285,6 @@ def __remove_response_body(used_tele_sacs, response_files, tensor_info,
     return
 
 
-# def __remove_response_body_old(used_tele_sacs, response_files, tensor_info,
-#                            data_prop, logger=None):
-#     """We remove instrumental response for data, and replace it for a common
-#     instrumental response
-#     """
-#     string = [
-#         'ZEROS             2\n',
-#         '0.               0.\n',
-#         '0.               0.\n',
-#         'POLES             4\n',
-#         '-6.17E-03  6.17E-03\n',
-#         '-6.17E-03 -6.17E-03\n',
-#         '-39.18        49.12\n',
-#         '-39.18       -49.12\n',
-#         'CONSTANT         3948'
-#     ]
-#     string = ''.join(string)
-#     with open('response_file.txt', 'w') as resp_file:
-#         resp_file.write(string)
-#     filtro = data_prop['tele_filter']
-#     depth = tensor_info['depth']
-#     time_shift = tensor_info['time_shift']
-#     t_min = 120.0
-#     t_max = 400.0
-#     if depth < 300:
-#         t_max = 240.0 if time_shift < 80 else 400.0 
-#     freq0 = filtro['freq0']
-#     freq1 = filtro['low_freq']
-#     freq2 = filtro['high_freq']
-#     freq3 = filtro['freq3']
-# 
-#     sacheaders = [SACTrace.read(sac) for sac in used_tele_sacs]
-#     full_signal1 = lambda arrival, begin, end:\
-#         arrival - t_min >= begin and arrival + t_max <= end
-#     new_name = lambda station, channel, network:\
-#         os.path.join('{}.{}.{}.DIS'.format(station, channel, network))
-# 
-#     sac_files = []
-#     old_responses = []
-#     names = []
-# 
-#     for sacheader, sac in zip(sacheaders, used_tele_sacs):
-#         channel = sacheader.kcmpnm
-#         phase = 'P' if channel == 'BHZ' else 'SH'
-#         arrival = sacheader.t1 if channel == 'BHZ' else sacheader.t5
-#         begin = sacheader.b
-#         end = sacheader.e
-#         full_signal = full_signal1(arrival, begin, end)
-#         name = sacheader.kstnm
-#         network = sacheader.knetwk
-#         str_name = os.path.join(phase, new_name(network, name, channel))
-#         loc_code = sacheader.khole
-#         pz_files0 = [response for response in response_files\
-#                      if name in response and channel in response]
-#         if loc_code == '00':
-#             pz_files = [response for response in pz_files0 if '00' in response]
-#         if loc_code in [None, '']:
-#             pz_files = [response for response in pz_files0 if '--' in response]
-#             pz_files = pz_files +\
-#                 [response for response in pz_files0 if '__' in response]
-#         if not pz_files:
-#             continue
-#         pzfile_val = next(iter(pz_files))#
-#         if not os.path.isfile(pzfile_val):
-#             continue
-# 
-#         if full_signal:
-#             sac_files = sac_files + [sac]
-#             old_responses = old_responses + [pzfile_val]
-#             names = names + [str_name]
-# 
-#     pre_processing = 'rtr \ntaper \nhp c {} n 2 p 2 \n'.format(freq1)
-#     out, err = response.replace_response_sac(
-#         sac_files, old_responses, names, new_response='response_file',
-#         pre_processing=pre_processing, add_response=True, freq0=freq0,
-#         freq1=freq1, freq2=freq2, freq3=freq3)
-# 
-#     if logger:
-#         logger.debug(out.decode('utf-8'))
-#         if err: logger.warning(err.decode('utf-8'))
-#     return
-
-
 def __rotation(tensor_info, used_tele_sacs, logger=None):
     """We rotate horizontal body waves to match transverse and radial
     directions to the event.
@@ -373,10 +296,10 @@ def __rotation(tensor_info, used_tele_sacs, logger=None):
     streams = [read(sac) for sac in used_tele_sacs]
     stations = [st[0].stats.station for st in streams]
     stations = list(set(stations))
-    
+
     for sta in stations:
         streams2 = [st for st in streams if st[0].stats.station == sta]
-        
+
         streams_n1 = [st for st in streams2 if st[0].stats.channel[-1] in ['N', '1']]
         streams_e2 = [st for st in streams2 if st[0].stats.channel[-1] in ['E', '2']]
         if len(streams_n1) + len(streams_e2) < 2:
@@ -432,51 +355,6 @@ def __rotation(tensor_info, used_tele_sacs, logger=None):
         stream_transverse.write(transverse, format='SAC', byteorder = 0)
         stream_radial.write(radial, format='SAC', byteorder = 0)
     return
-
-
-# def __rotation_old(tensor_info, used_tele_sacs, logger=None):
-#     """We rotate horizontal body waves to match transverse and radial
-#     directions to the event.
-#     """
-#     input_sac = ''
-#     string = lambda x, y, z, w: '{}.{}.{}.{}'.format(x, y, z, w)
-#     
-#     headers = [SACTrace.read(sac) for sac in used_tele_sacs]
-#     stations = [header.kstnm for header in headers]
-#     stations = list(set(stations))
-# 
-#     for sta in stations:
-#         file1 = glob.glob('{}.BH[N1]*DIS'.format(sta))
-#         file2 = glob.glob('{}.BH[E2]*DIS'.format(sta))
-#         if file1 and file2:
-#             file1 = file1[0]
-#             head1 = SACTrace.read(file1)
-#             file2 = file2[0]
-#             head2 = SACTrace.read(file2)
-#             sta = head1.kstnm
-#             net = head1.knetwk
-#             transverse = string(sta, 'SH', net, 'DIS')
-#             radial = string(sta, 'RD', net, 'DIS')
-#             cmpaz1 = head1.cmpaz
-#             cmpaz2 = head2.cmpaz
-#             if np.remainder(abs(cmpaz1 - cmpaz2), 90.0) == 0:
-#                 east0 = head2.b
-#                 east1 = head2.e
-#                 north0 = head1.b
-#                 north1 = head1.e
-#                 begin = min(east0, north0) + 1
-#                 end = max(east1, north1) - 1
-#                 input_sac = '{}\ncut {} {} \n'.format(input_sac, begin, end)\
-#                             + 'r {} {} \n'.format(file1, file2)\
-#                             + 'rot \n write {} {}'.format(radial, transverse)
-# 
-#     input_sac = '{}\nquit\n'.format(input_sac)
-#     out, err = mng.run_sac(input_sac)
-#     
-#     if logger:
-#         logger.debug(out.decode('utf-8'))
-#         if err: logger.warning(err.decode('utf-8'))
-#     return
 
 
 def process_body_waves(tele_files, phase, data_prop, tensor_info):
@@ -613,53 +491,6 @@ def select_process_surf_tele(tele_files0, tensor_info):
     os.chdir(data_folder)
     ml.close_log(logger1)
     return
-    
-    
-# def __remove_response_surf_old(used_tele_sacs, response_files, logger=None):
-#     """We remove instrumental response for surface wave data.
-#     """
-#     sacheaders = [SACTrace.read(sac) for sac in used_tele_sacs]
-#     new_name = lambda station, channel, network:\
-#         os.path.join('{}.{}.{}.DIS'.format(station, channel, network))
-# 
-#     streams = [read(sac) for sac in used_tele_sacs]
-#     sac_files = []
-#     old_responses = []
-#     names = []
-# 
-#     for stream, sac in zip(streams, used_tele_sacs):
-#         name = stream[0].stats.station
-#         channel = stream[0].stats.channel
-#         loc_code = stream[0].stats.location
-#         pz_files0 = [response for response in response_files\
-#                      if name in response and channel in response]
-#         if loc_code == '00':
-#             pz_files = [response for response in pz_files0 if '00' in response]
-#         if loc_code in [None, '']:
-#             pz_files = [response for response in pz_files0 if '--' in response]
-#             pz_files = pz_files +\
-#                 [response for response in pz_files0 if '__' in response]
-#         if not pz_files:
-#             continue
-#         pzfile_val = next(iter(pz_files))
-#         if not os.path.isfile(pzfile_val):
-#             continue
-#         netwk = stream[0].stats.network
-#         str_name = os.path.join('LONG', new_name(name, channel, netwk))
-# 
-#         sac_files = sac_files + [sac]
-#         old_responses = old_responses + [pzfile_val]
-#         names = names + [str_name]
-# 
-#     pre_processing = 'dif \ntaper \nint \n'
-#     out, err = response.replace_response_sac(
-#         sac_files, old_responses, names, pre_processing=pre_processing,
-#         freq0=0.003, freq1=0.004, freq2=0.006, freq3=0.007)
-# 
-#     if logger:
-#         logger.debug(out.decode('utf-8'))
-#         if err: logger.warning(err.decode('utf-8'))
-#     return
 
 
 def __remove_response_surf(used_tele_sacs, response_files, logger=None):
@@ -679,7 +510,7 @@ def __remove_response_surf(used_tele_sacs, response_files, logger=None):
         starttime1 = stream[0].stats.starttime
         endtime1 = stream[0].stats.endtime
         diff1 = endtime1 - starttime1
-        if diff1 < 60 * 60:
+        if diff1 < 45 * 60:
             continue
         pz_files0 = [response for response in response_files\
                      if name in response and channel in response]
@@ -694,10 +525,16 @@ def __remove_response_surf(used_tele_sacs, response_files, logger=None):
         pzfile_val = next(iter(pz_files))#
         if not os.path.isfile(pzfile_val):
             continue
-        paz_dict = __read_paz(pzfile_val)
+        paz_dict, is_paz = __read_paz(pzfile_val)
+        if not is_paz:
+            if logger:
+                logger.warning(
+                    'PZ response unavailable at station {}, channel {}'.format(
+                        name, channel))
+            continue
         netwk = stream[0].stats.network
         str_name = os.path.join('LONG', new_name(netwk, name, channel))
-        
+
         stream[0].differentiate()
         stream[0].taper(max_percentage=0.05)
         stream[0].integrate()
@@ -1210,9 +1047,12 @@ def move_str_files(stations_str):
 def __read_paz(paz_file):
     """
     """
+    is_paz = True
     with open(paz_file, 'r') as infile:
         lines = [line.split() for line in infile]
     indexes = [i for i, line in enumerate(lines) if 'ZEROS' in line]
+    if len(indexes) == 0:
+        return None, False
     index = indexes[-1]
     lines2 = lines[index:]
     n_zeros = int(lines2[0][1])
@@ -1232,7 +1072,7 @@ def __read_paz(paz_file):
         'gain': gain,
         'sensitivity': 1
     }
-    return paz_dict
+    return paz_dict, is_paz
 
 
 def __remove_response_str(stations_str, response_files, logger=None):
@@ -1255,7 +1095,13 @@ def __remove_response_str(stations_str, response_files, logger=None):
             os.remove(sac)
             continue
 
-        paz_dict = __read_paz(pzfile2)
+        paz_dict, is_paz = __read_paz(pzfile2)
+        if not is_paz:
+            if logger:
+                logger.warning(
+                    'PZ response unavailable at station {}, channel {}'.format(
+                        name, channel))
+            continue
         st[0].simulate(paz_remove=paz_dict)
         st.write(sac, format='SAC', byteorder=0)
     return
@@ -1298,7 +1144,7 @@ def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
     pool.close()
     pool.join()
     strong_files2 = glob.glob('vel*')
-    
+
     _filter_decimate(strong_files2, filtro_strong, dt_strong)
     return
 

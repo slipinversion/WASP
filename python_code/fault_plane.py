@@ -670,11 +670,11 @@ def event_mult_in_to_json():
             stk_connect2 = int(lines[index0 + 5][0])
             dip_connect2 = int(lines[index0 + 5][1])
             dict2 = {
-                    'connect_subfault': [stk_connect2, dip_connect2],
-                    'neighbour': neighbour,
-                    'neighbour_connect_subfault': [stk_connect, dip_connect]
+                'connect_subfault': [stk_connect2, dip_connect2],
+                'neighbour': neighbour,
+                'neighbour_connect_subfault': [stk_connect, dip_connect]
             }
-            dict1['neighbours'] = dict2
+            dict1['neighbours'] = [dict2]
             index0 = index0 + 6
         segments = segments + [dict1]
     dict3 = {

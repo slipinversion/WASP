@@ -44,9 +44,9 @@ contains
 !
 ! c1 = wave(pi2, 2), c2 = wave(pi, 2).
 !
-   u(1) = 2.0*real(fre(2)*c1)
-   u(2) = 2.0*real(fre(2)*c2+fre(3)*c1)
-   u(3) = 2.0*real(-fre(2)*c2+fre(3)*c1)
+   u(1) = real(fre(2)*c1)
+   u(2) = real(fre(2)*c2+fre(3)*c1)
+   u(3) = real(-fre(2)*c2+fre(3)*c1)
    j = max(3, jmin) - 1
    kmax = 2 ** (j-1)
    do j = max(3, jmin), jmax
@@ -59,7 +59,7 @@ contains
       lcc = j-1
       call cifft(cr, cz, Lcc)
       do k = 1, kmax
-         u(kmax+k-1) = 2.0*cr(k)
+         u(kmax+k-1) = cr(k)
       end do
    end do
    end subroutine wavelet_obs
@@ -78,7 +78,7 @@ contains
    complex fre(wave_pts2)
    complex cc
 
-   lcc = 2**(lnpt-1)
+   lcc = nlen/2!2**(lnpt-1)
    lb = lcc-1
    lcc = lcc+1
    do i = 1, lb
@@ -94,9 +94,9 @@ contains
 !
 ! c1 = wave(pi2, 2), c2 = wave(pi, 2).
 !
-   u(1) = 2.0*real(fre(2)*c1)
-   u(2) = 2.0*real(fre(2)*c2+fre(3)*c1)
-   u(3) = 2.0*real(-fre(2)*c2+fre(3)*c1)
+   u(1) = real(fre(2)*c1)
+   u(2) = real(fre(2)*c2+fre(3)*c1)
+   u(3) = real(-fre(2)*c2+fre(3)*c1)
         
    j = max(3, jmin) - 1
    kmax = 2 ** (j-1)
@@ -110,7 +110,7 @@ contains
       lcc = j-1
       call cifft(cr, cz, Lcc)
       do k = 1, kmax
-         u(kmax+k-1) = 2.0*cr(k)
+         u(kmax+k-1) = cr(k)
       end do
    end do
 
@@ -129,9 +129,9 @@ contains
    real wkr, wki, qr, qi, holdr, holdi, flx
    LX = 2**N
    FLX = real(LX)
+   NB = 1
+   LB = LX
    DO L = 1, N
-      NB = 2**(L-1)
-      LB = LX/NB
       LBH = LB/2
       DO IB = 1, NB           ! 2 ** (l-1) operaciones
          WKR = cos_fft(ib)
@@ -147,6 +147,8 @@ contains
             XI(J) = (XI(J)+QI)
          end do
       end do
+      NB = 2*NB
+      LB = LB / 2
    end do
    K = 0
    DO J = 1, LX
@@ -178,9 +180,9 @@ contains
    integer k, ib, nb, lx, l, lb, lbh, ist, jh, j1, j
    real wkr, wki, qr, qi, holdr
    LX = 2**N
+   NB = 1
+   LB = LX
    DO L = 1, N
-      NB = 2**(L-1)
-      LB = LX/NB
       LBH = LB/2
       DO IB = 1, NB           ! 2 ** n operations
          WKR = cos_fft(ib)
@@ -196,6 +198,8 @@ contains
             XI(J) = XI(J)+QI
          ENDDO
       ENDDO
+      NB = 2*NB
+      LB = LB / 2
    ENDDO
    K = 0
    DO J = 1, LX
@@ -251,8 +255,8 @@ contains
    implicit none
    real*8 :: omega1, omega2
    integer j, is, kmax
-   c1 = wave(twopi, 2)
-   c2 = wave(pi, 2)
+   c1 = 2.*wave(twopi, 2)
+   c2 = 2.*wave(pi, 2)
 !
 !       Create the coefficients of Mayer wavelet function
 !       so it should be called before any further application.
@@ -262,8 +266,8 @@ contains
       do is = 1, kmax
          omega1 = twopi*(is-1)/(kmax)
          omega2 = omega1+twopi
-         rwt1(is, j) = wave(omega1, 2)
-         rwt2(is, j) = wave(omega2, 2)
+         rwt1(is, j) = 2.*wave(omega1, 2)
+         rwt2(is, j) = 2.*wave(omega2, 2)
       end do
    end do
    end subroutine meyer_yamada

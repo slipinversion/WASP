@@ -6,7 +6,7 @@ modules2 = $(modules) static_data.o misfit_eval.o regularization.o random_gen.o 
 #Linux
 #F95= ifort -shared-intel -mcmodel=large -O2 -assume byterecl -p#-p -132 -shared-intel
 #F77= ifort -O3 -132  -assume byterecl
-F95= gfortran -O3 -fno-range-check -mcmodel=medium -g -mavx2 -Wall# -ftree-loop-vectorize -ftree-loop-distribution#-fno-omit-frame-pointer -ffpe-trap=overflow,invalid#-ffpe-trap=overflow -funroll-loops -fcheck=all
+F95= gfortran -O3 -fno-range-check -mcmodel=medium -g #-mavx2 -Wall -ftree-loop-vectorize -ftree-loop-distribution#-fno-omit-frame-pointer -ffpe-trap=overflow,invalid#-ffpe-trap=overflow -funroll-loops -fcheck=all
 F77= gfortran -O1 -fno-range-check -mcmodel=large -g -fbacktrace
 
 

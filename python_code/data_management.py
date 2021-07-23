@@ -4,8 +4,8 @@ used in kinematic modelling, from the station and channel metadata stored in
 the files with the waveforms-
 
 .. warning::
-        
-    Currently, only waveform files in sac format are supported. 
+
+    Currently, only waveform files in sac format are supported.
 """
 
 
@@ -165,8 +165,8 @@ def tele_surf_traces(files, tensor_info, data_prop):
             info_traces, f, sort_keys=True, indent=4,
             separators=(',', ': '), ensure_ascii=False)
     return info_traces
-    
-    
+
+
 def strong_motion_traces(files, tensor_info, data_prop):
     """Write json dictionary with specified properties for strong motion data
 
@@ -213,7 +213,7 @@ def strong_motion_traces(files, tensor_info, data_prop):
             'HLE'
             ]
     }
-    
+
     info_traces = []
     outlier_traces = []
     headers = [SACTrace.read(file) for file in files]
@@ -222,7 +222,7 @@ def strong_motion_traces(files, tensor_info, data_prop):
     weights = [0 if header.kstnm in black_list\
         and header.kcmpnm in black_list[header.kstnm] else weight\
         for weight, header in zip(weights, headers)]
-    
+
     zipped = zip(files, headers, weights, streams, arrivals)
 
     for file, header, weight, stream, arrival in zipped:
@@ -303,7 +303,7 @@ def cgps_traces(files, tensor_info, data_prop):
     return info_traces
 
 
-def static_data(tensor_info, unit='cm'):
+def static_data(tensor_info, unit='m'):
     """Write json dictionary for static GPS data
 
     :param tensor_info: dictionary with moment tensor information
@@ -375,13 +375,13 @@ def static_data(tensor_info, unit='cm'):
             error = [0, 0, 0]
             variance = float(line[6]) * factor
             error[2] = variance
-            weights[2] = 1.0#max(0.1, 2 * norm.cdf(abs(observed[2]) / variance) - 1)
+            weights[2] = 1.0
             variance = float(line[7]) * factor
             error[1] = variance
-            weights[1] = 1.0#max(0.1, 2 * norm.cdf(abs(observed[1]) / variance) - 1)
+            weights[1] = 1.0
             variance = float(line[8]) * factor
             error[0] = variance
-            weights[0] = 0.5#max(0.1, 2 * norm.cdf(abs(observed[0]) / variance) - 1)
+            weights[0] = 0.5
             observed = [str(obs) for obs in observed]
             weights = [str(w) for w in weights]
             info = _dict_trace(
@@ -399,7 +399,7 @@ def static_data(tensor_info, unit='cm'):
 
 def select_tele_stations(files, phase, tensor_info):
     """We select body and/or surface waves to use in finite fault modelling.
-    
+
     :param files: list of used waveforms in sac format
     :param phase: string indicating whether wave is P or SH or Love or Rayleigh
     :type tensor_info: list
@@ -437,12 +437,12 @@ def select_tele_stations(files, phase, tensor_info):
     score = lambda x, y, z, y0, y1, z0:\
         x - (y - y0)*(y - y1)/((y - y0)**2.0 + (y - y1)**2.0)\
         + (z - z0)/(20 - z0)
-    
+
 # Limiting the number of data. Choose one station for every degree in
 # azimuth
 
     phase = 'LONG' if phase in ['Rayleigh', 'Love'] else phase
-    new_files = []   
+    new_files = []
     for az0 in range(0, 360, jump):
         az1 = az0 + jump
         best = ''
@@ -601,7 +601,7 @@ def filling_data_dicts(tensor_info, data_type, data_prop, data_folder):
         if not os.path.isfile('cgps_waves.json'):
             cgps_traces(cgps_data, tensor_info, data_prop)
     if 'gps' in data_type:
-        static_data(tensor_info, unit='cm')
+        static_data(tensor_info, unit='m')
 
 
 def get_traces_files(data_type):
