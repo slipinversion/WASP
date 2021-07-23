@@ -361,12 +361,12 @@ def __fault_plane_properties(eq_time, tensor_info, plane_info, water_level):
     delta_strike = max(size0, 1.0)
     delta_dip = max(size0, 1.0)
     stk_subfaults = int(min(int(max_length / delta_strike), 45))
-    if stk_subfaults % 2 is 0:
+    if stk_subfaults % 2 == 0:
         stk_subfaults = stk_subfaults + 1
     max_length = 1.2 * max_length
     delta_strike = max_length / stk_subfaults
     dip_subfaults = int(min(max(int(max_width / delta_dip), 3), 15))
-    if dip_subfaults % 2 is 0:
+    if dip_subfaults % 2 == 0:
         dip_subfaults = dip_subfaults + 1
     if dist_hypo_surface < delta_dip:
         delta_dip = max(max_width / dip_subfaults, 1.9 * dist_hypo_surface)
@@ -429,8 +429,8 @@ def _point_sources_def(rise_time_param, rupture_vel, fault_dimensions):
     strike_ps = int(delta_strike / delta) + 1
     dip_ps = min(int(delta_dip / delta) + 1, 17)
 
-    strike_ps = strike_ps + 1 if strike_ps % 2 is 0 else strike_ps
-    dip_ps = dip_ps + 1 if dip_ps % 2 is 0 else dip_ps
+    strike_ps = strike_ps + 1 if strike_ps % 2 == 0 else strike_ps
+    dip_ps = dip_ps + 1 if dip_ps % 2 == 0 else dip_ps
 #    strike_ps = strike_ps if finite_fault else 1
 #    dip_ps = dip_ps if finite_fault else 1
 
