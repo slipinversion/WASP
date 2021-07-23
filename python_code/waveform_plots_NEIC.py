@@ -119,16 +119,20 @@ def add_metadata(axes, **kwargs):
     """
     if 'type_str' in kwargs:
         if kwargs['type_str'] == 'cgps' or kwargs['type_str'] == 'strong_motion':
-            if 'names' in kwargs:
-                for ax, name in zip(axes, kwargs['names']):
-                    ax.text(-0.07, 0.50, name, ha='right', va='center', transform=ax.transAxes)
+#            if 'names' in kwargs:
+#                for ax, name in zip(axes, kwargs['names']):
+#                    ax.text(-0.07, 0.50, name, ha='right', va='center', transform=ax.transAxes)
             if 'distances' in kwargs:
                for ax, dist in zip(axes, kwargs['distances']):
                    ax.text(0.01, 0.46, '{:0.2f}'.format(dist), ha='left',
                            va='top', transform=ax.transAxes)
             if 'comps' in kwargs:
+               if 'names' in kwargs:
+                   for ax, comp, name in zip(axes, kwargs['comps'], kwargs['names']):
+                       if comp == 'HNE' or comp == 'LXE' or comp =='LYE':
+                           ax.text(-0.18, 0.5, name, ha='right', va='center', transform=ax.transAxes, rotation=90, fontweight='bold')
                for ax, comp in zip(axes, kwargs['comps']):
-                   ax.text(-0.07, 0.65, comp, ha='right', va='center', transform=ax.transAxes)
+                   ax.text(-0.13, 0.5, comp, ha='right', va='center', transform=ax.transAxes, rotation=90)
         else:
             if 'names' in kwargs:
                 for ax, name in zip(axes, kwargs['names']):
@@ -165,7 +169,7 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     if type_str == 'cgps' or type_str == 'strong_motion':
         files = [file for file in files]
         print('Creating Waveform Fit Plot: ' + str(type_str))
-    files = sorted(files, key=lambda k: k['azimuth'])
+    files = sorted(files, key=lambda k: (k['azimuth'], k['component']))
     sampling = [file['dt'] for file in files]
     names = [file['name'] for file in files]
     azimuths = [file['azimuth'] for file in files]

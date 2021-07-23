@@ -35,6 +35,8 @@ from waveform_plots_NEIC import plot_waveform_fits
 from plot_maps_NEIC import plot_map, set_map_cartopy
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
+from static2fsp import static_to_fsp
+
 """
 Set colorbar for slip
 """
@@ -169,7 +171,7 @@ def plot_misfit(used_data_type, forward=False):
 #        _plot_beachballs(tensor_info, segments, files=traces_info, phase='P')
 #        _plot_beachballs(tensor_info, segments, files=traces_info, phase='SH')
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.tele')
+                traces_info, syn_file='synthetics_body.txt')
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'tele_body',
@@ -180,7 +182,7 @@ def plot_misfit(used_data_type, forward=False):
                     errno.ENOENT, os.strerror(errno.ENOENT), 'surf_waves.json')
         traces_info = json.load(open('surf_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.str_low',margin=0)
+                traces_info, syn_file='synthetics_surf.txt',margin=0)
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(traces_info, components, 'surf_tele',
@@ -192,7 +194,7 @@ def plot_misfit(used_data_type, forward=False):
                     'strong_motion_waves.json')
         traces_info = json.load(open('strong_motion_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.str')#, observed=False)
+                traces_info, syn_file='synthetics_strong.txt')#, observed=False)
         values = [['HLZ', 'HNZ'], ['HLE', 'HNE'], ['HLN', 'HNN']]
         #for components in values:
         plot_waveform_fits(traces_info, values, 'strong_motion',
@@ -203,7 +205,7 @@ def plot_misfit(used_data_type, forward=False):
                     errno.ENOENT, os.strerror(errno.ENOENT), 'cgps_waves.json')
         traces_info = json.load(open('cgps_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synm.cgps')
+                traces_info, syn_file='synthetics_cgps.txt')
         values = [['LXZ', 'LHZ', 'LYZ'], ['LXE', 'LHE', 'LYE'], ['LXN', 'LHN', 'LYN']]
         #for components in values:
         plot_waveform_fits(traces_info, values, 'cgps',
@@ -388,7 +390,7 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False):
         contplot = ax.contour(XCOLS, YROWS, grid_rupttime_reshape, colors='0.75', linestyles='dashed', levels = range(10,500,10), linewidths=1.0)
         grid_z = griddata(orig_grid,z.flatten(),new_grid, method='linear')
         grid_z_reshape = grid_z.reshape((np.shape(XCOLS)))
-        ax.quiver(x, y, u, v, scale=15.0, width=0.002, color='0.5', clip_on=False)
+        ax.quiver(x, y, u, v, scale=20.0, width=0.001, color='0.5', clip_on=False)
         if i_segment == 0:
             ax.plot(0, 0, 'w*', ms=15, markeredgewidth=1.5, markeredgecolor='k')
         ax, im = __several_axes(
@@ -1124,8 +1126,8 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     plt.grid(which='major',linestyle='dotted', color='0.5')
     ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.2))
     ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
-    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(40))
-    ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(20))
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(10))
+    ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(5))
     ax.fill_between(time, rel_mr, color='0.9')
     ax.plot(time, rel_mr, 'k', lw=2)
     if mr_time == None:
@@ -1619,6 +1621,8 @@ if __name__ == '__main__':
                         help="Provide event ID")
     parser.add_argument("-d","--downloads",action="store_true",
                         help="create event page download files")
+    parser.add_argument("-pub","--publish",action="store_true",
+                        help="rename files for use with sendproduct")
     args = parser.parse_args()
     os.chdir(args.folder)
     used_data = []
@@ -1657,7 +1661,8 @@ if __name__ == '__main__':
             evID = None
         plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                      vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID)
-        
+        static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)        
+
     if args.shakemappolygon:
         if args.EventID:
             evID = args.EventID
@@ -1690,5 +1695,21 @@ if __name__ == '__main__':
             evID = None
        dwnlds.write_Coulomb_file(eventID=evID)
        dwnlds.write_Okada_displacements()
+       dwnlds.make_waveproperties_json()
+       #static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)
 
     plot_misfit(used_data)#, forward=True)
+
+    plot_files = glob.glob(os.path.join('plots', '*png'))
+    #for plot_file in plot_files:
+    #    os.remove(plot_file)
+    plot_files = glob.glob('*png')
+    for plot_file in plot_files:
+        move(plot_file, 'plots')
+
+    if args.publish:
+        if args.EventID:
+            evID = args.EventID
+            dwnlds.temporary_file_reorganization_for_publishing(evID=evID)
+        else:
+            print("This command cannot be run without an EventID. Rerun with '-ev EventID'")

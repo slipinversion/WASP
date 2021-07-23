@@ -60,8 +60,8 @@ def translate_xy_to_latlondep(segment, hyp_lon, hyp_lat, hyp_dep, eq_len_AS, eq_
     dip_azimuth = strk + 90.
     if dip_azimuth > 360.:
         dip_azimuth = dip_azimuth - 360.
-    lon0, lat0, _ = geod.fwd(hyp_lon, hyp_lat, dip_azimuth, left_edge_AD*1000.)
-    lon1, lat1, _ = geod.fwd(hyp_lon, hyp_lat, dip_azimuth, left_edge_AD*1000. + eq_len_AD*1000.)
+    lon0, lat0, _ = geod.fwd(hyp_lon, hyp_lat, dip_azimuth, np.cos(np.radians(dip))*(left_edge_AD*1000.))
+    lon1, lat1, _ = geod.fwd(hyp_lon, hyp_lat, dip_azimuth, np.cos(np.radians(dip))*(left_edge_AD*1000. + eq_len_AD*1000.))
     ### move along-dip to get corner locations ###
     lon_c1, lat_c1, _ = geod.fwd(lon0, lat0, strk, left_edge_AS*1000.)
     lon_c4, lat_c4, _ = geod.fwd(lon1, lat1, strk, left_edge_AS*1000.)

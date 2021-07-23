@@ -8,8 +8,119 @@ from numpy import arange, linspace, meshgrid, array, c_, deg2rad, sin, cos, zero
 from glob import glob
 import pyproj
 import os
+import shutil
 from okada_wrapper import dc3dwrapper
 import matplotlib.pyplot as plt
+import json
+from collections import Counter
+
+def temporary_file_reorganization_for_publishing(evID,directory=None):
+    print('Reassigning filenames for use with sendproduct')
+    if directory == None:
+        directory = os.getcwd()
+    pub_directory = os.path.join(directory, 'PublicationFiles')
+    if not os.path.exists(pub_directory):
+        os.makedirs(pub_directory)
+    ##################
+    ### PARAM FILE ###
+    ##################
+    orig_param = os.path.join(directory, 'Solucion.txt')
+    shutil.copy(orig_param, pub_directory)
+    mv_param = os.path.join(pub_directory, 'Solucion.txt')
+    pub_param = os.path.join(pub_directory, evID + '.param')
+    os.rename(mv_param, pub_param)
+    ################
+    ### FSP FILE ###
+    ################
+    orig_fsp = os.path.join(directory, 'fsp_sol_file.txt')
+    shutil.copy(orig_fsp, pub_directory)
+    mv_fsp = os.path.join(pub_directory, 'fsp_sol_file.txt')
+    pub_fsp = os.path.join(pub_directory, evID + '.fsp')
+    os.rename(mv_fsp, pub_fsp)
+    ########################
+    ### SHAKEMAP POLYGON ###
+    ########################
+    shutil.copy(os.path.join(directory, 'shakemap_polygon.txt'), pub_directory)
+    ###########################
+    ### SURFACE DEFORMATION ###
+    ###########################
+    shutil.copy(os.path.join(directory, 'surface_deformation.disp'), pub_directory)
+    #####################
+    ### COULOMB INPUT ###
+    #####################
+    shutil.copy(os.path.join(directory, 'Coulomb.inp'), pub_directory)
+    ####################
+    ### CMT SOLUTION ###
+    ####################
+    shutil.copy(os.path.join(directory, 'CMTSOLUTION'), pub_directory)
+    #######################
+    ### WAVE PROPERTIES ###
+    #######################
+    shutil.copy(os.path.join(directory, 'wave_properties.json'), pub_directory)
+    ###################
+    ### MOMENT RATE ###
+    ###################
+    orig_mr = os.path.join(directory, 'STF.txt')
+    shutil.copy(orig_mr, pub_directory)
+    mv_mr = os.path.join(pub_directory, 'STF.txt')
+    pub_mr = os.path.join(pub_directory, evID + '.mr')
+    os.rename(mv_mr, pub_mr)
+    orig_mr_png = os.path.join(directory, 'plots', 'MomentRate.png')
+    shutil.copy(orig_mr_png, pub_directory)
+    mv_mr_png = os.path.join(pub_directory, 'MomentRate.png')
+    pub_mr_png = os.path.join(pub_directory, 'mr.png')
+    os.rename(mv_mr_png, pub_mr_png)
+    ###########
+    ### MAP ###
+    ###########
+    orig_map = os.path.join(directory, 'plots', 'Map.png')
+    shutil.copy(orig_map, pub_directory)
+    mv_map = os.path.join(pub_directory, 'Map.png')
+    pub_map = os.path.join(pub_directory, evID + '_basemap.png')
+    os.rename(mv_map, pub_map)
+    ################################
+    ### SLIP DISTRIBUTION FIGURE ###
+    ################################
+    orig_slip = os.path.join(directory, 'plots', 'SlipDist_plane0.png')
+    shutil.copy(orig_slip, pub_directory)
+    mv_slip = os.path.join(pub_directory, 'SlipDist_plane0.png')
+    pub_slip = os.path.join(pub_directory, evID + '_slip2.png')
+    os.rename(mv_slip, pub_slip)
+    ######################
+    ### WAVEFORM PLOTS ###
+    ######################
+    wave_plots = glob(os.path.join(directory , 'plots') + '/*_waves.png')
+    wave_plots_pub_directory = os.path.join(pub_directory, 'waveplots')
+    if not os.path.exists(wave_plots_pub_directory):
+        os.makedirs(wave_plots_pub_directory)
+    for wp in range(len(wave_plots)):
+       orig_wp = wave_plots[wp]
+       shutil.copy(orig_wp, wave_plots_pub_directory)
+    shutil.make_archive(os.path.join(pub_directory, 'waveplots'), 'zip', os.path.join(pub_directory, wave_plots_pub_directory))
+
+def make_waveproperties_json(directory=None):
+    print('Counting Observations for Waveform Properties JSON')
+    if directory==None:
+        directory = os.getcwd()
+    #######################################################
+    ### READ IN NUMBER OF EACH OBS TYPE FROM WAVE JSONS ###
+    #######################################################
+    bodywave_channels = json.load(open(directory+'/tele_waves.json'))
+    bodywave_components = [bodywave_channel['component'] for bodywave_channel in bodywave_channels]
+    bodywave_count = Counter(bodywave_components)
+    num_pwaves = int(bodywave_count['BHZ'])
+    num_shwaves = int(bodywave_count['SH'])
+    surfwave_channels = json.load(open(directory+'/surf_waves.json'))
+    num_longwaves = int(len(surfwave_channels))
+    #############################################
+    ### WRITE RESULTS TO WAVE_PROPERTIES.JSON ###
+    #############################################
+    wp_json = open(directory+'/wave_properties.json', 'w')
+    wp_json.write('{\n')
+    wp_json.write('"num_longwaves": ' + str(num_longwaves) + ',\n')
+    wp_json.write('"num_pwaves": ' + str(num_pwaves) + ',\n')
+    wp_json.write('"num_shwaves": ' + str(num_shwaves) + '\n')
+    wp_json.write('}')
 
 def write_Okada_displacements(directory=None):
     print('Writing Okada Displacement File...')
@@ -21,7 +132,7 @@ def write_Okada_displacements(directory=None):
     #### FAULT INFORMATION ###
     ##########################
 
-    fsp = open(directory+'/fsp_sol_file','r')
+    fsp = open(directory+'/fsp_sol_file.txt','r')
     for line in fsp:
         if line.startswith('% Loc'):
             hypo_lat = float(line.split()[5])
@@ -237,7 +348,7 @@ def write_Coulomb_file(directory=None,eventID=None):
     ### GRAB RELEVANT SUBFAULT PARAMETER INFO FROM EVENT_MULT.IN, AND .FSP ###
     ##########################################################################
     
-    fsp = open(directory+'/fsp_sol_file','r')
+    fsp = open(directory+'/fsp_sol_file.txt','r')
     for line in fsp:
         if line.startswith('% Loc'):
             hypo_lat = float(line.split()[5])
