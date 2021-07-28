@@ -861,7 +861,6 @@ def _filter_decimate(sac_files, filtro, dt, corners=4, passes=2,
     for sac in sac_files:
         st = read(sac)
         if decimate:
-            # st[0].resample(sampling_rate=1/dt)
             st[0].interpolate(1/dt)
         delta = st[0].stats.delta
         nyq = 0.5 / delta
@@ -953,8 +952,8 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
     strong_files1 = glob.glob('acc*')
     if remove_response:
         logger1.info('Remove response for selected strong motion traces')
-        for file in response_files:
-            __convert_response_acc(file)
+        # for file in response_files:
+        #     __convert_response_acc(file)
         __remove_response_str(strong_files1, response_files, logger=logger1)
 
     logger1.info('Select strong motion traces')
@@ -1102,6 +1101,8 @@ def __remove_response_str(stations_str, response_files, logger=None):
                     'PZ response unavailable at station {}, channel {}'.format(
                         name, channel))
             continue
+        __convert_response_acc(pzfile2)
+        paz_dict, is_paz = __read_paz(pzfile2)
         st[0].simulate(paz_remove=paz_dict)
         st.write(sac, format='SAC', byteorder=0)
     return
@@ -1134,15 +1135,8 @@ def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
         sacheader.write(sac, byteorder='little')
 
     print('Baseline removal procedure')
-    cpus = 6#cpu_count()
-    lists = [strong_files[i:i + cpus] for i in range(0, len(strong_files), cpus)]
-    pool = Pool(cpus)
-    results = [
-        pool.apply_async(__worker, args=(sta_list, ))\
-        for sta_list in lists]
-    [result.get() for result in results]
-    pool.close()
-    pool.join()
+    with Pool(processes=6) as pool:
+        results = pool.map(__worker, [[str_file] for str_file in strong_files])
     strong_files2 = glob.glob('vel*')
 
     _filter_decimate(strong_files2, filtro_strong, dt_strong)

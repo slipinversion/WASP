@@ -11,6 +11,8 @@ Created on Thu Jan 26 17:34:16 2017
 import time
 import queue
 import threading
+import seismic_tensor as tensor
+from obspy.core.utcdatetime import UTCDateTime
 from obspy.clients.fdsn import Client
 from obspy.clients.iris import Client as IRIS_Client
 from obspy.core.inventory.inventory import Inventory
@@ -21,7 +23,7 @@ def acquisition(event_time, lat_ep, lon_ep, depth, data_to_use, eew=False):
     """
     """
     t1 = event_time - 3 * 60
-    t2 = event_time + 81 * 60
+    t2 = event_time + 67 * 60
     t3 = event_time - 60 if not eew else event_time - 5 * 60
     t4 = event_time + 5 * 60 if not eew else event_time + 140 * 60
     client_iris = Client("IRIS")
@@ -32,10 +34,13 @@ def acquisition(event_time, lat_ep, lon_ep, depth, data_to_use, eew=False):
     inventory = Inventory([], None)
     if 'strong' in data_to_use:
         networks = "C,C1,II,IU"
-        inventory = client_iris.get_stations(
-            starttime=event_time - 60, endtime=event_time + 5*60,
-            network=networks, channel="HN*", level="response",
-            maxradius=10, latitude=lat_ep, longitude=lon_ep)
+        try:
+            inventory = client_iris.get_stations(
+                starttime=event_time - 60, endtime=event_time + 5*60,
+                network=networks, channel="HN*", level="response",
+                maxradius=10, latitude=lat_ep, longitude=lon_ep)
+        except Exception as e:
+            print(e)
         networks = "CX"
         try:
             inventory = inventory + client_gfz.get_stations(
@@ -53,9 +58,11 @@ def acquisition(event_time, lat_ep, lon_ep, depth, data_to_use, eew=False):
             starttime=event_time - 10*60, endtime=event_time + 120*60,
             network=networks, channel="BH*", level="response", minradius=30,
             maxradius=max_dist, latitude=lat_ep, longitude=lon_ep)
-    
-    cola_tr = queue.Queue()
-    cola_mt = queue.Queue()
+
+    cola = queue.Queue()
+    for i in range(10):
+        worker = threading.Thread(target=wrapper, args=(cola,), daemon=True)
+        worker.start()
     
     iris_client = IRIS_Client()
     for network in inventory_tele:
@@ -67,24 +74,17 @@ def acquisition(event_time, lat_ep, lon_ep, depth, data_to_use, eew=False):
                 channel = canal.code
                 sac_dict = __get_channel_information_manual(
                     canal, lat_ep, lon_ep, depth)
-                t_tr = threading.Thread(
-                    target=lambda q, a, b, c, d, e, f, g, h: q.put(
-                        worker2(a, b, c, d, e, f, g, h)),
-                    args = (cola_tr, client_iris, netwk, statn, loc_code,
-                            channel, sac_dict, t1, t2))
-                t_mt = threading.Thread(
-                    target=lambda q, a, b, c, d, e, f, g: q.put(
-                        worker3(a, b, c, d, e, f, g)),
-                    args = (cola_mt, iris_client, netwk, statn, loc_code,
-                            channel, t1, t2))
-                t_tr.daemon = True
-                t_tr.start()
-                t_mt.daemon = True
-                t_mt.start()
-    time.sleep(100)
-
-    cola_tr = queue.Queue()
-    cola_mt = queue.Queue()
+                cola.put([
+                    client_iris,
+                    iris_client,
+                    netwk, 
+                    statn, 
+                    loc_code, 
+                    canal,
+                    sac_dict,
+                    t1,
+                    t2,
+                    'teleseismic'])
 
     for network in inventory:
         netwk = network.code
@@ -97,31 +97,40 @@ def acquisition(event_time, lat_ep, lon_ep, depth, data_to_use, eew=False):
                 channel = canal.code
                 sac_dict = __get_channel_information_manual(
                     canal, lat_ep, lon_ep, depth)
-#                worker1(netwk, statn, loc_code, channel, sac_dict, t3, t4)
-#                worker4(canal, netwk, statn, loc_code, channel, t3, t4)
-                if not netwk=='CX':
-                    t_tr = threading.Thread(
-                        target=lambda q, a, b, c, d, e, f, g, h:\
-                            q.put(worker2(a, b, c, d, e, f, g, h)),
-                        args = (cola_tr, client_iris, netwk, statn,
-                                loc_code, channel, sac_dict, t3, t4))
-                else:
-                    t_tr = threading.Thread(
-                        target=lambda q, a, b, c, d, e, f, g, h:\
-                            q.put(worker2(a, b, c, d, e, f, g, h)),
-                        args = (cola_tr, client_gfz, netwk, statn,
-                                loc_code, channel, sac_dict, t3, t4))
-                t_mt = threading.Thread(
-                    target=lambda q, a, b, c, d, e, f, g:\
-                        q.put(worker4(a, b, c, d, e, f, g)),
-                    args = (cola_mt, canal, netwk, statn, loc_code,
-                            channel, t3, t4))
-                t_tr.daemon = True
-                t_tr.start()
-                t_mt.daemon = True
-                t_mt.start()
-    time.sleep(100)
+                new_client = client_iris if not netwk=='CX' else client_gfz
+                cola.put([
+                    new_client,
+                    iris_client,
+                    netwk, 
+                    statn, 
+                    loc_code, 
+                    canal,
+                    sac_dict,
+                    t1,
+                    t2,
+                    'strong_motion'])
+    cola.join()
+    time.sleep(5)
     return
+
+
+def wrapper(q):
+    """
+    """
+    while True:
+        try:
+            client1, client2, netwk, statn, loc_code, canal, sac_dict, t1,\
+            t2, data_type = q.get(timeout=3)  # or whatever
+        except Exception as e:
+            print(e)
+            return
+        channel = canal.code
+        worker2(client1, netwk, statn, loc_code, channel, sac_dict, t1, t2)
+        if data_type == 'teleseismic':
+            worker3(client2, netwk, statn, loc_code, channel, t1, t2)
+        else:
+            worker4(canal, netwk, statn, loc_code, channel, t1, t2)
+        q.task_done()
     
     
 def worker2(client, netwk, statn, loc_code, channel, sac_dict, time0, time1):
@@ -197,29 +206,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--folder", default=os.getcwd(),
                         help="folder where there are input files")
-    parser.add_argument("-o", "--option",
-                        choices=[
-                            'acquisition',
-                            'add_station',
-                            'safe_acquisition',
-                            'eew'
-                        ], required=True, help="which method to run")
-    parser.add_argument("-y", "--year", help="year of origin time")
-    parser.add_argument("-m", "--month", help="month of origin time")
-    parser.add_argument("-d", "--day", help="day of origin time")
-    parser.add_argument("-ho", "--hour", help="hour of origin time")
-    parser.add_argument("-mi", "--minute", help="minute of origin time")
-    parser.add_argument("-s", "--second", help="second of origin time")
-    parser.add_argument("--lat", help="latitude of hypocenter")
-    parser.add_argument("--lon", help="longitude of hypocenter")
+    parser.add_argument("-gcmt", "--gcmt_tensor",
+                        help="location of GCMT moment tensor file")
     args = parser.parse_args()
     os.chdir(args.folder)
-    if args.option == 'acquisition':
-        event_time = UTCDateTime(2015, 9, 16, 22, 54, 33)
-        lat_ep = -31
-        lon_ep = -71
-        depth = 25.0
-        timedelta = 81 * 60
-        time0 = time.time()
-        acquisition(event_time, lat_ep, lon_ep, depth, ['strong'])
-        print('time spent downloading metadata: ', time.time() - time0)
+    if args.gcmt_tensor:
+        cmt_file = args.gcmt_tensor
+        tensor_info = tensor.get_tensor(cmt_file=cmt_file)
+    else:
+        tensor_info = tensor.get_tensor()
+    event_time = tensor_info['datetime']
+    event_time = UTCDateTime(event_time)
+    lat_ep = tensor_info['lat']
+    lon_ep = tensor_info['lon']
+    depth = tensor_info['depth']
+    time0 = time.time()
+    acquisition(event_time, lat_ep, lon_ep, depth, ['strong', 'tele'])
+    print('time spent downloading metadata: ', time.time() - time0)

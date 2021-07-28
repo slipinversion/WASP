@@ -344,7 +344,7 @@ def __get_channel(channel):
     return channel
 
 
-def retrieve_gps(syn_name='synm.static'):
+def retrieve_gps(syn_name='static_synthetics.txt'):
     """Get inverted and observed GPS data with station location
 
     :param syn_name: name of data with synthetic GPS data

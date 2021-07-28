@@ -363,7 +363,7 @@ def static_data(tensor_info, unit='m'):
         with open('gps_data', 'r') as infile:
             lines = [line.split() for line in infile]
 
-        for line in lines[2:200]:
+        for line in lines[2:]:
             name = line[0]
             lon = float(line[1])
             lat = float(line[2])
@@ -389,6 +389,16 @@ def static_data(tensor_info, unit='m'):
                 [], [], observed_trace=observed, location=[lat, lon])
             info['data_error'] = error
             info_traces.append(info)
+
+    if len(info_traces) >= 250:
+        observed_data = [trace['observed'] for trace in info_traces]
+        observed_data = [[float(v) for v in obs] for obs in observed_data]
+        pgd = [np.max(obs) for obs in observed_data]
+        zipped = zip(info_traces, pgd)
+        new_zipped = sorted(zipped, key=lambda val: val[1], reverse=True)
+        info_traces = [a for a, b in new_zipped]
+        info_traces = info_traces[:250]
+
 
     with open('static_data.json', 'w') as f:
         json.dump(
