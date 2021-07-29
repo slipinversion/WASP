@@ -1153,7 +1153,7 @@ if __name__ == '__main__':
         _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
                  files_str=traces_info, stations_gps=stations_gps)
         input_model = load_ffm_model.load_ffm_model(
-            segments_data, point_sources, option='Fault.time')
+            segments_data, point_sources, option='fault&rise_time.txt')
         _PlotSlipDist_Compare(segments, point_sources, input_model, solution)
         _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
                            solution)

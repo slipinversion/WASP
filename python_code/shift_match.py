@@ -39,8 +39,8 @@ def shift_match(data_type, plot=False, method='full', zero_start=True):
         else 'cgps_shift'
     if not os.path.isdir(plot_folder):
         os.mkdir(plot_folder)
-    synthetics_file = 'synm.tele' if data_type == 'tele' else 'synm.str'\
-        if data_type == 'strong' else 'synm.str_low' if data_type == 'surf'\
+    synthetics_file = 'synthetics_body.txt' if data_type == 'tele' else 'synm.str'\
+        if data_type == 'strong' else 'synthetics_surf.txt' if data_type == 'surf'\
         else 'synm.cgps'
 
     dt = float(files[0]['dt'])
@@ -122,7 +122,8 @@ def shift_match_regional(data_type, plot=False, method='full', zero_start=True):
     plot_folder = 'strong_shift' if data_type == 'strong' else 'cgps_shift'
     if not os.path.isdir(plot_folder):
         os.mkdir(plot_folder)
-    synthetics_file = 'synm.str' if data_type == 'strong' else 'synm.cgps'
+    synthetics_file = 'synthetics_strong.txt'\
+    if data_type == 'strong' else 'synnthetics_cgps.txt'
 
     dt = float(files[0]['dt'])
     files = get_outputs.get_data_dict(files, syn_file=synthetics_file)
