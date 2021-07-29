@@ -142,8 +142,8 @@ contains
             end do
          end do
       end do
+      close(12)
    end do      
-   close(12)
    ll_out = ll_in+n_chan
    end subroutine get_strong_motion_gf
 
@@ -224,8 +224,8 @@ contains
             end do
          end do
       end do
+      close(12)
    end do
-   close(12)
    ll_out = ll_in+n_chan
    end subroutine get_cgps_gf
 
