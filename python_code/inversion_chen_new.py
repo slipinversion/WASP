@@ -264,7 +264,7 @@ def manual_modelling(tensor_info, data_type, default_dirs):
     logger.info('Write input files')
     tensor.write_tensor(tensor_info)
     writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel)
-    writing_inputs0(tensor_info, data_type, segments_data, min_vel, max_vel)
+    writing_inputs0(tensor_info, data_type)#, segments_data, min_vel, max_vel)
     inversion(tensor_info, data_type, default_dirs, logger)
     logger.info('Plot data in folder {}'.format(os.getcwd()))
     execute_plot(tensor_info, data_type, segments_data, default_dirs)
