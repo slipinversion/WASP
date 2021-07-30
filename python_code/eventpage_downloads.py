@@ -232,11 +232,13 @@ def write_Okada_displacements(directory=None):
             uy[k]=uy[k]+u[1]
             uz[k]=uz[k]+u[2]
             k+=1
-
     DISPout = open(directory+'/surface_deformation.disp','w')
     DISPout.write('#Longitude, Latitude, Elevation, Easting Displacement (m), Northing Displacement (m), Vertical Displacement (m)\n')
-    for ko in range(len(x)):
-        DISPout.write('%10.4f \t %10.4f \t %10.4f \t %10.4f \t %10.4f \t %10.4f \n' % (xLons[ko], xLats[ko], 0, ux[ko], uy[ko], uz[ko]))
+    ko=0
+    for klon in range(len(xLons)):
+        for klat in range(len(xLats)):
+            DISPout.write('%10.4f \t %10.4f \t %10.4f \t %10.4f \t %10.4f \t %10.4f \n' % (xLons[klon], xLats[klat], 0, ux[ko], uy[ko], uz[ko]))
+            ko+=1
     ############
     ### PLOT ###
     ###########
