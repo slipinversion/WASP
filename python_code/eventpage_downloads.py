@@ -48,7 +48,12 @@ def temporary_file_reorganization_for_publishing(evID,directory=None):
     #####################
     ### COULOMB INPUT ###
     #####################
-    shutil.copy(os.path.join(directory, 'Coulomb.inp'), pub_directory)
+    orig_coulomb = os.path.join(directory, 'Coulomb.inp')
+    shutil.copy(orig_coulomb, pub_directory)
+    mv_coulomb = os.path.join(pub_directory, 'Coulomb.inp')
+    pub_coulomb = os.path.join(pub_directory, evID + '_coulomb.inp')
+    os.rename(mv_coulomb, pub_coulomb)
+    #shutil.copy(os.path.join(directory, 'Coulomb.inp'), pub_directory)
     ####################
     ### CMT SOLUTION ###
     ####################
