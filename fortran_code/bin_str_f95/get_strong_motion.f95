@@ -23,7 +23,7 @@ program get_strong_motion
    real*8 :: dip, theta, az, baz, ang_d, coef_v(2,3), coef_r(2,5)
    real :: dep_p, dep_min, dep_max
    real :: lat_e, lon_e, dep_e
-   real :: fau_mod(7, max_stk_psources, max_dip_psources, max_stk_subfaults, max_dip_subfaults, max_seg)
+   real, allocatable :: fau_mod(:, :, :, :, :, :)
    real :: lat_sta, lon_sta, lat_p, lon_p
    real*8 :: azi(max_stk_psources2, max_dip_psources2), bazi(max_stk_psources2, max_dip_psources2)
    real*8 :: distances(max_stk_psources2, max_dip_psources2), dis
@@ -33,8 +33,8 @@ program get_strong_motion
    real*8 :: df, w
    real :: t1, real_dip(wave_pts2), imag_dip(wave_pts2), niu
    real :: real_stk(wave_pts2), imag_stk(wave_pts2)
-   real :: niu_fault(max_dip_psources, max_dip_subfaults, max_seg)
-   real :: depth_sources(max_dip_psources, max_dip_subfaults, max_seg)
+   real, allocatable :: niu_fault(:, :, :)
+   real, allocatable :: depth_sources(:, :, :)
    real :: low_freq, high_freq
    integer :: i, j, nsta
    integer :: ir_max, n_chan, ir, nx, ky, kx, LL, no
@@ -55,6 +55,10 @@ program get_strong_motion
    real :: c_depth
    logical :: disp
 
+   allocate(fau_mod(7, max_stk_psources, max_dip_psources, max_stk_subfaults, &
+          &  max_dip_subfaults, max_seg))
+   allocate(niu_fault(max_dip_psources, max_dip_subfaults, max_seg))
+   allocate(depth_sources(max_dip_psources, max_dip_subfaults, max_seg))
    call getarg(1, input)
    disp = (input.eq.'cgps')
    write(*,'(/A/)')'METHOD TO STORE NEAR-FIELD GF'
@@ -344,6 +348,9 @@ program get_strong_motion
    enddo
    close(12)
    call deallocate_gf()
+   deallocate(fau_mod)
+   deallocate(depth_sources)
+   deallocate(niu_fault)
 
    write(*,'(/A/)')'END METHOD TO STORE NEAR-FIELD GF'
 
