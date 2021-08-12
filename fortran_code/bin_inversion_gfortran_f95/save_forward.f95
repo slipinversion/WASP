@@ -70,10 +70,11 @@ contains
    &  cr(wave_pts2), cz(wave_pts2), r, time, a, b, ww, dt, rake2
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
-   complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
+   complex, allocatable :: source2(:, :, :)
 !   character(len=6) sta_name(max_stations)
    character(len=3) comp!component(max_stations), comp
 
+   allocate(source2(wave_pts, max_rise_time_range, max_rise_time_range))
    write(*,*)'Return strong motion synthetics from input kinematic model...'
    z0 = cmplx(0.0, 0.0)
    open(9,file='channels_strong.txt',status='old')
@@ -185,6 +186,7 @@ contains
    end do
    close(18)
    ll_out = ll_in+n_chan
+   deallocate(source2)
    end subroutine write_strong_motion_forward
    
    
@@ -197,10 +199,11 @@ contains
    &  b, ww, dt, rake2
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
-   complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
+   complex, allocatable :: source2(:, :, :)
 !   character(len=6) sta_name(max_stations)
    character(len=3) comp!component(max_stations), comp
 
+   allocate(source2(wave_pts, max_rise_time_range, max_rise_time_range))
    write(*,*)'Return cGPS synthetics from input kinematic model...'
    z0 = cmplx(0.0, 0.0)
    
@@ -287,6 +290,7 @@ contains
    end do   
    close(18)
    ll_out = ll_in+n_chan
+   deallocate(source2)
    end subroutine write_cgps_forward
 
 
@@ -300,8 +304,9 @@ contains
    &  dt, azim, w, cr(wave_pts2), cz(wave_pts2), sinal, cosal
    real*8 t1, t2, df
    complex ::  z, z0, forward(wave_pts)
-   complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
+   complex, allocatable :: source2(:, :, :)
 
+   allocate(source2(wave_pts, max_rise_time_range, max_rise_time_range))
    write(*,*)'Return body wave synthetics from input kinematic model...'
    open(9,file='channels_body.txt',status='old')
    read(9,*)
@@ -390,6 +395,7 @@ contains
 !
    close(18)
    ll_out = ll_in+nstaon
+   deallocate(source2)
    end subroutine write_body_waves_forward
 
 
@@ -405,8 +411,9 @@ contains
    real*8 t1, t2, df
 
    complex z0, forward(wave_pts2), z
-   complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
+   complex, allocatable :: source2(:, :, :)
 
+   allocate(source2(wave_pts, max_rise_time_range, max_rise_time_range))
    write(*,*)'Return long period surface wave synthetics from input kinematic model...'
    z0 = cmplx(0.0, 0.0)
 
@@ -496,6 +503,7 @@ contains
    close(18)
    ll_out = ll_in+n_chan
 
+   deallocate(source2)
    end subroutine write_surface_waves_forward
 
 
@@ -508,9 +516,10 @@ contains
    &  b, ww, dt, rake2
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
-   complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
+   complex, allocatable :: source2(:, :, :)
    character(len=3) comp!component(max_stations), comp
 
+   allocate(source2(wave_pts, max_rise_time_range, max_rise_time_range))
    z0 = cmplx(0.0, 0.0)
    
    open(9,file='Readlp.dart',status='old')
@@ -595,6 +604,7 @@ contains
    end do   
    close(18)
    ll_out = ll_in+n_chan
+   deallocate(source2)
    end subroutine write_dart_forward
 
 
