@@ -27,8 +27,8 @@ contains
    implicit none
    integer ll_in, ll_out
    logical :: strong, cgps, body, surf
-   real slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-   &  tr(max_subf, max_seg), tl(max_subf, max_seg), erm, ermin
+   real slip(:, :), rake(:, :), rupt_time(:, :), &
+   &  tr(:, :), tl(:, :), erm, ermin
    complex z0
 !
    write(*,*)'Return synthetics from input kinematic model...'
@@ -65,9 +65,10 @@ contains
    implicit none
    integer ll_in, ll_out, ll_g, isl, isr, ll, channel_max, &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys
-   real slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-   &  tr(max_subf, max_seg), tl(max_subf, max_seg), integral, &
-   &  cr(wave_pts2), cz(wave_pts2), r, t1, t2, time, a, b, ww, dt, rake2, df
+   real slip(:, :), rake(:, :), rupt_time(:, :), &
+   &  tr(:, :), tl(:, :), integral, &
+   &  cr(wave_pts2), cz(wave_pts2), r, time, a, b, ww, dt, rake2
+   real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
 !   character(len=6) sta_name(max_stations)
@@ -91,7 +92,7 @@ contains
 !   
    dt = dt_channel(ll_in + 1)
    jf = 2**(lnpt-1)+1
-   df = 1.0/(2**lnpt)/dt
+   df = 1.d0/(2**lnpt)/dt
   
    do isl = 1, msou
       do isr = 1, msou
@@ -191,9 +192,10 @@ contains
    implicit none
    integer ll_in, ll_out, ll_g, isl, isr, ll,  &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys, channel_max
-   real slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-   &  tr(max_subf, max_seg), tl(max_subf, max_seg), cr(wave_pts2), cz(wave_pts2), t1, t2, a, &
-   &  b, ww, dt, rake2, df
+   real slip(:, :), rake(:, :), rupt_time(:, :), &
+   &  tr(:, :), tl(:, :), cr(wave_pts2), cz(wave_pts2), a, &
+   &  b, ww, dt, rake2
+   real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
 !   character(len=6) sta_name(max_stations)
@@ -218,7 +220,7 @@ contains
 !     
    dt = dt_channel(ll_in + 1)
    jf = 2**(lnpt-1)+1
-   df = 1.0/(2**lnpt)/dt
+   df = 1.d0/(2**lnpt)/dt
    do isl = 1, msou
       do isr = 1, msou
          t1 = ta0+(isl-1)*dta
@@ -293,9 +295,10 @@ contains
    integer segmenteg, nstaon, channel, ll_g, k, &
    &  ll, segment, iys, jf, i, npxy, segment_subfault, ixs, isl, isr, nl, &
    &  ll_in, ll_out
-   real slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-   &  tr(max_subf, max_seg), tl(max_subf, max_seg), t1, t2, &
-   &  dt, df, azim, w, cr(wave_pts2), cz(wave_pts2), sinal, cosal
+   real slip(:, :), rake(:, :), rupt_time(:, :), &
+   &  tr(:, :), tl(:, :), &
+   &  dt, azim, w, cr(wave_pts2), cz(wave_pts2), sinal, cosal
+   real*8 t1, t2, df
    complex ::  z, z0, forward(wave_pts)
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
 
@@ -311,7 +314,7 @@ contains
 
    dt = dt_channel(ll_in + 1)
    jf = 2**(lnpt-1)+1
-   df = 1.0/(2**lnpt)/dt
+   df = 1.d0/(2**lnpt)/dt
    do isl = 1, msou
       do isr = 1, msou
          t1 = ta0+(isl-1)*dta
@@ -396,9 +399,10 @@ contains
    &  ll_g, isl, isr, ll, jf, i, k, segment_subfault, segment, channel, n_chan, &
    &  iys, ixs!, io_up(max_stations)
 
-   real slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-   &  tr(max_subf, max_seg), tl(max_subf, max_seg), &
-   &  cr(wave_pts2), cz(wave_pts2), t1, t2, a, b, ww, dt, rake2, df
+   real slip(:, :), rake(:, :), rupt_time(:, :), &
+   &  tr(:, :), tl(:, :), &
+   &  cr(wave_pts2), cz(wave_pts2), a, b, ww, dt, rake2
+   real*8 t1, t2, df
 
    complex z0, forward(wave_pts2), z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
@@ -422,7 +426,7 @@ contains
 !     
    dt = dt_channel(ll_in + 1)
    jf = 2**(lnpt-1)+1
-   df = 1.0/(2**lnpt)/4.0
+   df = 1.d0/(2**lnpt)/4.d0
    do isl = 1, msou
       do isr = 1, msou
          t1 = ta0+(isl-1)*dta
@@ -499,9 +503,10 @@ contains
    implicit none
    integer ll_in, ll_out, ll_g, isl, isr, ll, &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys, channel_max
-   real slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-   &  tr(max_subf, max_seg), tl(max_subf, max_seg), cr(wave_pts2), cz(wave_pts2), t1, t2, a, &
-   &  b, ww, dt, rake2, df
+   real slip(:, :), rake(:, :), rupt_time(:, :), &
+   &  tr(:, :), tl(:, :), cr(wave_pts2), cz(wave_pts2), a, &
+   &  b, ww, dt, rake2
+   real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
    character(len=3) comp!component(max_stations), comp
@@ -524,7 +529,7 @@ contains
 !     
    dt = dt_channel(ll_in + 1)
    jf = 2**(lnpt-2)+1
-   df = 1.0/(2**lnpt)/dt
+   df = 1.d0/(2**lnpt)/dt
    do isl = 1, msou
       do isr = 1, msou
          t1 = ta0+(isl-1)*dta

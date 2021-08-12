@@ -43,8 +43,7 @@ contains
    
    subroutine initial_model(slip, rake, rupt_time, t_rise, t_fall)
    implicit none
-   real :: slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-         & t_rise(max_subf, max_seg), t_fall(max_subf, max_seg)
+   real :: slip(:, :), rake(:, :), rupt_time(:, :), t_rise(:, :), t_fall(:, :)
    real :: x(max_subfaults2)
    integer :: nxy, i, segment, k, npa, etc
    npa = 0
@@ -83,13 +82,13 @@ contains
 
    subroutine print_summary(slip, rake, rupt_time, t_rise, t_fall, static, get_coeff)
    implicit none
-   real :: slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg)
-   real :: t_rise(max_subf, max_seg), t_fall(max_subf, max_seg)
+   real :: slip(:, :), rake(:, :), rupt_time(:, :)
+   real :: t_rise(:, :), t_fall(:, :)
    real amp, moment, derr, dt, er, er0, slip_reg, gps_misfit, &
       & time_reg, forward_real(wave_pts2, max_stations), a, b, &
       & forward_imag(wave_pts2, max_stations), cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2)
-   real :: ex, rake2, delta_freq, delta_freq0, moment0, kahan_y, kahan_t, kahan_c
-   real*8 :: omega, misfit2
+   real :: rake2, delta_freq, delta_freq0, moment0, kahan_y, kahan_t, kahan_c
+   real*8 :: omega, misfit2, ex
    integer :: i, segment, channel, isl, isr, ixs, iys, jf, k, subfault, subfault_seg 
    complex*16 :: z0, forward(wave_pts), z, z1
    logical :: static, get_coeff
@@ -219,7 +218,7 @@ contains
    write(*,*)'Amount of data values: ', used_data
    emin = er
    ermin = er
-   open(12,file='modelling_summary')
+   open(12,file='modelling_summary.txt')
    write(12,'(/A/)')'Modelling Report'
    write(12,*)'averaged misfit error', er0
    write(12,*)'moment error', derr
@@ -243,20 +242,21 @@ contains
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, iys, &
    & ixs, i_move, n_total
-   real slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-   & t_fall(max_subf, max_seg), t_rise(max_subf, max_seg), t, &
-   & forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), duse, ause, vuse, &
+   real slip(:, :), rake(:, :), rupt_time(:, :), &
+   & t_fall(:, :), t_rise(:, :), t, &
+   & duse, ause, vuse, forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), &
    & de, rand, c, aux, dpb, amp, derr, erm, gps_misfit, &
    & moment, d_sub, a_sub, slip_reg, a, b, moment0, &
    & time_reg, t_save, a_save, d_save, x, kahan_y, kahan_t, kahan_c, &
    & l_save, r_save, cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2), &
    & slip_beg, slip_max, slip_end, angle_beg, angle_end, angle_max, &
    & rupt_beg, rupt_end, rupt_max, rise_time_beg, rise_time_end, rise_time_max
-   real :: delta_freq0, delta_freq, rake2, ex
-   real*8 :: omega, misfit2
+   real*8 :: forward_real2(wave_pts, max_stations), forward_imag2(wave_pts, max_stations)
+   real :: delta_freq0, delta_freq, rake2!, ex!, misfit2
+   real*8 :: omega, misfit2, ex
    complex :: green_subf
    complex*16 :: z, z1, forward(wave_pts), z0
-!
+
    z0 = cmplx(0.d0, 0.d0, double)
    erm = 0.0
    gps_misfit = 0.0
@@ -296,8 +296,8 @@ contains
       end do
 
       do i = 1, wave_pts
-         forward_real(i, channel) = real(forward(i))
-         forward_imag(i, channel) = aimag(forward(i))
+         forward_real2(i, channel) = dble(forward(i))
+         forward_imag2(i, channel) = aimag(forward(i))
       end do
    end do
 
@@ -359,7 +359,6 @@ contains
       rake2 = rake(subfault_seg, segment)*dpi
       a = sin(rake2)*slip(subfault_seg, segment)
       b = cos(rake2)*slip(subfault_seg, segment)
-      a_sub = rake(subfault_seg, segment)
 !
 !  make up unchange graph
 !
@@ -374,12 +373,20 @@ contains
             green_subf = &
             & (a*green_dip(i, channel, subfault)+b*green_stk(i, channel, subfault))* &
             & source(i, channel, isl, isr)*z
-            forward_real(i, channel) = forward_real(i, channel)-real(green_subf)
-            forward_imag(i, channel) = forward_imag(i, channel)-aimag(green_subf)
+!            forward_real(i, channel) = forward_real(i, channel)-real(green_subf)
+!            forward_imag(i, channel) = forward_imag(i, channel)-aimag(green_subf)
+            forward_real2(i, channel) = forward_real2(i, channel)-real(green_subf)
+            forward_imag2(i, channel) = forward_imag2(i, channel)-aimag(green_subf)
+            forward_real(i, channel) = real(forward_real2(i, channel))
+            forward_imag(i, channel) = real(forward_imag2(i, channel))
             z = z*z1    ! we may need to increase numerical precision
          end do
       end do
-      moment0 = moment0-slip(subfault_seg, segment)*shear(subfault_seg, segment)
+!      moment0 = moment0-slip(subfault_seg, segment)*shear(subfault_seg, segment)
+      kahan_y = -slip(subfault_seg, segment)*shear(subfault_seg, segment)-kahan_c 
+      kahan_t = moment0+kahan_y
+      kahan_c = (kahan_t-moment0)-kahan_y
+      moment0 = kahan_t
 !  
       n_accept = 0
       npb = np(4*(subfault-1)+1)
@@ -543,11 +550,13 @@ contains
       b = cos(rake2)*slip(subfault_seg, segment)
       isl = int((t_rise(subfault_seg, segment)-ta0)/dta+0.5)+1
       isr = int((t_fall(subfault_seg, segment)-ta0)/dta+0.5)+1
-      moment0 = moment0+slip(subfault_seg, segment)*shear(subfault_seg, segment)
+      kahan_y = slip(subfault_seg, segment)*shear(subfault_seg, segment)-kahan_c 
+      kahan_t = moment0+kahan_y
+      kahan_c = (kahan_t-moment0)-kahan_y
+      moment0 = kahan_t
       d_sub = slip(subfault_seg, segment)
       a_sub = rake(subfault_seg, segment)
       call modify_slip_field(subfault, d_sub, a_sub)
-      call time_laplace(rupt_time, time_reg)
       do channel = 1, channels
          delta_freq = delta_freq0/dt_channel(channel)
          omega = -twopi*delta_freq*rupt_time(subfault_seg, segment)
@@ -558,8 +567,12 @@ contains
 !            z = cmplx(cos(omega), sin(omega))   
             green_subf = (a*green_dip(i, channel, subfault)+b*green_stk(i, channel, subfault)) &
             &   *source(i, channel, isl, isr)*z
-            forward_real(i, channel) = forward_real(i, channel)+real(green_subf)
-            forward_imag(i, channel) = forward_imag(i, channel)+aimag(green_subf)
+!            forward_real(i, channel) = forward_real(i, channel)+real(green_subf)
+!            forward_imag(i, channel) = forward_imag(i, channel)+aimag(green_subf)
+            forward_real2(i, channel) = forward_real2(i, channel)+real(green_subf)
+            forward_imag2(i, channel) = forward_imag2(i, channel)+aimag(green_subf)
+            forward_real(i, channel) = real(forward_real2(i, channel))
+            forward_imag(i, channel) = real(forward_imag2(i, channel))
             z = z*z1
          end do
       end do
@@ -574,8 +587,8 @@ contains
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, iys, &
    & ixs, i_move, n_total
-   real slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg), &
-   & t_fall(max_subf, max_seg), t_rise(max_subf, max_seg), t, &
+   real slip(:, :), rake(:, :), rupt_time(:, :), &
+   & t_fall(:, :), t_rise(:, :), t, &
    & forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), duse, ause, vuse, &
    & de, rand, c, aux, dpb, amp, derr, erm, gps_misfit, &
    & moment, d_sub, a_sub, slip_reg, a, b, kahan_y, kahan_c, kahan_t, &
@@ -583,14 +596,14 @@ contains
    & l_save, r_save, cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2), &
    & slip_beg, slip_max, slip_end, angle_beg, angle_end, angle_max, &
    & rupt_beg, rupt_end, rupt_max, rise_time_beg, rise_time_end, rise_time_max
-   real*8 :: omega, misfit2
-   real :: delta_freq, delta_freq0, rake2, ex
+   real*8 :: forward_real2(wave_pts, max_stations), forward_imag2(wave_pts, max_stations)
+   real*8 :: omega, misfit2, ex
+   real :: delta_freq, delta_freq0, rake2!, ex
    complex :: green_subf
    complex*16 :: z, z1, forward(wave_pts), z0
 !
    z0 = cmplx(0.d0, 0.d0, double)
    erm = 0.0
-!   forward2(:) = 0.0
 !
 !  ++++++++++++++++++++++++++++++++++++++++++++++++++++
 !  Here, we compute the value of the objective function, 
@@ -627,8 +640,8 @@ contains
       end do
 
       do i = 1, wave_pts
-         forward_real(i, channel) = real(forward(i))
-         forward_imag(i, channel) = aimag(forward(i))
+         forward_real2(i, channel) = dble(forward(i))
+         forward_imag2(i, channel) = aimag(forward(i))
       end do
    end do
    call static_synthetic(slip, rake, subfaults_segment, gps_misfit)
@@ -691,7 +704,6 @@ contains
       rake2 = rake(subfault_seg, segment)*dpi
       a = sin(rake2)*slip(subfault_seg, segment)
       b = cos(rake2)*slip(subfault_seg, segment)
-      a_sub = rake(subfault_seg, segment)
 !
 !  make up unchange graph
 !
@@ -706,13 +718,18 @@ contains
             green_subf = &
             &  (a*green_dip(i, channel, subfault)+b*green_stk(i, channel, subfault)) &
             &  *source(i, channel, isl, isr)*z
-            forward_real(i, channel) = forward_real(i, channel)-real(green_subf)
-            forward_imag(i, channel) = forward_imag(i, channel)-aimag(green_subf)
+            forward_real2(i, channel) = forward_real2(i, channel)-real(green_subf)
+            forward_imag2(i, channel) = forward_imag2(i, channel)-aimag(green_subf)
+            forward_real(i, channel) = real(forward_real2(i, channel))
+            forward_imag(i, channel) = real(forward_imag2(i, channel))
             z = z*z1    ! we may need to increase numerical precision
          end do
       end do
       call static_remove_subfault(slip, rake, segment, subfault_seg)
-      moment0 = moment0-slip(subfault_seg, segment)*shear(subfault_seg, segment)
+      kahan_y = -slip(subfault_seg, segment)*shear(subfault_seg, segment)-kahan_c 
+      kahan_t = moment0+kahan_y
+      kahan_c = (kahan_t-moment0)-kahan_y
+      moment0 = kahan_t
 !  
       n_accept = 0
       npb = np(4*(subfault-1)+1)
@@ -875,11 +892,14 @@ contains
       b = cos(rake2)*slip(subfault_seg, segment)
       isl = int((t_rise(subfault_seg, segment)-ta0)/dta+0.5)+1
       isr = int((t_fall(subfault_seg, segment)-ta0)/dta+0.5)+1
-      moment0 = moment0+slip(subfault_seg, segment)*shear(subfault_seg, segment)
+      kahan_y = slip(subfault_seg, segment)*shear(subfault_seg, segment)-kahan_c 
+      kahan_t = moment0+kahan_y
+      kahan_c = (kahan_t-moment0)-kahan_y
+      moment0 = kahan_t
       d_sub = slip(subfault_seg, segment)
       a_sub = rake(subfault_seg, segment)
       call modify_slip_field(subfault, d_sub, a_sub)
-      call time_laplace(rupt_time, time_reg)
+!      call time_laplace(rupt_time, time_reg)
       do channel = 1, channels
          delta_freq = delta_freq0/dt_channel(channel)
          omega = -twopi*delta_freq*rupt_time(subfault_seg, segment)
@@ -890,8 +910,10 @@ contains
 !            z = cmplx(cos(omega), sin(omega))   
             green_subf = (a*green_dip(i, channel, subfault)+b*green_stk(i, channel, subfault)) &
             &   *source(i, channel, isl, isr)*z
-            forward_real(i, channel) = forward_real(i, channel)+real(green_subf)
-            forward_imag(i, channel) = forward_imag(i, channel)+aimag(green_subf)
+            forward_real2(i, channel) = forward_real2(i, channel)+real(green_subf)
+            forward_imag2(i, channel) = forward_imag2(i, channel)+aimag(green_subf)
+            forward_real(i, channel) = real(forward_real2(i, channel))
+            forward_imag(i, channel) = real(forward_imag2(i, channel))
             z = z*z1
          end do
       end do

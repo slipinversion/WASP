@@ -139,8 +139,8 @@ contains
 
 
    subroutine write_model(slip, rake, tt, tl, tr)
-   real :: slip(max_subf, max_seg), rake(max_subf, max_seg), tt(max_subf, max_seg)
-   real :: tl(max_subf, max_seg), tr(max_subf, max_seg)
+   real :: slip(:, :), rake(:, :), tt(:, :)
+   real :: tl(:, :), tr(:, :)
    real :: latitude_ep, longitude_ep, t_ref, moment_sol
    integer :: segment, iys, ixs, iy, ix, kp
    latitude_ep = 0.0
@@ -200,8 +200,8 @@ contains
             t_ref = point_sources(5, ix, iy, ixs, iys, segment)
             t_ref = min(t_ref, t_latest)
             moment_sol = slip(kp, segment) * shear(kp, segment) * dxs * dys * (10.0 ** 10.0)
-            write(13, 133) point_sources(1, ix, iy, ixs, iys, segment), &
-         &  point_sources(2, ix, iy, ixs, iys, segment), point_sources(3, ix, iy, ixs, iys, segment), &
+            write(13, 133) point_sources(1, 1, 1, ixs, iys, segment), &
+         &  point_sources(2, 1, 1, ixs, iys, segment), point_sources(3, 1, 1, ixs, iys, segment), &
          &  slip(kp, segment), rake(kp, segment), strike(segment), dip(segment), &
          &  tt(kp, segment) + t_ref, tl(kp, segment), tr(kp, segment), moment_sol
 133  format(f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, e14.6)
@@ -398,7 +398,7 @@ contains
    
    subroutine bbsort(a, mm, nn)
    implicit none
-   real :: a(*), d
+   real :: a(:), d
    integer :: mm, nn, m, j, i
    m = nn-mm+1
    do while (m .gt. 0)
@@ -422,7 +422,7 @@ contains
    subroutine get_special_boundaries()
    implicit none
    integer :: nm, nn, iss, ixs, iys, ll, segment, kxy
-   real :: dd(max_subf, max_seg), aa(max_subf, max_seg)
+!   real :: dd(max_subf, max_seg), aa(max_subf, max_seg)
 !
 !  special boundary
 !
@@ -439,9 +439,9 @@ contains
       np(4*(ll-1)+1) = 2
       dp(4*(ll-1)+1) = 10
       beg(4*(11-1)+1) = 1
-      dd(kxy, iss) = beg(4*(ll-1)+1)
+!      dd(kxy, iss) = beg(4*(ll-1)+1)
       np(4*(ll-1)+2) = 2
-      aa(kxy, iss) = beg(4*(ll-1)+2)
+!      aa(kxy, iss) = beg(4*(ll-1)+2)
       np(4*(ll-1)+3) = 2
       np(4*(ll-1)+4) = 2
    end do

@@ -6,7 +6,7 @@ module wavelets
    implicit none
    complex :: rwt1(wave_pts2, 12), rwt2(wave_pts2, 12), c1, c2
    integer :: kkk(4200, 15)
-   real :: cos_fft(4200), sin_fft(4200)!, 15), sin_fft(4200, 15)
+   real :: cos_fft(4200), sin_fft(4200)
 
 
 contains
@@ -23,7 +23,7 @@ contains
 ! computation time
 !
    real :: cr(wave_pts2), cz(wave_pts2), u(wave_pts2)
-   integer lcc, kmax, is, j, k, i
+   integer lcc, kmax, j, k, i
    
    complex fre(wave_pts2)
    complex cc
@@ -33,7 +33,6 @@ contains
       cz(i) = 0.0
    end do
    call cfft(cr, cz, lnpt)
-
    call realtr(cr, cz, lnpt)
    do j = 1, nlen
       fre(j) = cmplx(cr(j), cz(j))
@@ -47,14 +46,14 @@ contains
    u(1) = real(fre(2)*c1)
    u(2) = real(fre(2)*c2+fre(3)*c1)
    u(3) = real(-fre(2)*c2+fre(3)*c1)
-   j = max(3, jmin) - 1
-   kmax = 2 ** (j-1)
-   do j = max(3, jmin), jmax
+   
+   kmax = 2
+   do j=3, jmax
       kmax = 2*kmax
-      do is = 1, kmax
-         cc = fre(is)*rwt1(is, j)+fre(is+kmax)*rwt2(is, j)
-         cr(is) = real(cc)
-         cz(is) = aimag(cc)
+      do k = 1, kmax
+         cc = fre(k)*rwt1(k, j)+fre(k+kmax)*rwt2(k, j)
+         cr(k) = real(cc)
+         cz(k) = aimag(cc)
       end do
       lcc = j-1
       call cifft(cr, cz, Lcc)
@@ -73,7 +72,7 @@ contains
 !                         Jichen 1997, 1, 20
    real, intent(out) :: u(wave_pts2)
    real, intent(inout) :: cr(wave_pts2), cz(wave_pts2)
-   integer lcc, kmax, is, lb, i, i1, i2, j, k
+   integer lcc, kmax, lb, i, i1, i2, j, k
         
    complex fre(wave_pts2)
    complex cc
@@ -98,14 +97,13 @@ contains
    u(2) = real(fre(2)*c2+fre(3)*c1)
    u(3) = real(-fre(2)*c2+fre(3)*c1)
         
-   j = max(3, jmin) - 1
-   kmax = 2 ** (j-1)
-   do j = max(3, jmin), jmax
-      kmax = 2*kmax  ! ** (j - 1)   ! 2*kmax
-      do is = 1, kmax
-         cc = fre(is)*rwt1(is, j)+fre(is+kmax)*rwt2(is, j)
-         cr(is) = real(cc)
-         cz(is) = aimag(cc)
+   kmax = 2
+   do j=3, jmax
+      kmax = 2*kmax  
+      do k = 1, kmax
+         cc = fre(k)*rwt1(k, j)+fre(k+kmax)*rwt2(k, j)
+         cr(k) = real(cc)
+         cz(k) = aimag(cc)
       end do
       lcc = j-1
       call cifft(cr, cz, Lcc)
@@ -124,7 +122,7 @@ contains
    implicit none
 !   integer, parameter :: inpt=2100
    integer, intent(in) :: n
-   real, intent(inout) :: xr(*), xi(*)
+   real, intent(inout) :: xr(:), xi(:)
    integer k, i, ib, nb, lx, l, lb, lbh, ist, jh, j1, j
    real wkr, wki, qr, qi, holdr, holdi, flx
    LX = 2**N
@@ -176,7 +174,7 @@ contains
 !
 !   integer, parameter :: inpt=2100
    integer, intent(in) :: n
-   real, intent(inout) :: xr(*), xi(*)
+   real, intent(inout) :: xr(wave_pts2), xi(wave_pts2)
    integer k, ib, nb, lx, l, lb, lbh, ist, jh, j1, j
    real wkr, wki, qr, qi, holdr
    LX = 2**N
@@ -220,7 +218,7 @@ contains
 ! in the method of the cfft. as the code spent a large amount of time in said part of cfft, we decided to
 ! load such data to memory to reduce computation time
 !
-   integer i, n, nb, nnb, ib, k!, kk(4200, 15)
+   integer i, n, nb, nnb, ib, k
    real*8 :: omega
 
    do n = 2, 12
@@ -289,28 +287,21 @@ contains
       wave1 = cmplx(0.0, 0.0)
       return
    end if
-   do i = 1, 2
-      wp = hw*i
-      fw = 1.d0
-      do j = 1, 2
-         if (j .eq. 1) wf = -wp
-         if (j .eq. 2) wf = wp
-         do k = 1, 2
-            if (k .eq. 1) wd = p43-wf
-            if (k .eq. 2) wd = wf-p23
-            if (wd .le. 0) then
-               g(k) = 0.d0
-            else
-               g(k) = exp(-1.d0/wd/wd)
-            end if
-         end do
-         wg = g(1)/(g(1)+g(2))
-         fw = fw*wg
-      end do
-      p(i) = fw
-   end do
-   cct = p(1)-p(2)
-   pp = a*dsqrt(cct)
+   cct = 0.d0
+   if ((w .ge. p23) .and. (w .le. p43)) then
+      wd = w-p23
+      wp = p43-w
+      wg = exp(-1.d0/wd/wd)
+      wf = exp(-1.d0/wp/wp)
+      cct = exp(-0.5d0/wd/wd) / sqrt(wg + wf)
+   elseif ((hw .ge. p23) .and. (hw .le. p43)) then
+      wd = hw-p23
+      wp = p43-hw
+      wg = exp(-1.d0/wd/wd)
+      wf = exp(-1.d0/wp/wp)
+      cct = exp(-0.5d0/wp/wp) / sqrt(wg + wf)
+   endif
+   pp = a*cct
    if (ic .eq. 1) then
       wave1 = pp 
    else
@@ -321,7 +312,7 @@ contains
 
    subroutine realtr(xr, xi, n)
    implicit none
-   real xr(*), xi(*)
+   real xr(:), xi(:)
    integer :: n
    integer :: i, i1, i2, lh, lb
    lh = 2**(n-1)

@@ -3,21 +3,22 @@ module misfit_eval
 
    use constants, only : wave_pts2
    use wavelet_param, only : lnpt, jmin, jmax, nlen
-   use get_stations_data, only : weight, wave_obs, wmax, misfit_type, t_max, wavelet_weight
+   use get_stations_data, only : weight, wave_obs, wmax, misfit_type, &
+        &  t_min, t_max, wavelet_weight
    implicit none
 
 
 contains
 
 
-   pure subroutine misfit_channel(channel, wave_syn, error)
+   pure subroutine misfit_channel(channel, wave_syn, error2)
 !  
 !  Misfit between observed and synthetic waveforms, in wavelet domain.
 !
    real, intent(inout) :: wave_syn(wave_pts2)
    integer, intent(in) :: channel
-   real, intent(out) :: error
-   real*8 :: aa, ab, bb, er, er1, er2, erp, error2
+   real*8, intent(out) :: error2
+   real*8 :: aa, ab, bb, er, er1, er2, erp!, error2
    real :: ramp
    integer :: i, j, k, n1, n2, n_be, n_begin, n_delt, n_ed
 !     
@@ -35,7 +36,7 @@ contains
       if (wavelet_weight(j, channel) .lt. 1.0e-5) cycle
       n_begin = 2**(j-1)
       n_delt = nlen/n_begin
-      n_be = n_begin
+      n_be = n_begin+int(t_min(channel)/n_delt)
       n_ed = n_begin+int(t_max(channel)/n_delt+0.5)-1
       if (n_ed .lt. n_be) n_ed = n_be
 !  j = 1 L1 Norm
@@ -84,7 +85,7 @@ contains
    end do
    error2 = error2/(jmax-jmin+1)
    error2 = error2*weight(channel)
-   error = real(error2)
+!   error = real(error2)
    end subroutine misfit_channel
 
 
