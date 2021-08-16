@@ -36,14 +36,19 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
     point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    delta_strike = segments[0]['delta_strike']
+    delta_dip = segments[0]['delta_dip']
+    rupture_vel = segments[0]['rupture_vel']
+    subfaults = {'delta_strike': delta_strike, 'delta_dip': delta_dip}
+    subfaults2 = pf._point_sources_def(rise_time, rupture_vel, subfaults)
+    strike_ps = int(subfaults2['strike_ps'] / 2)
+    dip_ps = int(subfaults2['dip_ps'] / 2)
     slips = solution['slip']
     rakes = solution['rake']
     trup = solution['rupture_time']
     trise = solution['trise']
     tfall = solution['tfall']
-    latitudes = solution['lat']
-    longitudes = solution['lon']
-    depths = solution['depth']
+    # depths = solution['depth']
     moment = solution['moment']
     total_moment = np.sum(np.array(moment).flatten())
 
@@ -67,6 +72,9 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     strike = plane_info['strike']
     dip = plane_info['dip']
     rake = plane_info['rake']
+    latitudes = [ps_segment[:, :, dip_ps, strike_ps, 0] for ps_segment in point_sources]
+    longitudes = [ps_segment[:, :, dip_ps, strike_ps, 1] for ps_segment in point_sources]
+    depths = [ps_segment[:, :, dip_ps, strike_ps, 2] for ps_segment in point_sources]
     ps_depths = [ps_segment[:, :, :, :, 2] for ps_segment in point_sources]
     min_depth = min([np.min(ps_depth.flatten()) for ps_depth in ps_depths])
     ps_distances = [ps_segment[:, :, 0, 0, 3] for ps_segment in point_sources]
@@ -301,7 +309,7 @@ if __name__ == '__main__':
     segments_data, rise_time, point_sources = pl_mng.__read_planes_info()
     if not os.path.isfile('velmodel_data.json'):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), 'velmodel_data.json')
+            errno.ENOENT, os.strerror(errno.ENOENT), 'velmodel_data.json')
     vel_model = json.load(open('velmodel_data.json'))
     solution = get_outputs.read_solution_static_format(
             segments_data, point_sources)

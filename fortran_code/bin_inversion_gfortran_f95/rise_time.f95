@@ -99,44 +99,45 @@ contains
 ! 
    implicit none
    complex source
-   real omega, t1, t2
+   real*8 omega, t1, t2
    complex*16 first, second, third, fourth, fifth, z0
       
    z0 = cmplx(1.d0, 0.d0, double)
    if (omega .lt. 1.e-6) then
-      first = cmplx(0.d0,-t1-t2,double)
+      first = cmplx(t1+t2,0.d0,double)
    else
       first = cmplx(0.d0, -twopi*omega*(t1 + t2), double)
-      first = (exp(first) - z0) * cmplx(0.5d0/pi/omega, 0.d0, double)
+      first = (exp(first) - z0) * cmplx(0.d0, 0.5d0/pi/omega, double)
    end if
    second = cmplx(0.d0, -pi*(2.d0*omega*t1 + 1.d0), double)
-   second = (exp(second) - z0) * cmplx(1.d0/pi/(2.d0*omega + 1.d0/t1), 0.d0, double)
+   second = (exp(second) - z0) * cmplx(0.d0, -1.d0/pi/(2.d0*omega + 1.d0/t1), double)
    if (abs(2*t1*omega - 1) .lt. 1.e-6) then
-      third = cmplx(0.d0, t1, double)
+      third = cmplx(-t1, 0.d0, double)
    else
       third = cmplx(0.d0, pi*(1.d0 - 2.d0*omega*t1), double)
-      third = (exp(third) - z0) * cmplx(1.d0/pi/(1.d0/t1 - 2.d0*omega), 0.d0, double)
+      third = (exp(third) - z0) * cmplx(0.d0, 1.d0/pi/(1.d0/t1 - 2.d0*omega), double)
    end if
    if (abs(2*t2*omega - 1) .lt. 1.e-6) then
-      fourth = cmplx(0.d0, t2, double)
+      fourth = cmplx(t2, 0.d0, double)
    else
       fourth = cmplx(0.d0, pi*(1.d0 - 2.d0*omega*t2), double)
-      fourth = (exp(fourth) - z0) * cmplx(1.d0/pi/(1.d0/t2 - 2.d0*omega), 0.d0, double)
+      fourth = (exp(fourth) - z0) * cmplx(0.d0, -1.d0/pi/(1.d0/t2 - 2.d0*omega), double)
    end if
    fifth = cmplx(0.d0, -pi*(2.d0*omega*t2 + 1.d0), double)
-   fifth = (exp(fifth) - z0) * cmplx(1.d0/pi/(2.d0*omega + 1.d0/t2), 0.d0, double)
+   fifth = (exp(fifth) - z0) * cmplx(0.d0, 1.d0/pi/(2.d0*omega + 1.d0/t2), double)
 
    source = cmplx(0.,-twopi*omega*t1)
-   source = exp(source)*(fifth - fourth)
-   source = source + third - second
+   source = exp(source)*(fifth + fourth)
+   source = source + third + second
    source = source * cmplx(0.5, 0.) + first
-   source = source * cmplx(0., 1./(t1 + t2))  
+   source = source * cmplx(1./(t1 + t2), 0.d0)  
    end subroutine fourier_asym_cosine
 
 
    subroutine get_source_fun()
    implicit none
-   real :: df, dt, t1, t2
+   real :: dt
+   real*8 :: df, t1, t2
    integer :: i, ir, isl, isr, jf 
    allocate(source(wave_pts2, max_stations, max_rise_time_range, max_rise_time_range))
 !       
@@ -146,7 +147,7 @@ contains
    do ir = 1, max_stations
       dt = dt_channel(ir)
       if (dt .lt. 1.e-4) cycle
-      df = 1.0/(2**lnpt)/dt
+      df = 1.d0/(2**lnpt)/dt
       if (abs(dt - 60.0) .gt. 1.e-4) then
          do isr = 1, msou
             do isl = 1, msou
