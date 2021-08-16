@@ -170,7 +170,7 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
             outfile.write('% {} {} {} {}  {}  '\
             '{}\n'.format(dep, pv, sv, den, qpp, qss))
         outfile.write('%\n%{}{}\n'.format(string, string))
-        outfile.write('% {}/{}/{} created by pkoch@csn.uchile.'\
+        outfile.write('% {}/{}/{} created by degoldberg@usgs.gov'\
         'cl\n'.format(now.day, now.month, now.year))
         outfile.write('%\n% SOURCE MODEL PARAMETERS\n')
         if len(segments) == 1:

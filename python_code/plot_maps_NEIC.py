@@ -10,6 +10,7 @@ import cartopy.io.shapereader as shpreader
 import cartopy.feature as cf
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
+from glob import glob
 
 """
 Set colorbar for slip
@@ -65,13 +66,28 @@ def set_map_cartopy(ax, margins, tectonic=None, countries=None, bathymetry=None)
     #ax.add_feature(cartopy.feature.OCEAN)
     ocean = cartopy.feature.NaturalEarthFeature('physical', 'ocean', \
         scale='110m', edgecolor='none', facecolor=cartopy.feature.COLORS['water'])
-    ax.add_feature(ocean)
+#    ax.add_feature(ocean)
     if tectonic:
         ax.add_feature(tectonic)
     if countries:
         ax.add_feature(countries)
     if bathymetry:
         ax.add_feature(bathymetry)
+    faults = glob('*.fault')
+    if len(faults) > 0:
+        for kfault in range(len(faults)):
+            fault_trace = np.genfromtxt(faults[kfault])
+            ax.plot(fault_trace[:,0],fault_trace[:,1],'k',zorder=100)
+    aftershocks = glob('*aftershocks*')
+    if len(aftershocks) > 0:
+        for kafter in range(len(aftershocks)):
+            print('...Adding aftershocks from: '+str(aftershocks[kafter]))
+            aftershock = np.genfromtxt(aftershocks[kafter], delimiter="\t")
+            aftershock_lat = aftershock[:,3]
+            aftershock_lon = aftershock[:,4]
+            aftershock_mag = aftershock[:,6]
+            ax.scatter(aftershock_lon, aftershock_lat, s=aftershock_mag*10, c='0.5', zorder = 200)
+
     min_lon, max_lon, min_lat, max_lat = margins
     ax.set_xlim(min_lon, max_lon)
     ax.set_ylim(min_lat, max_lat)

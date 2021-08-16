@@ -29,6 +29,39 @@ def temporary_file_reorganization_for_publishing(evID,directory=None):
     mv_param = os.path.join(pub_directory, 'Solucion.txt')
     pub_param = os.path.join(pub_directory, evID + '.param')
     os.rename(mv_param, pub_param)
+#    orig_param = open(os.path.join(directory, 'Solucion.txt', 'r'))
+#    param_tl = open(os.path.join(pub_directory, evID + '.param'), 'w')
+#    for line in orig_param:
+#        if line.startswith('#'): # HEADER LINES
+#            param_tl.write(line)
+#            if 'Dx' in line:
+#                subfault_length_AS = float(line.split('Dx')[-1].split('=')[-1].split('km')[0])
+#            if 'Dy' in line:
+#                subfault_length_AD = float(line.split('Dy')[-1].split('=')[-1].split('km')[0])
+#        elif len(np.array(line.split())) < 4: # FAULT BOUNDARY LINES
+#            param_tl.write(line)
+#        else:        
+#            lat_center, lon_center, dep_center, slip, rake, strike, dip, t_rup, t_ris, t_fal, mo = line.split()
+#            lat_center = float(lat_center); lon_center = float(lon_center); dep_center = float(dep_center)
+#            slip = float(slip); rake = float(rake); strike = float(strike); dip = float(dip)
+#            t_rup = float(t_rup); t_ris = float(t_ris); t_fal = float(t_fal); mo = float(mo)
+#
+#            ### calculate longitudes/latitudes at top of subfault at same along-strike location as center ###
+#            dip_azimuth = strike + 90.
+#            if dip_azimuth > 360.:
+#                dip_azimuth = dip_azimuth - 360.
+#            lon0, lat0, _ = geod.fwd(lon_center, lat_center, dip_azimuth, cos(np.radians(dip))*((subfault_length_AD/2)*1000.))
+#        
+#            ### move along-dip to get corner locations ###
+#            lon_c1, lat_c1, _ = geod.fwd(lon0, lat0, strike, (subfault_length_AS/2)*1000.)
+#    
+#            ### calculate depth to top of subfault ###
+#            dep_c1 = dep_center - subfault_length_AD/2 * np.sin(np.radians(dip))
+#            param_tl.write('%14.6f %14.6f %14.6f %14.6f %14.6f %14.6f %14.6f %14.6f %14.6f %14.6f %14.6e \n' % (lat_c1, lon_c1, dep_c1, slip, rake, strike, dip, t_rup, t_ris, t_fal, mo))
+#
+#    orig_param.close()
+#    param_tl.close()
+#    
     ################
     ### FSP FILE ###
     ################
@@ -258,6 +291,12 @@ def write_Okada_displacements(directory=None):
     plt.scatter(gridLon,gridLat,marker='s',c=horizontal*100, lw=0, s=100, vmin=0.0, vmax=minmax*100, cmap='rainbow')
     cb = plt.colorbar()
     cb.set_label('Horizontal Surface Displacement (cm)')
+    i=0
+    for klat in range(len(xLats)):
+        for klon in range(len(xLons)):
+            if i%15 == 0:
+                plt.quiver(xLons[klon],xLats[klat],ux[i]/horizontal[i],uy[i]/horizontal[i], pivot='mid',linewidths=0.01, width=.005,color='k', scale=30)
+            i+=1
     plt.xlim([xLons.min(),xLons.max()])
     plt.ylim([xLats.min(),xLats.max()])
     plt.ylabel('Latitude')
@@ -404,12 +443,12 @@ def write_Coulomb_file(directory=None,eventID=None):
     RAKE=[]
     STRIKE=[]
     DIP=[]
-    T_RUP=[]
-    T_RIS=[]
-    T_FAL=[]
-    MO=[]
-    SS_SLIP = []
-    DS_SLIP = []
+    #T_RUP=[]
+    #T_RIS=[]
+    #T_FAL=[]
+    #MO=[]
+    #SS_SLIP = []
+    #DS_SLIP = []
     
     param = open(directory+'/Solucion.txt')
     for line in param:
@@ -419,13 +458,22 @@ def write_Coulomb_file(directory=None,eventID=None):
             continue
         else:
             lat, lon, dep, slip, rake, strike, dip, t_rup, t_ris, t_fal, mo = line.split()
-            LAT.append(float(lat)); LON.append(float(lon)); DEP.append(float(dep)); SLIP.append(float(slip)); 
-            RAKE.append(float(rake)); STRIKE.append(float(strike)); DIP.append(float(dip)); T_RUP.append(float(t_rup)); 
-            T_RIS.append(float(t_ris)); T_FAL.append(float(t_fal)); MO.append(float(mo))
-            SS_SLIP.append(float(slip)*cos(deg2rad(float(rake))))
-            DS_SLIP.append(float(slip)*sin(deg2rad(float(rake))))
+            STRIKE.append(float(strike)); DIP.append(float(dip));
+            #LAT.append(float(lat)); LON.append(float(lon)); DEP.append(float(dep)); SLIP.append(float(slip)); 
+            #RAKE.append(float(rake)); STRIKE.append(float(strike)); DIP.append(float(dip)); T_RUP.append(float(t_rup)); 
+            #T_RIS.append(float(t_ris)); T_FAL.append(float(t_fal)); MO.append(float(mo))
+            #SS_SLIP.append(float(slip)*cos(deg2rad(float(rake))))
+            #DS_SLIP.append(float(slip)*sin(deg2rad(float(rake))))
     param.close()
     
+    fsp = open(directory+'/fsp_sol_file.txt','r')
+    for line in fsp:
+        if line.startswith('%'):
+            continue
+        else:
+            lat, lon, ew, ns, dep, slip, rake, trup, trise, sf_moment = line.split()
+            LAT.append(float(lat)); LON.append(float(lon)); DEP.append(float(dep)); SLIP.append(float(slip)); RAKE.append(float(rake))
+    fsp.close()
     ##########################################################################
     ######### CONVERT COORDINATE SUBFAULT CENTERS TO LOCAL CARTESIAN #########
     ##########################################################################
@@ -449,22 +497,25 @@ def write_Coulomb_file(directory=None,eventID=None):
     zbot = zeros(Nfaults)
     
     for ksubfault in range(Nfaults):
-        #top_mid_x[ksubfault] = x[ksubfault]+((sf_length_as/2)*cos(deg2rad(DIP[ksubfault])))*sin(deg2rad(STRIKE[ksubfault]-90))
-        #top_mid_y[ksubfault] = y[ksubfault]+((sf_length_as/2)*cos(deg2rad(DIP[ksubfault])))*cos(deg2rad(STRIKE[ksubfault]-90))
-        #xstart[ksubfault] = top_mid_x[ksubfault]+(sf_length_as/2)*sin(deg2rad(STRIKE[ksubfault]-180))
-        #ystart[ksubfault] = top_mid_y[ksubfault]+(sf_length_as/2)*cos(deg2rad(STRIKE[ksubfault]-180))
-        #xfin[ksubfault] = top_mid_x[ksubfault]+(sf_length_as/2)*sin(deg2rad(STRIKE[ksubfault]))
-        #yfin[ksubfault] = top_mid_y[ksubfault]+(sf_length_as/2)*cos(deg2rad(STRIKE[ksubfault]))
-        #ztop[ksubfault] = DEP[ksubfault]-(sf_length_ad/2)*sin(deg2rad(DIP[ksubfault]))
-        #zbot[ksubfault] = DEP[ksubfault]+(sf_length_ad/2)*sin(deg2rad(DIP[ksubfault]))
-        xstart[ksubfault] = x[ksubfault]
-        ystart[ksubfault] = y[ksubfault]
-        xfin[ksubfault] = x[ksubfault] + sf_length_as * sin(deg2rad(STRIKE[ksubfault]))
-        yfin[ksubfault] = y[ksubfault] + sf_length_as * cos(deg2rad(STRIKE[ksubfault]))
-        ztop[ksubfault] = DEP[ksubfault]
-        zbot[ksubfault] = DEP[ksubfault] + sf_length_ad * sin(deg2rad(DIP[ksubfault]))
+        ### ASSUMES .FSP FILE COORDINATES ARE THE **CENTER** OF THE SUBFAULT ###
+        top_mid_x[ksubfault] = x[ksubfault]+((sf_length_as/2)*cos(deg2rad(DIP[ksubfault])))*sin(deg2rad(STRIKE[ksubfault]-90))
+        top_mid_y[ksubfault] = y[ksubfault]+((sf_length_as/2)*cos(deg2rad(DIP[ksubfault])))*cos(deg2rad(STRIKE[ksubfault]-90))
+        xstart[ksubfault] = top_mid_x[ksubfault]+(sf_length_as/2)*sin(deg2rad(STRIKE[ksubfault]-180))
+        ystart[ksubfault] = top_mid_y[ksubfault]+(sf_length_as/2)*cos(deg2rad(STRIKE[ksubfault]-180))
+        xfin[ksubfault] = top_mid_x[ksubfault]+(sf_length_as/2)*sin(deg2rad(STRIKE[ksubfault]))
+        yfin[ksubfault] = top_mid_y[ksubfault]+(sf_length_as/2)*cos(deg2rad(STRIKE[ksubfault]))
+        ztop[ksubfault] = DEP[ksubfault]-(sf_length_ad/2)*sin(deg2rad(DIP[ksubfault]))
+        zbot[ksubfault] = DEP[ksubfault]+(sf_length_ad/2)*sin(deg2rad(DIP[ksubfault]))
 
-        out='  1 %10.4f %10.4f %10.4f %10.4f 100 %10.4f %10.4f %10.4f %10.4f %10.4f FFM%d\n' % (xstart[ksubfault],ystart[ksubfault],xfin[ksubfault],yfin[ksubfault],RAKE[ksubfault],SLIP[ksubfault]/100.,DIP[ksubfault],ztop[ksubfault],zbot[ksubfault],ksubfault)
+        ### ASSUMES .FSP FILE COORDINATTES ARE THE **TOP LEFT CORNER** OF THE SUBFAULT ###
+        #xstart[ksubfault] = x[ksubfault]
+        #ystart[ksubfault] = y[ksubfault]
+        #xfin[ksubfault] = x[ksubfault] + sf_length_as * sin(deg2rad(STRIKE[ksubfault]))
+        #yfin[ksubfault] = y[ksubfault] + sf_length_as * cos(deg2rad(STRIKE[ksubfault]))
+        #ztop[ksubfault] = DEP[ksubfault]
+        #zbot[ksubfault] = DEP[ksubfault] + sf_length_ad * sin(deg2rad(DIP[ksubfault]))
+
+        out='  1 %10.4f %10.4f %10.4f %10.4f 100 %10.4f %10.4f %10.4f %10.4f %10.4f FFM%d\n' % (xstart[ksubfault],ystart[ksubfault],xfin[ksubfault],yfin[ksubfault],RAKE[ksubfault],SLIP[ksubfault],DIP[ksubfault],ztop[ksubfault],zbot[ksubfault],ksubfault)
         coulomb.write(out)
     
     ##########################################################################

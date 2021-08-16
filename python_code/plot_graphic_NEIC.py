@@ -760,7 +760,7 @@ def _PlotSlipDist_Compare(segments, point_sources, input_model,
 
 
 def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
-             convex_hulls=[], files_str=None, stations_gps=None,
+             convex_hulls=[], files_str=None, stations_gps=None, stations_cgps=None,
              option='Solucion.txt', max_slip=None):
     """We plot slip map.
     """
@@ -848,6 +848,21 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
                     transform=ccrs.PlateCarree(), zorder=4)
             ax.text(lonp + 0.02, latp + 0.02, '{}'.format(name),
                     transform=ccrs.PlateCarree(), zorder=4)
+    if stations_cgps is not None:
+        for file in stations_cgps:
+            name = file['name']
+            latp, lonp = file['location']
+            min_lat = min(min_lat, latp)
+            max_lat = max(max_lat, latp)
+            min_lon = min(min_lon, lonp)
+            max_lon = max(max_lon, lonp)
+            distance = max(np.abs(latp - lat0), np.abs(lonp - lon0))
+            margin = max(margin, 1.2 * distance)
+            ax.plot(lonp, latp, 'k', marker='^', markersize=10, lw=0.3, markeredgecolor='k',
+                    transform=ccrs.PlateCarree(), zorder=4)
+            ax.text(lonp + 0.02, latp + 0.02, '{}'.format(name),
+                    transform=ccrs.PlateCarree(), zorder=4)
+
     if stations_gps is not None:
         max_obs = np.zeros(3)
         stations_gps2 = []
@@ -905,6 +920,13 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         #plt.arrow(lon0 + margin - 0.2, lat0 + margin - 0.4, -1, 0, color='k',
         #          zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
         #          transform=ccrs.PlateCarree())
+        from matplotlib.patches import Rectangle
+        ax.add_patch(Rectangle((min_lon, min_lat), (max_lon - min_lon), 0.1*(max_lat-min_lat), edgecolor='k', facecolor='0.5', alpha=0.5))
+        plt.arrow(max_lon-1, min_lat, 10 / max_obs, 0, zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
+        plt.arrow(max_lon-1, min_lat - 0.3, 10 / max_obs, 0, color='r', zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
+        plt.text(max_lon -1 , min_lat + 0.1, '10 cm')
+        plt.text(max_lon - 3.2, min_lat - 0.05, 'Observed GNSS')
+        plt.text(max_lon - 3.2, min_lat - 0.35, 'Synthetic GNSS')
     max_slip = max([np.amax(slip_fault) for slip_fault in slip])\
         if not max_slip else max_slip
     margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
@@ -920,6 +942,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     ax, cs = plot_map(ax, segments_lats, segments_lons, slip, max_val=max_slip, 
                       transform=dictn['projection'])
     sm = plt.cm.ScalarMappable(cmap=slipcpt,norm=plt.Normalize(vmin=0.,vmax=max_slip/100.))
+
     #from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     #cb_ax = inset_axes(ax, width = "30%", height = "5%", loc = 'lower left')
     #from matplotlib.axes.Axes import inset_axes
@@ -1126,8 +1149,8 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     plt.grid(which='major',linestyle='dotted', color='0.5')
     ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.2))
     ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
-    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(10))
-    ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(5))
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(50))
+    ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
     ax.fill_between(time, rel_mr, color='0.9')
     ax.plot(time, rel_mr, 'k', lw=2)
     if mr_time == None:
@@ -1675,13 +1698,15 @@ if __name__ == '__main__':
         names, lats, lons, observed, synthetic, error\
                 = get_outputs.retrieve_gps()
         stations_gps = zip(names, lats, lons, observed, synthetic, error)
+    if args.cgps:
+        traces_info_cgps = json.load(open('cgps_waves.json'))
     if args.strong:
         traces_info = json.load(open('strong_motion_waves.json'))
     #if args.strong or args.gps:
-    if args.gps:
+    if args.gps or args.strong or args.cgps:
         solution = get_outputs.read_solution_static_format(segments)
         _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
-                 files_str=traces_info, stations_gps=stations_gps)
+                 files_str=traces_info, stations_gps=stations_gps, stations_cgps=traces_info_cgps)
         #input_model = load_ffm_model.load_ffm_model(
         #        segments_data, point_sources, option='Fault.time')
         #_PlotSlipDist_Compare(segments, point_sources, input_model, solution)
