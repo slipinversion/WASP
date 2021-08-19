@@ -664,7 +664,7 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=N
                       stations_gps=stations_gps)
     if plot_input:
         input_model = load_ffm_model(segments_data, point_sources,
-                                     option='Fault.time')
+                                     option='fault&rise_time.txt')
         plot._PlotSlipDist_Compare(segments, point_sources,
                                    input_model, solution)
         plot._PlotComparisonMap(tensor_info, segments, point_sources,
@@ -739,6 +739,12 @@ if __name__ == '__main__':
         help="whether to remove response of strong_motion or not"
     )
     args = parser.parse_args()
+    if args.gcmt_tensor:
+        args.gcmt_tensor = os.path.abspath(args.gcmt_tensor)
+    if args.qcmt_tensor:
+        args.qcmt_tensor = os.path.abspath(args.qcmt_tensor)
+    if args.data:
+        args.data = os.path.abspath(args.data)
     velmodel = args.velmodel if args.velmodel else None
     if velmodel:
         velmodel = mv.model2dict(velmodel)

@@ -1116,6 +1116,8 @@ if __name__ == '__main__':
     parser.add_argument("--gps", action="store_true", help="plot GPS data")
     args = parser.parse_args()
     os.chdir(args.folder)
+    if args.gcmt_tensor:
+        args.gcmt_tensor = os.path.abspath(args.gcmt_tensor)
     used_data = []
     used_data = used_data + ['strong_motion'] if args.strong else used_data
     used_data = used_data + ['cgps'] if args.cgps else used_data

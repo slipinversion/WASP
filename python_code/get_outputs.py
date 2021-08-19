@@ -239,7 +239,8 @@ def get_data_dict(traces_info, syn_file=None, observed=True, checker=False,
             for file in traces_info:
                 file['observed'] = _get_observed_from_chen2(file, margin=margin)
                 derivative = False if not 'derivative' in file else file['derivative']
-                file['observed'] = np.diff(file['observed'])\
+                dt = file['dt']
+                file['observed'] = np.gradient(file['observed'], dt)\
                     if derivative else file['observed']
 
     else:

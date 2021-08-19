@@ -364,6 +364,8 @@ def static_data(tensor_info, unit='m'):
             lines = [line.split() for line in infile]
 
         for line in lines[2:]:
+            if len(line) < 9:
+                continue
             name = line[0]
             lon = float(line[1])
             lat = float(line[2])
@@ -834,7 +836,7 @@ if __name__ == '__main__':
     parser.add_argument("--gps", action="store_true",
                         help="create JSON for static GPS data")
     args = parser.parse_args()
-    data_folder = args.data_folder
+    data_folder = os.path.abspath(args.data_folder)
     if not os.path.isfile('sampling_filter.json'):
         raise FileNotFoundError(
             errno.ENOENT, os.strerror(errno.ENOENT),

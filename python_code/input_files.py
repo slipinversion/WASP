@@ -289,16 +289,16 @@ def input_chen_tele_body(tensor_info, data_prop):
     event_lon = tensor_info['lon']
 
     string = '{0:2d}   FAR GDSN {1:>6} {1:>6}BHZ.DAT {2:5.2f} {3:6.2f} '\
-        '{4:5.2f} {5:6.2f} {6:6.2f} 0 0  {7}  {8} {9}  1 0\n'
+        '{4:5.2f} {5:6.2f} {6:6.2f} {7} 0 {8} 0 {9}  1 0\n'
     sin_fun = lambda p: p * 3.6 / 111.12
     angle_fun = lambda p:\
     np.arctan2(sin_fun(p), np.sqrt(1 - sin_fun(p)**2)) * 180.0 / np.pi
     string_fun1 = lambda i, name, dist, az, lat, lon, p_slowness, disp_or_vel:\
     string.format(
-        i, name, dist, az, lat, lon, angle_fun(p_slowness), disp_or_vel, 1.0, 0)
+        i, name, dist, az, lat, lon, angle_fun(p_slowness), 1.0, disp_or_vel, 0)
     string_fun2 = lambda i, name, dist, az, lat, lon, s_slowness, disp_or_vel:\
     string.format(
-        i, name, dist, az, lat, lon, angle_fun(s_slowness), disp_or_vel, 4.0, 2)
+        i, name, dist, az, lat, lon, angle_fun(s_slowness), 4.0, disp_or_vel, 2)
 
     with open('channels_body.txt', 'w') as outfile:
         outfile.write('30 30 30 0 0 0 0 0 0 1.1e+20\n')
@@ -620,7 +620,7 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
                     stream[0].data = stream[0].data - waveform[0]
                     stream.write(file['file'], format='SAC', byteorder=0)
                     waveform = waveform - waveform[0]
-                waveform = np.diff(waveform) if derivative else waveform
+                waveform = np.gradient(waveform, dt) if derivative else waveform
                 del stream
             except IndexError:
                 print('Obspy bug when reading the file {}. '\
