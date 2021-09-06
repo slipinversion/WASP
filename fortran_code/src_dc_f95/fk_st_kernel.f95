@@ -51,7 +51,7 @@ contains
    real*8 :: k!, y, y1
 !   complex*16 :: ka(nlay), kb(nlay)
 !   complex*16 :: ra, rb, r, r1 
-   complex u(3,3)
+   complex*16 u(3,3)
    complex*16 rayl, love, dum
    complex*16 a(5,5), b(7,7), c(7,7), e(7), g(7), z(3,5), ss(3,6)
    stype = 2

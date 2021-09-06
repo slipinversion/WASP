@@ -3,9 +3,6 @@ FFLAGS=-O
 MY_BIN=.
 F77=gfortran -ffixed-line-length-132 -mcmodel=medium -O2 -Wall -g#-fbacktrace -ffpe-trap=underflow,denormal
 # linux or Mac
-#F77= ifort -132 -O2 -assume byterecl
-#F77= gfortran -fno-rerun-loop-opt -fstrength-reduce -ffixed-line-length-132 -fno-range-check -mcmodel=large
-#
 
 modules = constants.o retrieve_gf.o bessel2.o vel_model_data.o wave_travel.o fk_source.o haskell.o prop.o fk_kernel.o fk.o bessel.o $(SUBS)
 modules2 = constants.o retrieve_gf.o bessel2.o vel_model_data.o wave_travel.o layer.o fk_source.o haskell.o prop.o fk_kernel.o fk_openmp.o bessel.o $(SUBS)
@@ -21,11 +18,14 @@ green_bank_openmp: $(modules2) green_bank_fk_openmp.o
 	$(F77) -fopenmp -o $(MY_BIN)/green_bank_openmp_f95 $(modules2) green_bank_fk_openmp.o
 
 gf_static: $(modules3) geodesics.o rad_pattern.o gf_static.o
-	$(F77) -o $(MY_BIN)/gf_static_f95 $(modules3) geodesics.o rad_pattern.o gf_static.o
+	$(F77) -fopenmp -o $(MY_BIN)/gf_static_f95 $(modules3) geodesics.o rad_pattern.o gf_static.o
 
 
 fk_openmp.mod: fk_openmp.o fk_openmp.f95
 	$(F77) -fopenmp -c fk_openmp.f95
+
+fk_static.mod: fk_static.o fk_static.f95
+	$(F77) -fopenmp -c fk_static.f95
 
 layer.mod: layer.o layer.f95
 	$(F77) -fopenmp -c layer.f95
@@ -48,6 +48,9 @@ bessel.f: bessel.FF
 
 fk_openmp.o: fk_openmp.f95
 	$(F77) -fopenmp -c fk_openmp.f95
+
+fk_static.o: fk_static.f95
+	$(F77) -fopenmp -c fk_static.f95
 
 layer.o: layer.f95
 	$(F77) -fopenmp -c layer.f95

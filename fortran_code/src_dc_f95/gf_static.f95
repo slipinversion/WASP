@@ -13,10 +13,10 @@ program gf_static
    use retrieve_gf, only : lnpt, dt
    use geodesics, only : distaz
    implicit none
-   character(len=10) sta_name
-   character(len=100) vel_model
+   character(len=10) sta_name(2500), input
+   character(len=100) vel_model, filename, filename2
    real*8 :: ang_d(3000), dip, theta, azi(3000)
-   real lat_s(300),lon_s(300), area
+   real lat_s(2500),lon_s(2500), area
    real dist(3000),lat_sta,lon_sta,lat_p,lon_p
    real dep_p,t0(3000)
    real*8 az,baz,dis
@@ -29,29 +29,38 @@ program gf_static
    real green_sub_dip(3), gf_dip
    real green_sub_stk(3), gf_stk
    real, allocatable :: fau_mod(:, :, :, :, :, :)
-   real, allocatable :: green_dip(:, :, :, :, :)
-   real, allocatable :: green_stk(:, :, :, :, :)
+   real*8 :: green_dip(3, max_stk_subfaults)
+   real*8 :: green_stk(3, max_stk_subfaults)
    integer nxs0, nys0, n_seg,i_seg,ll
    integer nxs_sub(max_seg),nys_sub(max_seg)
    real :: dip_sub(max_seg),stk_sub(max_seg)
    real :: kahan_y(6, max_stk_subfaults), kahan_t(6, max_stk_subfaults), kahan_c(6, max_stk_subfaults)
    real c_depth
    integer io_seg
-   logical :: disp
+   logical :: disp, gps, insar
    allocate(fau_mod(7, max_stk_psources, max_dip_psources, max_stk_subfaults, max_dip_subfaults, max_seg))
-   allocate(green_dip(3, max_stk_subfaults, max_dip_subfaults, max_seg, 300))
-   allocate(green_stk(3, max_stk_subfaults, max_dip_subfaults, max_seg, 300))
+!   allocate(green_dip(3, max_stk_subfaults, max_dip_subfaults, max_seg, 1000))
+!   allocate(green_stk(3, max_stk_subfaults, max_dip_subfaults, max_seg, 1000))
+   
+   call getarg(1, input)
+   gps = (input.eq.'gps')
+   insar = (input.eq.'insar')
+   if (gps) filename = 'static_data.txt'
+   if (insar) filename = 'insar_data.txt'
+   if (gps) filename2 = 'Green_static_subfault.txt'
+   if (insar) filename2 = 'Insar_static_subfault.txt'
+   
    disp = .False.
 !
 ! input position of gps stations
 !
 !	pause
    write(*,'(/A/)')'PROGRAM TO COMPUTE STATIC GF WITH FK METHOD'
-   open(12, file='static_data.txt', status='old')
+   open(12, file=filename, status='old')
    read(12,*)ir_max
    read(12,*)
    do ir=1,ir_max
-      read(12,*)no,sta_name,lat_s(ir),lon_s(ir)
+      read(12,*)no,sta_name(ir),lat_s(ir),lon_s(ir)
    enddo
    close(12)
 !
@@ -62,7 +71,6 @@ program gf_static
    read(22,*)n_seg,dxs,dys,nxp,nyp
    read(22,*)ta0,dta,msou
    do i_seg=1,n_seg
-      write(*,*)ta0,dta 
       read(22,*)io_seg, dip_sub(i_seg),stk_sub(i_seg)
       read(22,*)nxs_sub(i_seg),nys_sub(i_seg)
       do iys=1,nys_sub(i_seg)
@@ -105,19 +113,23 @@ program gf_static
 !       
 !       Compute static GF in all point sources
 !
+   open(13,file=filename2)
+   write(13,*)ir_max
    do ir=1,ir_max
+      write(*,*)'Compute static response at site: ', sta_name(ir)
+      write(13,*)ir
       lat_sta = lat_s(ir)
       lon_sta = lon_s(ir)
       do i_seg=1,n_seg
+         write(13,*)i_seg
          dip=dip_sub(i_seg)
          theta=stk_sub(i_seg)
-         write(*,*)'dip, strike', dip, theta
          do iys=1,nys_sub(i_seg)
-            green_dip(:,:,iys,i_seg,ir) = 0.0
-            green_stk(:,:,iys,i_seg,ir) = 0.0
-            kahan_y(:,:) = 0.0
-            kahan_c(:,:) = 0.0
-            kahan_t(:,:) = 0.0
+            green_dip(:,:) = 0.0
+            green_stk(:,:) = 0.0
+!            kahan_y(:,:) = 0.0
+!            kahan_c(:,:) = 0.0
+!            kahan_t(:,:) = 0.0
             do iyp = 1, nyp
                dep_p = fau_mod(3,1,iyp,1,iys,i_seg)
                call update_model(dep_p,0.0)
@@ -150,16 +162,16 @@ program gf_static
                         gf_dip = gf_dip + coef_v(1,j)*green_p(1,j+5,ll)*niu*area
                         gf_stk = gf_stk + coef_v(2,j)*green_p(1,j+5,ll)*niu*area
                      enddo
-!                     green_dip(1,ixs,iys,i_seg,ir)=gf_dip + green_dip(1,ixs,iys,i_seg,ir)
-!                     green_stk(1,ixs,iys,i_seg,ir)=gf_stk + green_stk(1,ixs,iys,i_seg,ir)
-                     kahan_y(1,ixs) = gf_dip-kahan_c(1,ixs)
-                     kahan_y(2,ixs) = gf_stk-kahan_c(2,ixs)
-                     kahan_t(1,ixs) = green_dip(1,ixs,iys,i_seg,ir)+kahan_y(1,ixs)
-                     kahan_t(2,ixs) = green_stk(1,ixs,iys,i_seg,ir)+kahan_y(2,ixs)
-                     kahan_c(1,ixs) = (kahan_t(1,ixs)-green_dip(1,ixs,iys,i_seg,ir))-kahan_y(1,ixs)
-                     kahan_c(2,ixs) = (kahan_t(2,ixs)-green_stk(1,ixs,iys,i_seg,ir))-kahan_y(2,ixs)
-                     green_dip(1,ixs,iys,i_seg,ir)=kahan_t(1,ixs)
-                     green_stk(1,ixs,iys,i_seg,ir)=kahan_t(2,ixs)
+                     green_dip(1,ixs)=gf_dip + green_dip(1,ixs)
+                     green_stk(1,ixs)=gf_stk + green_stk(1,ixs)
+!                     kahan_y(1,ixs) = gf_dip-kahan_c(1,ixs)
+!                     kahan_y(2,ixs) = gf_stk-kahan_c(2,ixs)
+!                     kahan_t(1,ixs) = green_dip(1,ixs) + kahan_y(1,ixs)
+!                     kahan_t(2,ixs) = green_stk(1,ixs) + kahan_y(2,ixs)
+!                     kahan_c(1,ixs) = (kahan_t(1,ixs)-green_dip(1,ixs))-kahan_y(1,ixs)
+!                     kahan_c(2,ixs) = (kahan_t(2,ixs)-green_stk(1,ixs))-kahan_y(2,ixs)
+!                     green_dip(1,ixs)=kahan_t(1,ixs)
+!                     green_stk(1,ixs)=kahan_t(2,ixs)
                      gf_dip = 0.0
                      gf_stk = 0.0
 !
@@ -170,54 +182,40 @@ program gf_static
                         gf_dip = gf_dip + coef_r(1,j)*green_p(1,j,ll)*niu*area       
                         gf_stk = gf_stk + coef_r(2,j)*green_p(1,j,ll)*niu*area
                      enddo
-!                     green_dip(2,ixs,iys,i_seg,ir)=gf_dip + green_dip(2,ixs,iys,i_seg,ir)
-!                     green_stk(2,ixs,iys,i_seg,ir)=gf_stk + green_stk(2,ixs,iys,i_seg,ir)
-                     kahan_y(3,ixs) = gf_dip-kahan_c(3,ixs)
-                     kahan_y(4,ixs) = gf_stk-kahan_c(4,ixs)
-                     kahan_t(3,ixs) = green_dip(2,ixs,iys,i_seg,ir)+kahan_y(3,ixs)
-                     kahan_t(4,ixs) = green_stk(2,ixs,iys,i_seg,ir)+kahan_y(4,ixs)
-                     kahan_c(3,ixs) = (kahan_t(3,ixs)-green_dip(2,ixs,iys,i_seg,ir))-kahan_y(3,ixs)
-                     kahan_c(4,ixs) = (kahan_t(4,ixs)-green_stk(2,ixs,iys,i_seg,ir))-kahan_y(4,ixs)
-                     green_dip(2,ixs,iys,i_seg,ir)=kahan_t(3,ixs)
-                     green_stk(2,ixs,iys,i_seg,ir)=kahan_t(4,ixs)
+                     green_dip(2,ixs)=gf_dip + green_dip(2,ixs)
+                     green_stk(2,ixs)=gf_stk + green_stk(2,ixs)
+!                     kahan_y(3,ixs) = gf_dip-kahan_c(3,ixs)
+!                     kahan_y(4,ixs) = gf_stk-kahan_c(4,ixs)
+!                     kahan_t(3,ixs) = green_dip(2,ixs)+kahan_y(3,ixs)
+!                     kahan_t(4,ixs) = green_stk(2,ixs)+kahan_y(4,ixs)
+!                     kahan_c(3,ixs) = (kahan_t(3,ixs)-green_dip(2,ixs))-kahan_y(3,ixs)
+!                     kahan_c(4,ixs) = (kahan_t(4,ixs)-green_stk(2,ixs))-kahan_y(4,ixs)
+!                     green_dip(2,ixs)=kahan_t(3,ixs)
+!                     green_stk(2,ixs)=kahan_t(4,ixs)
                      gf_dip = 0.0
                      gf_stk = 0.0
-                     call rad_coef(dip,theta,azi(ll),ang_d(ll),16,coef_v,coef_r) !E
+                     call rad_coef(dip,theta,azi(ll),ang_d(ll),16,coef_v,coef_r) !N
                      do j=1,5
                         gf_dip = gf_dip + coef_r(1,j)*green_p(1,j,ll)*niu*area  
                         gf_stk = gf_stk + coef_r(2,j)*green_p(1,j,ll)*niu*area
                      enddo
-!                     green_dip(3,ixs,iys,i_seg,ir)=gf_dip + green_dip(3,ixs,iys,i_seg,ir)
-!                     green_stk(3,ixs,iys,i_seg,ir)=gf_stk + green_stk(3,ixs,iys,i_seg,ir)
-                     kahan_y(5,ixs) = gf_dip-kahan_c(5,ixs)
-                     kahan_y(6,ixs) = gf_stk-kahan_c(6,ixs)
-                     kahan_t(5,ixs) = green_dip(3,ixs,iys,i_seg,ir)+kahan_y(5,ixs)
-                     kahan_t(6,ixs) = green_stk(3,ixs,iys,i_seg,ir)+kahan_y(6,ixs)
-                     kahan_c(5,ixs) = (kahan_t(5,ixs)-green_dip(3,ixs,iys,i_seg,ir))-kahan_y(5,ixs)
-                     kahan_c(6,ixs) = (kahan_t(6,ixs)-green_stk(3,ixs,iys,i_seg,ir))-kahan_y(6,ixs)
-                     green_dip(3,ixs,iys,i_seg,ir)=kahan_t(5,ixs)
-                     green_stk(3,ixs,iys,i_seg,ir)=kahan_t(6,ixs)
+                     green_dip(3,ixs)=gf_dip + green_dip(3,ixs)
+                     green_stk(3,ixs)=gf_stk + green_stk(3,ixs)
+!                     kahan_y(5,ixs) = gf_dip-kahan_c(5,ixs)
+!                     kahan_y(6,ixs) = gf_stk-kahan_c(6,ixs)
+!                     kahan_t(5,ixs) = green_dip(3,ixs)+kahan_y(5,ixs)
+!                     kahan_t(6,ixs) = green_stk(3,ixs)+kahan_y(6,ixs)
+!                     kahan_c(5,ixs) = (kahan_t(5,ixs)-green_dip(3,ixs))-kahan_y(5,ixs)
+!                     kahan_c(6,ixs) = (kahan_t(6,ixs)-green_stk(3,ixs))-kahan_y(6,ixs)
+!                     green_dip(3,ixs)=kahan_t(5,ixs)
+!                     green_stk(3,ixs)=kahan_t(6,ixs)
                   enddo
                enddo
             enddo
-         enddo
-      enddo
-   enddo
-
-!
-!       Save Green functions for each subfault
-!
-   open(13,file='Green_static_subfault.txt')
-   write(13,*)ir_max
-   do ir=1,ir_max
-      write(13,*)ir
-      do i_seg=1,n_seg
-         write(13,*)i_seg
-         do iys=1,nys_sub(i_seg)
             do ixs=1,nxs_sub(i_seg)
                do j = 1, 3
-                  green_sub_dip(j) = green_dip(j,ixs,iys,i_seg,ir) / float(nxp*nyp)
-                  green_sub_stk(j) = green_stk(j,ixs,iys,i_seg,ir) / float(nxp*nyp)
+                  green_sub_dip(j) = green_dip(j,ixs) / float(nxp*nyp)
+                  green_sub_stk(j) = green_stk(j,ixs) / float(nxp*nyp)
                enddo
                write(13,*)green_sub_dip(1),green_sub_stk(1),green_sub_dip(2), &
                        &  green_sub_stk(2),green_sub_dip(3),green_sub_stk(3)
@@ -229,8 +227,8 @@ program gf_static
    close(13)
    write(*,'(/A/)')'END PROGRAM TO COMPUTE STATIC GF WITH FK METHOD'
    deallocate(fau_mod)
-   deallocate(green_dip)
-   deallocate(green_stk)
+!   deallocate(green_dip)
+!   deallocate(green_stk)
 
 
 end program gf_static

@@ -62,6 +62,7 @@ module fk_static
 
    use constants, only : nlay, twopi, pi, ndis, nt
    use vel_model_data, only : depths, xi, mu, new_vel_p, new_vel_s, rcv, src, new_dens, qqp, qqs, flip_model, extra, n_layers_new
+   use layer, only : ka, kb
    use fk_source, only : source
    use fk_st_kernel, only : kernel
    use retrieve_gf, only : lnpt, dt
@@ -74,28 +75,30 @@ contains
 
    subroutine sub_bs_dc(nx,x,t0,green,disp)
 !
+   use omp_lib
    IMPLICIT NONE
    integer stype,updn
-   complex*16 :: ka(nlay),kb(nlay),att,w,w2
+   complex*16 :: att,w,w2
    logical dynamic, disp
 !
    real :: green(nt, 8, ndis)
 !
    integer i,j,l,nfft,nfft2,nfft3,n,ix,nx,tenPerc,count,total
    integer nCom,wc,wc1,wc2,smth,idx0,flip,new_old(9)
-   real*8 :: k,omega,dk,dw,sigma,const,phi,hs,xmax,vs
+   real*8 :: k,k2,omega,dk,dw,sigma,const,phi,hs,xmax,vs
    real*8 :: dfac,pmin,pmax,kc,taper,filter,z2
    real x(ndis),t0(ndis)
 !
-   integer ixx
-!
-   complex :: nf1,nf2,u(3,3)
+   complex*16 :: nf1,nf2,u(3,3), aux(9, ndis), aux2(9,ndis)
+!   complex :: nf1,nf2,u(3,3), aux(9, ndis)
    real aj0,aj1,aj2,z,tdata(2*nt)
 !
-!   complex, allocatable :: summ(:, :, :)
+   complex*16 summ(9,ndis,1)
    complex data1(nt), kahan_y(9,ndis), kahan_t(9,ndis), kahan_c(9,ndis)
-   complex :: summ(9,ndis,nt)
+!   complex :: summ(9,ndis,nt)
+!   allocate(summ(9,ndis,nt))
 
+   call omp_set_num_threads(8)
    dynamic = .TRUE.
    nCom = 9
 !       sequence 1   2   3  4    5   6   7   8
@@ -110,7 +113,7 @@ contains
    new_old(8)=1
 
    stype=2
-   sigma=2
+   sigma=2.d0
    nfft=2**lnpt
    taper=0.2d0
    smth=1
@@ -219,7 +222,7 @@ contains
    count = 0.
    kc = kc*kc
    data1(:) = cmplx(0.,0.)
-   summ(:, :, :) = cmplx(0.,0.)
+!   summ(:, :, :) = cmplx(0.,0.)
    
 
 !   write(0,*)' start F-K computation, iw-range:',wc1,wc2,wc,nfft2
@@ -234,23 +237,29 @@ contains
          ka(i) = ka(i)*ka(i)
          kb(i) = kb(i)*kb(i)
       enddo
-      kahan_y(:,:)=0.
-      kahan_t(:,:)=0.
-      kahan_c(:,:)=0.
+      summ(:, :, j) = 0.d0
 !
 ! we replace direct summation by Kahan summation formula, which reduces numerical error
 !
       k = omega*pmin + 0.5d0*dk
       n = (sqrt(kc+(pmax*omega)**2)-k)/dk                           ! kmax
+!$omp parallel &
+!$omp& private (u, i, ix, z, aj0, aj1, aj2, nf1, nf2), & 
+!$omp& private (filter, phi, l, k2, aux2) &
+!$omp& shared (dk, pmax, nx, x, summ), &
+!$omp& shared (flip, count, tenPerc, k, n)
+      aux2(:, :) = 0.d0
+!$omp do
       do i=1,n                                                      ! start k-loop
-         call kernel(k, u)!, ka, kb)
+         k2 = k+(i-1)*dk
+         call kernel(k2, u)
          do ix=1,nx
-            z = k*x(ix)
+            z = k2*x(ix)
             call besselFn(z, aj0,aj1,aj2)
 ! n=0
-            kahan_y(1,ix) = u(1,1)*aj0*flip
-            kahan_y(2,ix) = - u(2,1)*aj1
-            kahan_y(3,ix) = - u(3,1)*aj1
+            aux2(1,ix) = aux2(1,ix) + u(1,1)*aj0*flip
+            aux2(2,ix) = aux2(2,ix) - u(2,1)*aj1
+            aux2(3,ix) = aux2(3,ix) - u(3,1)*aj1
 !            summ(1,ix,j) = summ(1,ix,j) + u(1,1)*aj0*flip
 !            summ(2,ix,j) = summ(2,ix,j) - u(2,1)*aj1
 !            summ(3,ix,j) = summ(3,ix,j) - u(3,1)*aj1
@@ -265,17 +274,12 @@ contains
                nf1 =    (u(2,2)+u(3,2))/2.0   ! n=1
                nf2 = 2.*(u(2,3)+u(3,3))*z/8.0 ! n=2
             endif
-            kahan_y(4,ix) = u(1,2)*aj1*flip
-            kahan_y(5,ix) = u(2,2)*aj0 - nf1
-            kahan_y(6,ix) = u(3,2)*aj0 - nf1
-            kahan_y(7,ix) = u(1,3)*aj2*flip
-            kahan_y(8,ix) = u(2,3)*aj1 - nf2
-            kahan_y(9,ix) = u(3,3)*aj1 - nf2
-            do l=1,9
-               kahan_t(l,ix) = summ(l,ix,j) + kahan_y(l,ix)
-               kahan_c(l,ix) = (kahan_t(l,ix) - summ(l,ix,j)) - kahan_y(l,ix)
-               summ(l,ix,j) = kahan_t(l,ix)
-            enddo
+            aux2(4,ix) = aux2(4,ix) + u(1,2)*aj1*flip
+            aux2(5,ix) = aux2(5,ix) + u(2,2)*aj0 - nf1
+            aux2(6,ix) = aux2(6,ix) + u(3,2)*aj0 - nf1
+            aux2(7,ix) = aux2(7,ix) + u(1,3)*aj2*flip
+            aux2(8,ix) = aux2(8,ix) + u(2,3)*aj1 - nf2
+            aux2(9,ix) = aux2(9,ix) + u(3,3)*aj1 - nf2
 !            summ(4,ix,j) = summ(4,ix,j) + u(1,2)*aj1*flip
 !            summ(5,ix,j) = summ(5,ix,j) + u(2,2)*aj0 - nf1
 !            summ(6,ix,j) = summ(6,ix,j) + u(3,2)*aj0 - nf1
@@ -283,12 +287,18 @@ contains
 !            summ(8,ix,j) = summ(8,ix,j) + u(2,3)*aj1 - nf2
 !            summ(9,ix,j) = summ(9,ix,j) + u(3,3)*aj1 - nf2
          enddo
-         k = k+dk
+!         k2 = k+i*dk
          count=count+1
 !         if ( mod(count,tenPerc) .EQ. 0) then
 !            write(0,'(i4,a6)') int(100.*count/total)+1, '% done'
 !         endif
       enddo                                                 ! end of k-loop
+!$omp end do
+!$omp critical
+      summ(:,:nx,j) = summ(:,:nx,j) + aux2(:,:nx)
+!$omp end critical
+!$omp end parallel
+!      summ(:, :nx, 1) = aux(:, :nx)
       filter = const
       if ( dynamic .AND. j.GT.wc ) then 
          filter = 0.5d0*(1.d0+cos((j-wc)*taper))*filter
