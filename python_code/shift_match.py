@@ -75,13 +75,15 @@ def shift_match(data_type, plot=False, method='full', zero_start=True):
             fig.suptitle('{} {}'.format(name, component))
             derivative = False if not 'derivative' in file else file['derivative']
             time1, observed0 = get_observed(file, start, length, margin=10)
-            observed0 = np.gradient(observed0, dt) if derivative else observed0
+            observed0 = np.gradient(observed0, dt, edge_order=2) if derivative\
+            else observed0
             axes[0].axvline(0)
             axes[0].set_title('Before Shift')
             start4 = start + tr_shift
             time2, observed1 = get_observed(
                 file, start4, length, margin=10, zero_start=zero_start)
-            observed1 = np.gradient(observed1, dt) if derivative else observed1
+            observed1 = np.gradient(observed1, dt) if derivative\
+            else observed1
             obs_times = [time1, time2]
             syn_times = [time0, time0]
             obs_waveforms = [observed0, observed1]

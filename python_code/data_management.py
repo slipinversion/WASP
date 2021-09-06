@@ -409,6 +409,35 @@ def static_data(tensor_info, unit='m'):
     return info_traces
 
 
+def insar_data(insar_asc=None, insar_desc=None):
+    """Write json dictionary for InSar data
+
+    :param unit: units of static data
+    :type unit: string, optional
+    """
+    insar_dict = {}
+    if not insar_asc and not insar_desc:
+        return
+
+    if insar_asc:
+        insar_dict['ascending'] = {
+            'name': insar_asc,
+            'weight': 1.0
+        }
+
+    if insar_desc:
+        insar_dict['descending'] = {
+            'name': insar_desc,
+            'weight': 1.0
+        }
+
+    with open('insar_data.json', 'w') as f:
+        json.dump(
+            insar_dict, f, sort_keys=True, indent=4,
+            separators=(',', ': '), ensure_ascii=False)
+    return insar_dict
+
+
 def select_tele_stations(files, phase, tensor_info):
     """We select body and/or surface waves to use in finite fault modelling.
 
@@ -819,22 +848,35 @@ if __name__ == '__main__':
     import seismic_tensor as tensor
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--folder", default=os.getcwd(),
-                        help="folder where there are input files")
-    parser.add_argument("-d", "--data_folder", default=os.getcwd(),
-                        help="folder with waveform data")
-    parser.add_argument("-gcmt", "--gcmt_tensor",
-                        help="location of GCMT moment tensor file")
-    parser.add_argument("-t", "--tele", action="store_true",
-                        help="create JSON for teleseismic body waves")
-    parser.add_argument("-su", "--surface", action="store_true",
-                        help="create JSON for surface waves")
-    parser.add_argument("-st", "--strong", action="store_true",
-                        help="create JSON for strong motion data")
-    parser.add_argument("--cgps", action="store_true",
-                        help="create JSON for cGPS data")
-    parser.add_argument("--gps", action="store_true",
-                        help="create JSON for static GPS data")
+    parser.add_argument(
+        "-f", "--folder", default=os.getcwd(),
+        help="folder where there are input files")
+    parser.add_argument(
+        "-d", "--data_folder", default=os.getcwd(),
+        help="folder with waveform data")
+    parser.add_argument(
+        "-gcmt", "--gcmt_tensor",
+        help="location of GCMT moment tensor file")
+    parser.add_argument(
+        "-t", "--tele", action="store_true",
+        help="create JSON for teleseismic body waves")
+    parser.add_argument(
+        "-su", "--surface", action="store_true",
+        help="create JSON for surface waves")
+    parser.add_argument(
+        "-st", "--strong", action="store_true",
+        help="create JSON for strong motion data")
+    parser.add_argument(
+        "--cgps", action="store_true", help="create JSON for cGPS data")
+    parser.add_argument(
+        "--gps", action="store_true", help="create JSON for static GPS data")
+    parser.add_argument(
+        "-in", "--insar", action="store_true",
+        help="create JSON for InSar data")
+    parser.add_argument(
+        "-ina", "--insar_asc", help="Ascending InSar data")
+    parser.add_argument(
+        "-ind", "--insar_desc", help="Descending InSar data")
     args = parser.parse_args()
     data_folder = os.path.abspath(args.data_folder)
     if not os.path.isfile('sampling_filter.json'):
@@ -855,3 +897,5 @@ if __name__ == '__main__':
     data_type = data_type + ['tele_body'] if args.tele else data_type
     data_type = data_type + ['surf_tele'] if args.surface else data_type
     filling_data_dicts(tensor_info, data_type, data_prop, data_folder)
+    if args.insar:
+        insar_data(insar_asc=args.insar_asc, insar_desc=args.insar_desc)

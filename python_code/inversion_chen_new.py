@@ -49,12 +49,14 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     :type dt_cgps: float, optional
     """
     logger = ml.create_log('automatic_ffm',
-                os.path.join('logs', 'automatic_ffm.log'))  
+        os.path.join('logs', 'automatic_ffm.log'))  
     logger = ml.add_console_handler(logger)
     logger.info('Starting fff program')
     sol_folder = os.getcwd()
     sol_folder = os.path.abspath(sol_folder)
     time0 = time.time()
+    if 'gps' in data_type:
+        copy2(os.path.join('data', 'gps_data'), sol_folder)
     data_prop = tp.properties_json(tensor_info, dt_cgps=dt_cgps)
     os.chdir(os.path.join(sol_folder, 'data'))
     time2 = time.time()
@@ -75,7 +77,8 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     get_gf_bank = default_dirs['strong_motion_gf_bank2']
     if 'cgps' in data_type:
         logger.info('Compute cGPS GF bank')
-        green_dict = gf.fk_green_fun1(data_prop, tensor_info, gf_bank_cgps, cgps=True)
+        green_dict = gf.fk_green_fun1(
+            data_prop, tensor_info, gf_bank_cgps, cgps=True)
         input_files.write_green_file(green_dict, cgps=True)
         with open(os.path.join('logs', 'GF_cgps_log'), "w") as out_gf_cgps:
             p1 = subprocess.Popen([get_gf_bank, 'cgps'], stdout=out_gf_cgps)
@@ -89,13 +92,13 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
         p2.wait()
     
     files = [
-            'Green_strong.txt',
-            'Green_cgps.txt',
-            'modelling_stats.json',
-            os.path.join('data', 'gps_data'),
-            'strong_motion_gf.json',
-            'cgps_gf.json',
-            'sampling_filter.json'
+        'Green_strong.txt',
+        'Green_cgps.txt',
+        'modelling_stats.json',
+        'gps_data',
+        'strong_motion_gf.json',
+        'cgps_gf.json',
+        'sampling_filter.json'
     ]
     files2 = glob.glob('channels_*txt')
     files3 = glob.glob('wavelets_*txt')
@@ -113,14 +116,20 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     info_np1, info_np2 = tensor.planes_from_tensor(tensor_info)
     keywords = {'velmodel': velmodel}
     os.chdir(os.path.join(sol_folder, 'NP1'))
-    p1 = Process(target=_automatic2,
-                 args=(tensor_info, info_np1, data_type, data_prop, default_dirs, logger),
-                 kwargs=keywords)
+    p1 = Process(
+        target=_automatic2,
+        args=(
+            tensor_info, info_np1, data_type, data_prop, default_dirs, logger
+        ),
+        kwargs=keywords)
     p1.start()
     os.chdir(os.path.join(sol_folder, 'NP2'))
-    p2 = Process(target=_automatic2,
-                 args=(tensor_info, info_np2, data_type, data_prop, default_dirs, logger),
-                 kwargs=keywords)
+    p2 = Process(
+        target=_automatic2,
+        args=(
+            tensor_info, info_np2, data_type, data_prop, default_dirs, logger
+        ),
+        kwargs=keywords)
     p2.start()
     [p.join() for p in [p1, p2]]
     logger.info('Time spent: {}'.format(time.time() - time0))
@@ -176,26 +185,24 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
 #
     inversion(tensor_info, data_type, default_dirs, logger)
     logger.info('Plot data in folder {}'.format(os.getcwd()))
-    execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=velmodel)
+    execute_plot(
+        tensor_info, data_type, segments_data, default_dirs, velmodel=velmodel)
     base = os.path.basename(os.getcwd())
     dirname = os.path.abspath(os.getcwd())
 #
 # write solution in FSP format
 #
     solution = get_outputs.read_solution_static_format(segments)
-    static_to_fsp(tensor_info, segments_data, data_type, velmodel, solution)
+    static_to_fsp(
+        tensor_info, segments_data, data_type, velmodel, solution)
     for file in glob.glob('*png'):
         if os.path.isfile(os.path.join(dirname, base, file)):
             copy2(os.path.join(dirname, base, file),
                   os.path.join(dirname, 'plots'))
 
 
-def modelling_new_data(
-        tensor_info,
-        data_type,
-        default_dirs,
-        data_folder,
-        st_response=True):
+def modelling_new_data(tensor_info, data_type, default_dirs,
+                       data_folder, st_response=True):
     """Routine for manual finite fault modelling with new data types.
     
     :param tensor_info: dictionary with moment tensor properties
@@ -219,7 +226,8 @@ def modelling_new_data(
     gf_bank_cgps = os.path.join(sol_folder, 'GF_cgps')
     get_gf_bank = default_dirs['strong_motion_gf_bank2']
     if 'cgps' in data_type:
-        green_dict = gf.fk_green_fun1(data_prop, tensor_info, gf_bank_cgps, cgps=True)
+        green_dict = gf.fk_green_fun1(
+            data_prop, tensor_info, gf_bank_cgps, cgps=True)
         input_files.write_green_file(green_dict, cgps=True)
         with open(os.path.join('logs', 'GF_cgps_log'), "w") as out_gf_cgps:
             p1 = subprocess.Popen([get_gf_bank, 'cgps'], stdout=out_gf_cgps)
@@ -262,7 +270,7 @@ def manual_modelling(tensor_info, data_type, default_dirs):
     segments_data = json.load(open('segments_data.json'))
     min_vel, max_vel = __ask_velrange()
     logger = ml.create_log(
-                'manual_ffm', os.path.join('logs', 'manual_ffm.log'))
+        'manual_ffm', os.path.join('logs', 'manual_ffm.log'))
     logger.info('Write input files')
     tensor.write_tensor(tensor_info)
     writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel)
@@ -303,16 +311,17 @@ def forward_modelling(tensor_info, data_type, default_dirs,
 #
 # Get input model
 #
-    model = load_ffm_model(segments_data, point_sources, option=option,
-                           max_slip=max_slip, len_stk=len_stk, len_dip=len_dip)
+    model = load_ffm_model(
+        segments_data, point_sources, option=option,
+        max_slip=max_slip, len_stk=len_stk, len_dip=len_dip)
     if not os.path.isfile('velmodel_data.json'):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), 'velmodel_data.json')
+            errno.ENOENT, os.strerror(errno.ENOENT), 'velmodel_data.json')
     velmodel = json.load(open('velmodel_data.json'))
     min_vel, max_vel = __ask_velrange()
 
-    logger = ml.create_log('forward_model',
-                os.path.join('logs', 'forward_model.log'))
+    logger = ml.create_log(
+        'forward_model', os.path.join('logs', 'forward_model.log'))
     logger.info('Write input files')
     # segments, rise_time, point_sources = pl_mng.__read_planes_info()
     shear = pf.shear_modulous(point_sources, velmodel=velmodel)
@@ -322,15 +331,16 @@ def forward_modelling(tensor_info, data_type, default_dirs,
     zipped = zip(slip, shear)
     moment_sub = [dx * dy * slip_seg * shear_seg\
                   for slip_seg, shear_seg in zipped]
-    moment = np.sum(
-            [np.sum(moment_seg.flatten()) for moment_seg in moment_sub])
+    moment = np.sum([np.sum(moment_seg.flatten()) for moment_seg in moment_sub])
     moment = 10**10 * moment
-    writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,  
-                   moment_mag=moment, forward_model=model)
-    inversion(tensor_info, data_type, default_dirs, logger,
-              forward=True)
+    writing_inputs(
+        tensor_info, data_type, segments_data, min_vel, max_vel,  
+        moment_mag=moment, forward_model=model)
+    inversion(
+        tensor_info, data_type, default_dirs, logger, forward=True)
     logger.info('Plot data in folder {}'.format(os.getcwd()))
-    execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=velmodel)
+    execute_plot(
+        tensor_info, data_type, segments_data, default_dirs, velmodel=velmodel)
     ml.close_log(logger)
 
 
@@ -375,8 +385,8 @@ def checkerboard(tensor_info, data_type, default_dirs, max_slip=200,
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
     point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
-    forward_modelling(tensor_info, data_type, default_dirs,
-                      option=option, max_slip=max_slip)
+    forward_modelling(
+        tensor_info, data_type, default_dirs, option=option, max_slip=max_slip)
     data_prop = json.load(open('sampling_filter.json'))
     for data_type0 in data_type:
         if data_type0 == 'tele_body':
@@ -393,13 +403,13 @@ def checkerboard(tensor_info, data_type, default_dirs, max_slip=200,
             json_dict = 'dart_waves.json'
         files = json.load(open(json_dict))
         input_files.from_synthetic_to_obs(
-                files, data_type0, tensor_info, data_prop, add_error=add_error)
+            files, data_type0, tensor_info, data_prop, add_error=add_error)
     logger = ml.create_log('checkerboard_ffm',
                            os.path.join('logs', 'checkerboard_ffm.log'))
     if option2 == 'FFM modelling':
         inversion(tensor_info, data_type, default_dirs, logger)
-        execute_plot(tensor_info, data_type, segments_data, default_dirs,
-                     plot_input=True)
+        execute_plot(
+            tensor_info, data_type, segments_data, default_dirs, plot_input=True)
     ml.close_log(logger)
     
     
@@ -475,10 +485,8 @@ def processing(tensor_info, data_type, data_prop, st_response=True):
         proc.select_process_surf_tele(tele_files, tensor_info)
     if 'strong_motion' in data_type:
         proc.select_process_strong(
-            strong_files,
-            tensor_info,
-            data_prop,
-            remove_response=st_response
+            strong_files, tensor_info,
+            data_prop, remove_response=st_response
         )
     if 'cgps' in data_type:
         proc.select_process_cgps(cgps_files, tensor_info, data_prop)
@@ -489,7 +497,7 @@ def writing_inputs0(tensor_info, data_type):
     """
     if not os.path.isfile('sampling_filter.json'):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), 'sampling_filter.json')
+            errno.ENOENT, os.strerror(errno.ENOENT), 'sampling_filter.json')
     data_prop = json.load(open('sampling_filter.json'))
     if 'tele_body' in data_type:            
         input_files.input_chen_tele_body(tensor_info, data_prop)
@@ -524,13 +532,14 @@ def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
     """
     if not os.path.isfile('velmodel_data.json'):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), 'velmodel_data.json')
+            errno.ENOENT, os.strerror(errno.ENOENT), 'velmodel_data.json')
     velmodel = json.load(open('velmodel_data.json'))
     input_files.write_velmodel(velmodel)
-    input_files.plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel)
+    input_files.plane_for_chen(
+        tensor_info, segments_data, min_vel, max_vel, velmodel)
     if forward_model:
-        input_files.forward_model(tensor_info, segments_data, forward_model,
-                                  min_vel, max_vel)
+        input_files.forward_model(
+            tensor_info, segments_data, forward_model, min_vel, max_vel)
     # if not os.path.isfile('sampling_filter.json'):
     #     raise FileNotFoundError(
     #             errno.ENOENT, os.strerror(errno.ENOENT), 'sampling_filter.json')
@@ -549,7 +558,7 @@ def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
     #     input_files.input_chen_dart(tensor_info, data_prop)
     if not os.path.isfile('annealing_prop.json'):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), 'annealing_prop.json')
+            errno.ENOENT, os.strerror(errno.ENOENT), 'annealing_prop.json')
     dictionary = json.load(open('annealing_prop.json'))
     if moment_mag:
         dictionary['seismic_moment'] = moment_mag
@@ -557,18 +566,18 @@ def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
     if 'cgps' in data_type:
         if not os.path.isfile('cgps_gf.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'cgps_gf.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'cgps_gf.json')
         green_dict = json.load(open('cgps_gf.json'))
         input_files.write_green_file(green_dict, cgps=True)
     if 'strong_motion' in data_type:
         if not os.path.isfile('strong_motion_gf.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'strong_motion_gf.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'strong_motion_gf.json')
         green_dict = json.load(open('strong_motion_gf.json'))
         input_files.write_green_file(green_dict)
     if not os.path.isfile('model_space.json'):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), 'model_space.json')
+            errno.ENOENT, os.strerror(errno.ENOENT), 'model_space.json')
     segments2 = json.load(open('model_space.json'))
     input_files.model_space(segments2)
     return
@@ -624,8 +633,8 @@ def inversion(tensor_info, data_type, default_dirs, logger, forward=False):
     return run_stats
 
 
-def execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=None,
-                 plot_input=False):
+def execute_plot(tensor_info, data_type, segments_data, default_dirs,
+                 velmodel=None, plot_input=False):
     """We plot modelling results
     
     :param tensor_info: dictionary with moment tensor properties
@@ -648,8 +657,9 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=N
         velmodel = mv.select_velmodel(tensor_info, default_dirs)
     point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
     shear = pf.shear_modulous(point_sources, velmodel=velmodel)
-    plot.plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
-                      velmodel, default_dirs)
+    plot.plot_ffm_sol(
+        tensor_info, segments_data, point_sources, shear,
+        solution, velmodel, default_dirs)
     plot.plot_misfit(data_type)
     # plot.plot_beachballs(tensor_info, data_type)
     traces_info, stations_gps = [None, None]
@@ -659,16 +669,16 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs, velmodel=N
         names, lats, lons, observed, synthetic, error = get_outputs.retrieve_gps()
         stations_gps = zip(names, lats, lons, observed, synthetic, error)
     if 'strong_motion' in data_type or 'gps' in data_type:
-        plot._PlotMap(tensor_info, segments, point_sources, solution,
-                      default_dirs, files_str=traces_info,
-                      stations_gps=stations_gps)
+        plot._PlotMap(
+            tensor_info, segments, point_sources, solution,
+            default_dirs, files_str=traces_info, stations_gps=stations_gps)
     if plot_input:
-        input_model = load_ffm_model(segments_data, point_sources,
-                                     option='fault&rise_time.txt')
-        plot._PlotSlipDist_Compare(segments, point_sources,
-                                   input_model, solution)
-        plot._PlotComparisonMap(tensor_info, segments, point_sources,
-                                input_model, solution)
+        input_model = load_ffm_model(
+            segments_data, point_sources, option='fault&rise_time.txt')
+        plot._PlotSlipDist_Compare(
+            segments, point_sources, input_model, solution)
+        plot._PlotComparisonMap(
+            tensor_info, segments, point_sources, input_model, solution)
     plot_files = glob.glob(os.path.join('plots', '*png'))
     for plot_file in plot_files:
         os.remove(plot_file)
@@ -699,45 +709,49 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--folder", default=os.getcwd(),
-                        help="folder where there are input files")
-    parser.add_argument("-gcmt", "--gcmt_tensor",
-                        help="location of GCMT moment tensor file")
-    parser.add_argument("-qcmt", "--qcmt_tensor",
-                        help="location of QuakeML moment tensor file")
-    parser.add_argument("-o", "--option",
-                        choices=[
-                                'auto',
-                                'manual',
-                                'forward',
-                                'point_source',
-                                'checker_mod',
-                                'checker_noise',
-                                'point_source_err',
-                                'forward_patch',
-                                'add_data'
-                        ],
-                        required=True, help="which method to run")
-    parser.add_argument("-d", "--data",
-                        help="direction of folder with seismic data")
-    parser.add_argument("-v", "--velmodel", 
-                        help="direction of velocity model file")
-    parser.add_argument("-t", "--tele", action="store_true",
-                        help="use teleseismic data in modelling")
-    parser.add_argument("-su", "--surface", action="store_true",
-                        help="use surface waves data in modelling")
-    parser.add_argument("-st", "--strong", action="store_true",
-                        help="use strong motion data in modelling")
-    parser.add_argument("--cgps", action="store_true",
-                        help="use cGPS data in modelling")
-    parser.add_argument("--gps", action="store_true",
-                        help="use GPS data in modelling")
     parser.add_argument(
-        "-rst",
-        "--st_response",
-        action="store_false",
-        help="whether to remove response of strong_motion or not"
-    )
+        "-f", "--folder", default=os.getcwd(),
+        help="folder where there are input files")
+    parser.add_argument(
+        "-gcmt", "--gcmt_tensor",
+        help="location of GCMT moment tensor file")
+    parser.add_argument(
+        "-qcmt", "--qcmt_tensor",
+        help="location of QuakeML moment tensor file")
+    parser.add_argument(
+        "-o", "--option",
+        choices=[
+            'auto',
+            'manual',
+            'forward',
+            'point_source',
+            'checker_mod',
+            'checker_noise',
+            'point_source_err',
+            'forward_patch',
+            'add_data'
+        ],
+        required=True, help="which method to run")
+    parser.add_argument(
+        "-d", "--data", help="direction of folder with seismic data")
+    parser.add_argument(
+        "-v", "--velmodel", help="direction of velocity model file")
+    parser.add_argument(
+        "-t", "--tele", action="store_true",
+        help="use teleseismic data in modelling")
+    parser.add_argument(
+        "-su", "--surface", action="store_true",
+        help="use surface waves data in modelling")
+    parser.add_argument(
+        "-st", "--strong", action="store_true",
+        help="use strong motion data in modelling")
+    parser.add_argument(
+        "--cgps", action="store_true", help="use cGPS data in modelling")
+    parser.add_argument(
+        "--gps", action="store_true", help="use GPS data in modelling")
+    parser.add_argument(
+        "-rst", "--st_response", action="store_false",
+        help="whether to remove response of strong_motion or not")
     args = parser.parse_args()
     if args.gcmt_tensor:
         args.gcmt_tensor = os.path.abspath(args.gcmt_tensor)
@@ -773,8 +787,9 @@ if __name__ == '__main__':
                 if os.path.isfile(os.path.join(args.data, file)):
                     copy2(os.path.join(args.data, file), 'data')
         data_type = data_type if len(data_type) >= 1 else ['tele_body']
-        automatic_usgs(tensor_info, data_type, default_dirs, velmodel=velmodel,
-                       dt_cgps=None, st_response=args.st_response)
+        automatic_usgs(
+            tensor_info, data_type, default_dirs, velmodel=velmodel,
+            dt_cgps=None, st_response=args.st_response)
     if args.option == 'add_data':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -785,11 +800,8 @@ if __name__ == '__main__':
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
         modelling_new_data(
-            tensor_info,
-            data_type,
-            default_dirs,
-            data_folder,
-            st_response=args.st_response)
+            tensor_info, data_type, default_dirs,
+            data_folder, st_response=args.st_response)
     if args.option == 'manual':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -809,8 +821,8 @@ if __name__ == '__main__':
         if len(data_type) == 0:
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
-        forward_modelling(tensor_info, data_type, default_dirs,
-                          option='Solucion.txt')
+        forward_modelling(
+            tensor_info, data_type, default_dirs, option='Solucion.txt')
     if args.option == 'forward_patch':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -820,8 +832,9 @@ if __name__ == '__main__':
         if len(data_type) == 0:
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
-        checkerboard(tensor_info, data_type, default_dirs, max_slip=400,
-                     option='Patches', option2='forward')
+        checkerboard(
+            tensor_info, data_type, default_dirs, max_slip=400,
+            option='Patches', option2='forward')
     if args.option == 'checker_mod':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -841,8 +854,8 @@ if __name__ == '__main__':
         if len(data_type) == 0:
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
-        checkerboard(tensor_info, data_type, default_dirs, max_slip=0,
-                     add_error=True)
+        checkerboard(
+            tensor_info, data_type, default_dirs, max_slip=0, add_error=True)
     if args.option == 'point_source':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -852,8 +865,8 @@ if __name__ == '__main__':
         if len(data_type) == 0:
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
-        checkerboard(tensor_info, data_type, default_dirs, max_slip=500,
-                     option='Patches')
+        checkerboard(
+            tensor_info, data_type, default_dirs, max_slip=500, option='Patches')
     if args.option == 'point_source_err':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -863,5 +876,6 @@ if __name__ == '__main__':
         if len(data_type) == 0:
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
-        checkerboard(tensor_info, data_type, default_dirs, max_slip=300,
-                     option='Patches', add_error=True)
+        checkerboard(
+            tensor_info, data_type, default_dirs, max_slip=300,
+            option='Patches', add_error=True)

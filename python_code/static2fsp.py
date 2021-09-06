@@ -19,15 +19,11 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
 
     :param tensor_info: dictionary with moment tensor information
     :param segments_data: list of dictionaries with properties of fault segments
-    :param rise_time: dictionary with rise time information
-    :param point_sources: properties of point sources of the fault plane
     :param used_data: list with data types to be used in modelling
     :param solution: dictionary with output kinematic model properties
     :param vel_model: dictionary with velocity model properties
     :type tensor_info: dict
     :type segments_data: list
-    :type rise_time: dict
-    :type point_sources: array
     :type used_data: list
     :type solution: dict
     :type vel_model: dict
@@ -50,7 +46,9 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     tfall = solution['tfall']
     # depths = solution['depth']
     moment = solution['moment']
-    total_moment = np.sum(np.array(moment).flatten())
+    total_moment = 0
+    for moment_segment in moment:
+        total_moment = total_moment + np.sum(np.array(moment_segment).flatten())
 
     string = ' ---------------------------------- '
     event_lat = tensor_info['lat']
@@ -77,17 +75,21 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     depths = [ps_segment[:, :, dip_ps, strike_ps, 2] for ps_segment in point_sources]
     ps_depths = [ps_segment[:, :, :, :, 2] for ps_segment in point_sources]
     min_depth = min([np.min(ps_depth.flatten()) for ps_depth in ps_depths])
-    ps_distances = [ps_segment[:, :, 0, 0, 3] for ps_segment in point_sources]
-    ps_times = [ps_segment[:, :, 0, 0, 4] for ps_segment in point_sources]
+    ps_distances = [ps_segment[:, :, dip_ps, strike_ps, 3] for ps_segment in point_sources]
+    ps_times = [ps_segment[:, :, dip_ps, strike_ps, 4] for ps_segment in point_sources]
     delta_time = [rupt_seg - ps_time for ps_time, rupt_seg\
         in zip(ps_times, trup)]
     total_subfaults = [segment['stk_subfaults'] * segment['dip_subfaults']\
         for segment in segments]
     total_subfaults = np.sum(np.array(total_subfaults))
-    avg_time = [np.sum(dt_seg.flatten()) for dt_seg in delta_time]
-    avg_time = np.sum(np.array(avg_time).flatten()) / total_subfaults
+    avg_time1 = [np.sum(trise_seg.flatten()) for trise_seg in trise]
+    avg_time1 = np.sum(np.array(avg_time1).flatten()) / total_subfaults
+    avg_time2 = [np.sum(tfall_seg.flatten()) for tfall_seg in tfall]
+    avg_time2 = np.sum(np.array(avg_time2).flatten()) / total_subfaults
+    avg_time = avg_time1 + avg_time2
     avg_vel = [ps_dist / rupt_seg for ps_dist, rupt_seg\
         in zip(ps_distances, trup)]
+    avg_vel = [np.where(np.isnan(avg_vel_seg), 0, avg_vel_seg) for avg_vel_seg in avg_vel]
     avg_vel = [np.sum(avg_vel_seg.flatten()) for avg_vel_seg in avg_vel]
     avg_vel = np.sum(np.array(avg_vel).flatten()) / total_subfaults
     min_rise = rise_time['min_rise']
@@ -119,7 +121,7 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     qp = [float(v) for v in vel_model['qa']]
     qs = [float(v) for v in vel_model['qb']]
     depth2 = np.cumsum(np.array(thick))
-    depth2 = depth2 - depth2[0]
+    depth2 = np.concatenate([[0], depth2])# - depth2[0]
     zipped = zip(depth2, p_vel, s_vel, dens, qp, qs)
     zipped2 = zip(segments, point_sources, latitudes, longitudes,
                   depths, slips, rakes, trup, trise, tfall, moment)
@@ -220,8 +222,8 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
             outfile.write('%{}{}\n'.format(string, string))
             start_line = 10
             for i_segment, fault_segment_data in enumerate(zipped2):
-                segment = fault_segment_data[0].flatten()
-                ps_seg = fault_segment_data[1].flatten()
+                segment = fault_segment_data[0]
+                ps_seg = fault_segment_data[1]
                 lat_fault = fault_segment_data[2].flatten()
                 lon_fault = fault_segment_data[3].flatten()
                 depth_fault = fault_segment_data[4].flatten()
@@ -258,7 +260,7 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
                 zipped3 = zip(lat_fault, lon_fault, depth_fault, slip_fault,
                               rake_fault, trup_fault, trise_fault, tfall_fault,
                               moment_fault)
-                for line in zipped:
+                for line in zipped3:
                     lat, lon, dep, slip, rake, t_rup, t_ris, t_fal,\
                     moment = line
                     north_south = (float(lat) - event_lat) * 111.11
@@ -306,12 +308,11 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     else:
         tensor_info = tensor.get_tensor()
-    segments_data, rise_time, point_sources = pl_mng.__read_planes_info()
+    segments_data = json.load(open('segments_data.json'))
+    segments = segments_data['segments']
     if not os.path.isfile('velmodel_data.json'):
         raise FileNotFoundError(
             errno.ENOENT, os.strerror(errno.ENOENT), 'velmodel_data.json')
     vel_model = json.load(open('velmodel_data.json'))
-    solution = get_outputs.read_solution_static_format(
-            segments_data, point_sources)
-    static_to_fsp(tensor_info, segments_data, rise_time, point_sources,
-                  used_data, vel_model, solution)
+    solution = get_outputs.read_solution_static_format(segments)
+    static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)

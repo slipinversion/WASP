@@ -61,12 +61,12 @@ def create_finite_fault(tensor_info, np_plane_info, data_type, water_level=0,
 
     eq_time = 2*time_shift + 0.75*time_shift
     subfaults = __fault_plane_properties(
-            eq_time, tensor_info, plane_info2, water_level)
+        eq_time, tensor_info, plane_info2, water_level)
     rise_time = __rise_time_parameters(
-            tensor_info, eq_time, subfaults, data_type)
+        tensor_info, eq_time, subfaults, data_type)
     hyp_location = __hypocenter_location2(
-            plane_info2, rupture_vel, eq_time, subfaults, tensor_info,
-            water_level, rise_time)
+        plane_info2, rupture_vel, eq_time, subfaults,
+        tensor_info, water_level, rise_time)
 
     plane_info2.update(subfaults)
     plane_info2.update(hyp_location)
@@ -138,6 +138,8 @@ def point_sources_param(segments, tensor_info, rise_time):
         dip = segment['dip']
         hyp_stk = segment['hyp_stk']
         hyp_dip = segment['hyp_dip']
+        stk_subfaults = segment['stk_subfaults']
+        dip_subfaults = segment['dip_subfaults']
         if i == 0:
             ref_coords[0] = [event_lat, event_lon, depth]
             lat0 = event_lat
@@ -167,11 +169,17 @@ def point_sources_param(segments, tensor_info, rise_time):
                 neighbour = segment1[0]
                 n1_stk, n1_dip = neighbour['connect_subfault']
                 n2_stk, n2_dip = neighbour['neighbour_connect_subfault']
-                x = (n2_stk - n1_stk) * delta_strike + 0 * dx
-                y = (n2_dip - n1_dip) * delta_dip + 0 * dy
+                i0 = neighbour['neighbour']
+                prev_segment = segments[i0]
+                prev_neighbour = prev_segment['neighbours'][0]
+                n01_stk, n01_dip = prev_neighbour['connect_subfault']
+                n02_stk, n02_dip = prev_neighbour['neighbour_connect_subfault']
+
+                x = (n2_stk - n01_stk) * delta_strike + 0 * dx
+                y = (n2_dip - n01_dip) * delta_dip + 0 * dy
                 lat0, lon0, depth_0 = ref_coords[i]
                 dip2 = segments[j]['dip']
-                dep_ref = depth_0 + y * np.sin(dip2 * deg2rad)
+                dep_ref = depth_0 + y * np.sin(dip * deg2rad)
                 lat_ref, lon_ref = __lat_lon(strike, dip, x, y, lat0, lon0)
                 ref_coords[j] = [lat_ref, lon_ref, dep_ref]
 #
@@ -181,6 +189,9 @@ def point_sources_param(segments, tensor_info, rise_time):
     for i, (segment, ref_coord) in enumerate(zip(segments, ref_coords)):
         strike = segment["strike"]
         dip = segment['dip']
+        delay_segment = 0
+        if 'delay_segment' in segment:
+            delay_segment = segment['delay_segment']
         stk_subfaults = segment['stk_subfaults']
         dip_subfaults = segment['dip_subfaults']
         hyp_stk = segment['hyp_stk']
@@ -203,6 +214,7 @@ def point_sources_param(segments, tensor_info, rise_time):
                         y = (k2 + 1) * delta_dip + (k1 + 1) * dy - y_center
                         distance = np.sqrt(x ** 2 + y ** 2)
                         t1 = distance / rupture_vel
+                        t1 = t1 + delay_segment
 #
 # depth of point source
 #
@@ -222,9 +234,9 @@ def point_sources_param(segments, tensor_info, rise_time):
 # distance over earth surface
 #
                         dist, az, baz = mng._distazbaz(
-                                lat, lon, event_lat, event_lon)
+                            lat, lon, event_lat, event_lon)
                         matrix[k2, j2, k1, j1, :] =\
-                                lat, lon, dep, distance, t1, dist, az
+                            lat, lon, dep, distance, t1, dist, az
         point_sources[i] = matrix
     return point_sources
 
@@ -260,19 +272,31 @@ def shear_modulous(point_sources, velmodel=None):
     :math:`v_s` the S-wave velocity, and :math:`\rho` density of the medium.
     """
     if not velmodel:
-        p_vel = np.array([5.800, 6.800, 8.080, 8.594, 8.732, 8.871, 9.219,
-                          9.561, 9.902, 10.073, 10.212, 10.791, 10.869])
-        s_vel = np.array([3.200, 3.900, 4.473, 4.657, 4.707, 4.757, 4.981,
-                          5.176, 5.370, 5.467, 5.543, 5.982, 6.056])
-        dens = np.array([2.600, 2.900, 3.3754, 3.4465, 3.4895, 3.5325, 3.7448,
-                         3.8288, 3.9128, 3.9548, 3.9840, 4.3886, 4.4043])
-        thick = np.array([12.000, 9.400, 196.000, 36.000, 108.00, 36.000,
-                          33.333, 100.00, 33.333, 33.333, 70.000, 25.250, 0.0])
+        p_vel = np.array(
+            [
+                5.800, 6.800, 8.080, 8.594, 8.732, 8.871, 9.219,
+                9.561, 9.902, 10.073, 10.212, 10.791, 10.869
+            ])
+        s_vel = np.array(
+            [
+                3.200, 3.900, 4.473, 4.657, 4.707, 4.757, 4.981,
+                5.176, 5.370, 5.467, 5.543, 5.982, 6.056
+            ])
+        dens = np.array(
+            [
+                2.600, 2.900, 3.3754, 3.4465, 3.4895, 3.5325, 3.7448,
+                3.8288, 3.9128, 3.9548, 3.9840, 4.3886, 4.4043
+            ])
+        thick = np.array(
+            [
+                12.000, 9.400, 196.000, 36.000, 108.00, 36.000,
+                33.333, 100.00, 33.333, 33.333, 70.000, 25.250, 0.0
+            ])
         velmodel = {
-                'p_vel': p_vel,
-                's_vel': s_vel,
-                'dens': dens,
-                'thick': thick
+            'p_vel': p_vel,
+            's_vel': s_vel,
+            'dens': dens,
+            'thick': thick
         }
     vel_s = velmodel['s_vel']
     dens = velmodel['dens']
@@ -374,7 +398,7 @@ def __fault_plane_properties(eq_time, tensor_info, plane_info, water_level):
         delta_dip = 0.99 * max_width / dip_subfaults
 
     fault_dimensions = __subfaults_properties(
-            delta_strike, delta_dip, stk_subfaults, dip_subfaults)
+        delta_strike, delta_dip, stk_subfaults, dip_subfaults)
     return fault_dimensions
 
 
@@ -431,8 +455,6 @@ def _point_sources_def(rise_time_param, rupture_vel, fault_dimensions):
 
     strike_ps = strike_ps + 1 if strike_ps % 2 == 0 else strike_ps
     dip_ps = dip_ps + 1 if dip_ps % 2 == 0 else dip_ps
-#    strike_ps = strike_ps if finite_fault else 1
-#    dip_ps = dip_ps if finite_fault else 1
 
     dx = delta_strike / strike_ps
     dy = delta_dip / dip_ps
@@ -469,12 +491,19 @@ def __hypocenter_location2(
     sin_stk = np.sin(strike * deg2rad)
     cos_dip = np.cos(dip * deg2rad)
     matrix = np.array(
-        [[cos_stk / degree, - cos_dip * sin_stk / degree],
-         [sin_stk / (degree * np.cos(event_lat * deg2rad)),
-          cos_dip * cos_stk / (degree * np.cos(event_lat * deg2rad))]])
+        [
+            [cos_stk / degree, - cos_dip * sin_stk / degree],
+            [
+                sin_stk / (degree * np.cos(event_lat * deg2rad)),
+                cos_dip * cos_stk / (degree * np.cos(event_lat * deg2rad))
+            ]
+        ])
     matrix = np.linalg.inv(matrix)
-    vector = np.array([[centroid_lat - event_lat],
-                       [centroid_lon - event_lon]])
+    vector = np.array(
+        [
+            [centroid_lat - event_lat],
+            [centroid_lon - event_lon]
+        ])
     solution = np.dot(matrix, vector)
     x, y = solution.flatten()
 
@@ -517,10 +546,10 @@ def __plane_tensor_def(strike, dip, rake, rupture_vel):
     """
     """
     values = {
-            'strike': strike,
-            'dip': dip,
-            'rake': rake,
-            'rupture_vel': rupture_vel
+        'strike': strike,
+        'dip': dip,
+        'rake': rake,
+        'rupture_vel': rupture_vel
     }
     return values
 
@@ -529,12 +558,11 @@ def __subfaults_properties(delta_strike, delta_dip, stk_subfaults, dip_subfaults
     """
     """
     values = {
-            'delta_strike': delta_strike,
-            'delta_dip': delta_dip,
-            'stk_subfaults': stk_subfaults,
-            'dip_subfaults': dip_subfaults
-            # 'largo': delta_strike * stk_subfaults, #
-            # 'ancho': delta_dip * dip_subfaults, #
+        'delay_segment': 0,
+        'delta_strike': delta_strike,
+        'delta_dip': delta_dip,
+        'stk_subfaults': stk_subfaults,
+        'dip_subfaults': dip_subfaults
     }
     return values
 
@@ -543,10 +571,10 @@ def __point_sources_general(strike_ps, dip_ps, dx, dy):
     """Properties of point sources for each subfault
     """
     values = {
-            'strike_ps': strike_ps,
-            'dip_ps': dip_ps,
-            'dx': dx,
-            'dy': dy
+        'strike_ps': strike_ps,
+        'dip_ps': dip_ps,
+        'dx': dx,
+        'dy': dy
     }
     return values
 
@@ -555,10 +583,10 @@ def __epicenter_location(hyp_stk, hyp_dip):#, nx_hyp, ny_hyp):
     """
     """
     values = {
-            'hyp_stk': hyp_stk,    # hypocenter subfault
-            'hyp_dip': hyp_dip,    #
-            # 'nx_hyp': nx_hyp,     # center of subfault
-            # 'ny_hyp': ny_hyp      #
+        'hyp_stk': hyp_stk,    # hypocenter subfault
+        'hyp_dip': hyp_dip,    #
+        # 'nx_hyp': nx_hyp,     # center of subfault
+        # 'ny_hyp': ny_hyp      #
     }
     return values
 
@@ -573,9 +601,9 @@ def __save_plane_data(plane_tensor, subfaults, epicenter_loc, rise_time):
     segments_info = [segment_info]
     dictionary = {'segments': segments_info, 'rise_time': rise_time}
     with open('segments_data.json','w') as f:
-         json.dump(
-                 dictionary, f, sort_keys=True, indent=4,
-                 separators=(',', ': '), ensure_ascii=False)
+        json.dump(
+            dictionary, f, sort_keys=True, indent=4,
+            separators=(',', ': '), ensure_ascii=False)
     return dictionary
 
 
@@ -630,9 +658,9 @@ def event_mult_in_to_json():
     t2 = float(lines[4][1])
     windows = int(lines[4][2])
     rise_time = {
-            'min_rise': t1,
-            'delta_rise': t2,
-            'windows': windows
+        'min_rise': t1,
+        'delta_rise': t2,
+        'windows': windows
     }
     rupt_vel = float(lines[5][0])
     delta_strike = float(lines[6][1])
@@ -646,20 +674,22 @@ def event_mult_in_to_json():
         rake = float(lines[index0 + 1][2])
         stk_subfaults = int(lines[index0 + 2][0])
         dip_subfaults = int(lines[index0 + 2][1])
+        delay_segment = float(lines[index0 + 2][2])
         hyp_stk = int(lines[index0 + 3][0])
         hyp_dip = int(lines[index0 + 3][1])
         dict1 = {
-                'delta_strike': delta_strike,
-                'delta_dip': delta_dip,
-                'dip': dip,
-                'strike': strike,
-                'rake': rake,
-                'rupture_vel': rupt_vel,
-                'stk_subfaults': stk_subfaults,
-                'dip_subfaults': dip_subfaults,
-                'hyp_stk': hyp_stk,
-                'hyp_dip': hyp_dip,
-                'neighbours': []
+            'delay_segment': delay_segment,
+            'delta_strike': delta_strike,
+            'delta_dip': delta_dip,
+            'dip': dip,
+            'strike': strike,
+            'rake': rake,
+            'rupture_vel': rupt_vel,
+            'stk_subfaults': stk_subfaults,
+            'dip_subfaults': dip_subfaults,
+            'hyp_stk': hyp_stk,
+            'hyp_dip': hyp_dip,
+            'neighbours': []
         }
         if i_segment == 0:
             index0 = index0 + 4
@@ -678,13 +708,13 @@ def event_mult_in_to_json():
             index0 = index0 + 6
         segments = segments + [dict1]
     dict3 = {
-            'rise_time': rise_time,
-            'segments': segments
+        'rise_time': rise_time,
+        'segments': segments
     }
     with open('segments_data.json','w') as f:
-         json.dump(
-                 dict3, f, sort_keys=True, indent=4,
-                 separators=(',', ': '), ensure_ascii=False)
+        json.dump(
+            dict3, f, sort_keys=True, indent=4,
+            separators=(',', ': '), ensure_ascii=False)
     return
 
 
@@ -692,21 +722,27 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--folder", default=os.getcwd(),
-                        help="folder where there are input files")
-    parser.add_argument("-gcmt", "--gcmt_tensor",
-                        help="location of GCMT moment tensor file")
-    parser.add_argument("-v", "--rupt_vel", default=2.5, type=float,
-                        help="Rupture velocity to use")
-    parser.add_argument("-np", "--nodal_plane", nargs=3, default=[0, 17, 90],
-                        type=float,
-                        help="Mechanism (strike, dip, rake) of nodal plane")
-    parser.add_argument("-t", "--tele", action="store_true",
-                        help="automatic parametrization for teleseismic data")
-    parser.add_argument("-st", "--strong", action="store_true",
-                        help="automatic parametrization for strong motion data")
-    parser.add_argument("-e2j", "--event_to_json", action="store_true",
-                        help="Translate Event_mult.in file to JSON file")
+    parser.add_argument(
+        "-f", "--folder", default=os.getcwd(),
+        help="folder where there are input files")
+    parser.add_argument(
+        "-gcmt", "--gcmt_tensor",
+        help="location of GCMT moment tensor file")
+    parser.add_argument(
+        "-v", "--rupt_vel", default=2.5, type=float,
+        help="Rupture velocity to use")
+    parser.add_argument(
+        "-np", "--nodal_plane", nargs=3, default=[0, 17, 90],
+        type=float, help="Mechanism (strike, dip, rake) of nodal plane")
+    parser.add_argument(
+        "-t", "--tele", action="store_true",
+        help="automatic parametrization for teleseismic data")
+    parser.add_argument(
+        "-st", "--strong", action="store_true",
+        help="automatic parametrization for strong motion data")
+    parser.add_argument(
+        "-e2j", "--event_to_json", action="store_true",
+        help="Translate Event_mult.in file to JSON file")
     args = parser.parse_args()
 
     os.chdir(args.folder)
@@ -727,9 +763,10 @@ if __name__ == '__main__':
         data_type = data_type + ['strong_motion'] if args.strong else data_type
         strike, dip, rake = args.nodal_plane
         np_plane_info = {
-                "strike": strike,
-                "dip": dip,
-                "rake": rake
+            "strike": strike,
+            "dip": dip,
+            "rake": rake
         }
-        create_finite_fault(tensor_info, np_plane_info, data_type,
-                            water_level=0, rupture_vel=args.rupt_vel)
+        create_finite_fault(
+            tensor_info, np_plane_info, data_type,
+            water_level=0, rupture_vel=args.rupt_vel)

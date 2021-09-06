@@ -42,7 +42,7 @@ def write_velmodel(velmodel):
         outfile.write('{}\n'.format(len(thick)))
         for pv, sv, rho, th, qaa, qbb in zipped:
             outfile.write(
-                    '{} {} {} {} {} {}\n'.format(pv, sv, rho, th, qaa, qbb))
+                '{} {} {} {} {} {}\n'.format(pv, sv, rho, th, qaa, qbb))
     return
 
 
@@ -104,11 +104,13 @@ def forward_model(tensor_info, segments_data, model, vel0, vel1):
     with open('fault&rise_time.txt', 'w') as outfile:
         outfile.write('{} {} {} 10\n'.format(hyp_stk, hyp_dip, depth))
         outfile.write(
-                '{} {} {} {} {} {} {} {} {}\n'.format(
+            '{} {} {} {} {} {} {} {} {}\n'.format(
                 len(segments), delta_strike, delta_dip, strike_ps, dip_ps,
-                vel0, vel1, -100, 100))
+                vel0, vel1, -100, 100
+            )
+        )
         outfile.write('{} {} {} {} {}\n'.format(
-                t1, t2, windows, rupture_vel, disp_or_vel))
+            t1, t2, windows, rupture_vel, disp_or_vel))
         for i_segment, (segment, slip_seg, rake_seg, trup_seg, tris_seg, tfall_seg)\
         in enumerate(zipped):
             dip = segment['dip']
@@ -120,8 +122,8 @@ def forward_model(tensor_info, segments_data, model, vel0, vel1):
             for i in range(n_dip):
                 for j in range(n_stk):
                     outfile.write(string.format(
-                            slip_seg[i, j], rake_seg[i, j], trup_seg[i, j],
-                            tris_seg[i, j], tfall_seg[i, j]))
+                        slip_seg[i, j], rake_seg[i, j], trup_seg[i, j],
+                        tris_seg[i, j], tfall_seg[i, j]))
     return
 
 
@@ -169,11 +171,13 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
     with open('fault&rise_time.txt', 'w') as outfile:
         outfile.write('{} {} {} 10\n'.format(hyp_stk, hyp_dip, depth))
         outfile.write(
-                '{} {} {} {} {} {} {} {} {}\n'.format(
+            '{} {} {} {} {} {} {} {} {}\n'.format(
                 len(segments), delta_strike, delta_dip, strike_ps, dip_ps,
-                min_vel, max_vel, -100, 100))
+                min_vel, max_vel, -100, 100
+            )
+        )
         outfile.write('{} {} {} {} {}\n'.format(
-                t1, t2, windows, rupture_vel, disp_or_vel))
+            t1, t2, windows, rupture_vel, disp_or_vel))
         for i_segment, segment in enumerate(segments):
             dip = segment['dip']
             strike = segment['strike']
@@ -229,11 +233,12 @@ def from_event_mult_in():
     create_fault_files = pk_dirs['create_fault_files']
     compute_shear = pk_dirs['compute_shear']
     p = subprocess.Popen(
-            [create_fault_files, 'Event_mult.in', 'no'], stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        [create_fault_files, 'Event_mult.in', 'no'], stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()
-    p2 = subprocess.Popen([compute_shear, 'vel_model',], stdin=subprocess.PIPE,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p2 = subprocess.Popen(
+        [compute_shear, 'vel_model',], stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p2.wait()
 ##
 ## create a json file with fault properties, and another for rise_time info
@@ -322,11 +327,17 @@ def input_chen_tele_body(tensor_info, data_prop):
             p_slowness = arrivals['p_slowness']
             s_slowness = arrivals['s_slowness']
             if channel == 'BHZ':
-                outfile.write(string_fun1(i + 1, name, dist, az, lat, lon,
-                                          p_slowness, derivative))
+                outfile.write(
+                    string_fun1(
+                        i + 1, name, dist, az, lat, lon, p_slowness, derivative
+                    )
+                )
             else:
-                outfile.write(string_fun2(i + 1, name, dist, az, lat, lon,
-                                          s_slowness, derivative))
+                outfile.write(
+                    string_fun2(
+                        i + 1, name, dist, az, lat, lon, s_slowness, derivative
+                    )
+                )
             i = i + 1
 
     with open('wavelets_body.txt', 'w') as file1, open('waveforms_body.txt', 'w') as file2:
@@ -377,18 +388,18 @@ def input_chen_tele_surf(tensor_info, data_prop):
     string = '{:3d} {:>6} {:>8.3f} {:>9.3f} 31' + 3 * '  {:>1}'\
             + 2 * ' {:>7.2f}' + '  1' + 3 * '  {:>7.2f}' + ' 0\n'
     string_fun = lambda i, name, lat, lon, a, b, c, d, e, weight:\
-        string.format(i, name, lat, lon, a, b, c, d, e,
-                      weight, weight, weight)
+        string.format(
+            i, name, lat, lon, a, b, c, d, e, weight, weight, weight)
 
     with open('channels_surf.txt', 'w') as outfile:
         outfile.write('{}{}{}{}{}{}.{}\n'.format(
-                date_origin.year, date_origin.month, date_origin.day,
-                date_origin.hour, date_origin.minute, date_origin.second,
-                date_origin.microsecond))
+            date_origin.year, date_origin.month, date_origin.day,
+            date_origin.hour, date_origin.minute, date_origin.second,
+            date_origin.microsecond))
         outfile.write('{} {} {} {} {} {} {} {} {}\n'.format(
-                event_lat, event_lon, depth, date_origin.year,
-                date_origin.julday, date_origin.hour, date_origin.minute,
-                date_origin.second, date_origin.microsecond))
+            event_lat, event_lon, depth, date_origin.year,
+            date_origin.julday, date_origin.hour, date_origin.minute,
+            date_origin.second, date_origin.microsecond))
         outfile.write('0.0 90.0 0.0 10 4.0 1.0e+26\n')
         outfile.write('4.0 4.0 10 1.0 {}\n'.format(0))
         outfile.write('{} {}\n'.format(nsta, nsta))
@@ -408,8 +419,8 @@ def input_chen_tele_surf(tensor_info, data_prop):
             i = i + 1
 
     with open('wavelets_surf.txt', 'w') as file1, open('waveforms_surf.txt', 'w') as file2:
-        write_files_wavelet_observed(file1, file2, 4.0, data_prop, traces_info,
-                                     gf_bank=gf_bank)
+        write_files_wavelet_observed(
+            file1, file2, 4.0, data_prop, traces_info, gf_bank=gf_bank)
 
     write_wavelet_freqs(4.0, 'Wavelets_surf_tele.txt')
     return
@@ -456,9 +467,9 @@ def input_chen_strong_motion(tensor_info, data_prop):
 
     with open('channels_strong.txt', 'w') as outfile:
         outfile.write('{}{}{}{}{}{}{}\n'.format(
-                date_origin.year, date_origin.month, date_origin.day,
-                date_origin.hour, date_origin.minute, date_origin.second,
-                date_origin.microsecond))
+            date_origin.year, date_origin.month, date_origin.day,
+            date_origin.hour, date_origin.minute, date_origin.second,
+            date_origin.microsecond))
         outfile.write('{} {} {}\n'.format(event_lat, event_lon, depth))
         outfile.write('10 {} {}\n'.format(dt_strong, moment_mag))
         outfile.write('{}\n'.format(disp_or_vel))
@@ -472,8 +483,8 @@ def input_chen_strong_motion(tensor_info, data_prop):
             outfile.write(string_fun(i, name, lat, lon, channel, weight))
 
     with open('wavelets_strong.txt', 'w') as file1, open('waveforms_strong.txt', 'w') as file2:
-        write_files_wavelet_observed(file1, file2, dt_strong, data_prop,
-                                     traces_info)
+        write_files_wavelet_observed(
+            file1, file2, dt_strong, data_prop, traces_info)
 
     write_wavelet_freqs(dt_strong, 'Wavelets_strong_motion.txt')
     return 'strong_motion'
@@ -521,9 +532,9 @@ def input_chen_cgps(tensor_info, data_prop):
 
     with open('channels_cgps.txt', 'w') as outfile:
         outfile.write('{}{}{}{}{}{}{}\n'.format(
-                date_origin.year, date_origin.month, date_origin.day,
-                date_origin.hour, date_origin.minute, date_origin.second,
-                date_origin.microsecond))
+            date_origin.year, date_origin.month, date_origin.day,
+            date_origin.hour, date_origin.minute, date_origin.second,
+            date_origin.microsecond))
         outfile.write('{} {} {}\n'.format(event_lat, event_lon, depth))
         outfile.write('10 {} {}\n'.format(dt_cgps, moment_mag))
         outfile.write('{}\n'.format(io_vd))
@@ -537,8 +548,8 @@ def input_chen_cgps(tensor_info, data_prop):
             outfile.write(string_fun(i, name, lat, lon, channel, weight))
 
     with open('wavelets_cgps.txt', 'w') as file1, open('waveforms_cgps.txt', 'w') as file2:
-        write_files_wavelet_observed(file1, file2, dt_cgps, data_prop,
-                                     traces_info, zero_start=True)
+        write_files_wavelet_observed(
+            file1, file2, dt_cgps, data_prop, traces_info, zero_start=True)
     return 'cgps'
 
 
@@ -563,8 +574,63 @@ def input_chen_static(tensor_info):
             lat, lon = info['location']
             ud_disp, ns_disp, ew_disp = info['observed']
             ud_weight, ns_weight, ew_weight = info['trace_weight']
-            outfile.write(string_fun(i, name, lat, lon, ud_disp, ns_disp,
-                                     ew_disp, ud_weight, ns_weight, ew_weight))
+            outfile.write(
+                string_fun(
+                    i, name, lat, lon, ud_disp, ns_disp,
+                    ew_disp, ud_weight, ns_weight, ew_weight
+                )
+            )
+
+
+def input_chen_insar():
+    """Modify format of input insar file.
+    """
+    if not os.path.isfile('insar_data.json'):
+        return
+
+    insar_info = json.load(open('insar_data.json'))
+    lines = []
+    weight_asc = 0
+    weight_desc = 0
+    lines_asc = 0
+    lines_desc = 0
+    if 'ascending' in insar_info:
+        ascending = insar_info['ascending']
+        insar_asc = ascending['name']
+        weight_asc = ascending['weight']
+        with open(insar_asc, 'r') as infile:
+            lines = [line.split() for line in infile]
+        lines = lines[1:]
+        lines_asc = len(lines)
+    if 'descending' in insar_info:
+        descending = insar_info['descending']
+        insar_desc = descending['name']
+        weight_desc = descending['weight']
+        with open(insar_desc, 'r') as infile:
+            new_lines = [line.split() for line in infile]
+        lines = lines + new_lines[1:]
+        lines_desc = len(lines) - lines_asc
+
+    string = '{0:3d} {1:>5} {2:>12.6f} {3:>12.6f} {4:>12.6f} {5:>12.6f}'\
+            ' {6:>12.6f} {7:>12.6f}\n'
+    string_fun = lambda i, name, lat, lon, a, b, c, d:\
+        string.format(i, name, lat, lon, a, b, c, d)
+    with open('insar_data.txt', 'w') as outfile:
+        outfile.write('{}\n{} {} {} {}\n'.format(
+            len(lines), lines_asc, lines_desc, weight_asc, weight_desc))
+        for i, line in enumerate(lines):
+            lat = float(line[1])
+            lon = float(line[0])
+            observed = 100*float(line[2])
+            look_ew = float(line[3])
+            look_ns = float(line[4])
+            look_ud = float(line[5])
+            outfile.write(
+                string_fun(
+                    i, i, lat, lon, observed,
+                    look_ud, look_ns, look_ew
+                )
+            )
 
 
 def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
@@ -620,7 +686,8 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
                     stream[0].data = stream[0].data - waveform[0]
                     stream.write(file['file'], format='SAC', byteorder=0)
                     waveform = waveform - waveform[0]
-                waveform = np.gradient(waveform, dt) if derivative else waveform
+                waveform = np.gradient(waveform, dt) if derivative\
+                else waveform
                 del stream
             except IndexError:
                 print('Obspy bug when reading the file {}. '\
@@ -662,14 +729,10 @@ def write_observed_file(file, dt, data_file, waveform, dart=False):
 def write_wavelet_freqs(dt, name):
     """Range of frequencies modelled by different wavelet coefficients
 
-    :param files: list of dictionaries with station and channel metadata
-    :param data_type: list of data types to be used in modelling.
-    :param tensor_info: dictionary with moment tensor information
-    :param add_error: whether to add noise to waveforms
-    :type files: list
-    :type data_type: list
-    :type tensor_info: dict
-    :type add_error: bool, optional
+    :param dt: sampling interval of data
+    :param name: output file name.
+    :type dt: float
+    :type name: string
     """
     with open(name, 'w') as outfile:
         for j in range(1, 9):
@@ -686,10 +749,12 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
     :param files: list of dictionaries with station and channel metadata
     :param data_type: list of data types to be used in modelling.
     :param tensor_info: dictionary with moment tensor information
+    :param data_prop: dictionary with data properties
     :param add_error: whether to add noise to waveforms
     :type files: list
     :type data_type: list
     :type tensor_info: dict
+    :type data_prop: dict
     :type add_error: bool, optional
     """
     dt = files[0]['dt']
@@ -788,7 +853,7 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
                 lat = float(line[2])
                 lon = float(line[3])
                 new_obs = next(
-                        syn for name2, syn in zip(names, synthetic) if name2==name)
+                    syn for name2, syn in zip(names, synthetic) if name2==name)
                 weight1 = float(line[7])
                 weight2 = float(line[8])
                 weight3 = float(line[9])
@@ -797,8 +862,11 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
                 new_obs[1] = float(new_obs[1]) + 0.1 * error[1]
                 new_obs[2] = float(new_obs[2]) + 0.5 * error[2]
                 outfile.write(
-                        string_fun(i, name, lat, lon, new_obs[0], new_obs[1],
-                                   new_obs[2], weight1, weight2, weight3))
+                    string_fun(
+                        i, name, lat, lon, new_obs[0], new_obs[1],
+                        new_obs[2], weight1, weight2, weight3
+                    )
+                )
 
 
 ###########################
@@ -905,7 +973,7 @@ def write_green_file(green_dict, cgps=False):
     name = 'Green_strong.txt' if not cgps else 'Green_cgps.txt'
     with open(name, 'w') as green_file:
         green_file.write('vel_model.txt\n{} {} 1\n{} {} 1\n'.format(
-                max_depth, min_depth, max_dist, min_dist))
+            max_depth, min_depth, max_dist, min_dist))
         green_file.write('10 {} 50000 {}\n'.format(dt, time_corr))
         green_file.write(location)
 
@@ -919,28 +987,38 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--folder", default=os.getcwd(),
-                        help="folder where there are input files")
-    parser.add_argument("-gcmt", "--gcmt_tensor",
-                        help="location of GCMT moment tensor file")
-    parser.add_argument("-p", "--plane", action="store_true",
-                        help="compute Fault.pos, Fault.time, Niu_model")
-    parser.add_argument("-t", "--tele", action="store_true",
-                        help="compute files with teleseismic data")
-    parser.add_argument("-su", "--surface", action="store_true",
-                        help="compute files with surface waves data")
-    parser.add_argument("-st", "--strong", action="store_true",
-                        help="compute files with strong motion data")
-    parser.add_argument('-l','--list', nargs='+',
-                        help='list of strong motion stations')
-    parser.add_argument("--cgps", action="store_true",
-                        help="compute files with cGPS data")
-    parser.add_argument("--gps", action="store_true",
-                        help="compute files with static GPS data")
-    parser.add_argument("-a", "--annealing", action="store_true",
-                        help="compute files for annealing")
-    parser.add_argument("-m", "--model_space", action="store_true",
-                        help="compute files for model space")
+    parser.add_argument(
+        "-f", "--folder", default=os.getcwd(),
+        help="folder where there are input files")
+    parser.add_argument(
+        "-gcmt", "--gcmt_tensor", help="location of GCMT moment tensor file")
+    parser.add_argument(
+        "-p", "--plane", action="store_true",
+        help="compute Fault.pos, Fault.time, Niu_model")
+    parser.add_argument(
+        "-t", "--tele", action="store_true",
+        help="compute files with teleseismic data")
+    parser.add_argument(
+        "-su", "--surface", action="store_true",
+        help="compute files with surface waves data")
+    parser.add_argument(
+        "-st", "--strong", action="store_true",
+        help="compute files with strong motion data")
+    parser.add_argument(
+        '-l','--list', nargs='+', help='list of strong motion stations')
+    parser.add_argument(
+        "--cgps", action="store_true", help="compute files with cGPS data")
+    parser.add_argument(
+        "--gps", action="store_true", help="compute files with static GPS data")
+    parser.add_argument(
+        "-in", "--insar", action="store_true",
+        help="compute files with InSar data")
+    parser.add_argument(
+        "-a", "--annealing", action="store_true",
+        help="compute files for annealing")
+    parser.add_argument(
+        "-m", "--model_space", action="store_true",
+        help="compute files for model space")
     args = parser.parse_args()
     os.chdir(args.folder)
     if args.gcmt_tensor:
@@ -955,45 +1033,48 @@ if __name__ == '__main__':
         plane_for_chen(tensor_info, segments_data, 1.5, 3.25, velmodel)
     if not os.path.isfile('sampling_filter.json'):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT),
-                'sampling_filter.json')
+            errno.ENOENT, os.strerror(errno.ENOENT), 'sampling_filter.json')
     data_prop = json.load(open('sampling_filter.json'))
     if args.tele:
         if not os.path.isfile('tele_waves.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'tele_waves.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'tele_waves.json')
         input_chen_tele_body(tensor_info, data_prop)
     if args.surface:
         if not os.path.isfile('surf_waves.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'surf_waves.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'surf_waves.json')
         input_chen_tele_surf(tensor_info, data_prop)
     if args.strong:
         if not os.path.isfile('strong_motion_waves.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT),
-                    'strong_motion_waves.json')
+                errno.ENOENT, os.strerror(errno.ENOENT),
+                'strong_motion_waves.json')
         input_chen_strong_motion(tensor_info, data_prop)
     if args.cgps:
         if not os.path.isfile('cgps_waves.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'cgps_waves.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'cgps_waves.json')
         input_chen_cgps(tensor_info, data_prop)
     if args.gps:
         if not os.path.isfile('static_data.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'static_data.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'static_data.json')
         input_chen_static(tensor_info)
+    if args.insar:
+        if not os.path.isfile('insar.txt'):
+            raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), 'insar.txt')
+        input_chen_insar()
     if args.model_space:
         if not os.path.isfile('model_space.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'model_space.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'model_space.json')
         dictionary = json.load(open('model_space.json'))
         model_space(dictionary)
     if args.annealing:
         if not os.path.isfile('annealing_prop.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT),
-                    'annealing_prop.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'annealing_prop.json')
         dictionary = json.load(open('annealing_prop.json'))
         inputs_simmulated_annealing(dictionary, 'dart')

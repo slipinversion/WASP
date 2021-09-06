@@ -41,5 +41,24 @@ def plot_map(ax, latitudes, longitudes, values, min_val=None, max_val=None,
     return ax, cs
 
 
+def plot_borders(ax, latitudes, longitudes, transform=None):
+    """
+    """
+    zipped = zip(longitudes, latitudes)
+    for longitude, latitude in zipped:
+        edge1 = [longitude[0, 0], latitude[0, 0]]
+        edge2 = [longitude[-1, 0], latitude[-1, 0]]
+        edge3 = [longitude[0, -1], latitude[0, -1]]
+        edge4 = [longitude[-1, -1], latitude[-1, -1]]
+        poly = patches.Polygon(
+            [edge1, edge2, edge4, edge3, edge1], facecolor='0.9', edgecolor='1')
+        if np.prod(longitude.shape) > 1:
+            ax.add_patch(
+                patches.Polygon(
+                    poly.get_xy(), closed=True, ec='k', lw=3,
+                    fill=False, transform=transform, zorder=3))
+    return ax
+
+
 if __name__ == '__main__':
     print(1)

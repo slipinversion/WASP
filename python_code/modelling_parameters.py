@@ -38,14 +38,14 @@ def modelling_prop(tensor_info, segments_data, data_type=None, moment_mag=None):
     slip_weight = 0.15# * factor
     time_weight = 0.15# * factor
     dictionary = {
-            'initial_temperature': 0.01,
-            'seismic_moment': moment_mag,
-            'moment_weight': moment_weight,
-            'slip_weight': slip_weight,
-            'time_weight': time_weight,
-            'max_source_dur': syn_len,
-            'iterations': 250,
-            'cooling_rate': 0.970
+        'initial_temperature': 0.01,
+        'seismic_moment': moment_mag,
+        'moment_weight': moment_weight,
+        'slip_weight': slip_weight,
+        'time_weight': time_weight,
+        'max_source_dur': syn_len,
+        'iterations': 250,
+        'cooling_rate': 0.970
     }
 
     with open('annealing_prop.json','w') as f:
@@ -90,9 +90,9 @@ def modelling_prop(tensor_info, segments_data, data_type=None, moment_mag=None):
             rake_min = rake_min + 360
             rake_max = rake_max + 360
         dictionary3 = {
-                'rake_min': rake_min,
-                'rake_max': rake_max,
-                'rake_step': rstep
+            'rake_min': rake_min,
+            'rake_max': rake_max,
+            'rake_step': rstep
         }
         dictionary3.update(dictionary2)
         segments2 = segments2 + [dictionary3]

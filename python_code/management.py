@@ -57,11 +57,7 @@ def update_data(tensor_info, data_type=None):
     """
     if not data_type:
         data_type = [
-            'tele_body',
-            'surf_tele',
-            'strong_motion',
-            'cgps',
-            'gps'
+            'tele_body', 'surf_tele', 'strong_motion', 'cgps', 'gps'
         ]
 #    data_type = inversion_data(tensor_info) if not data_type else data_type
     data_type2 = []
@@ -101,7 +97,7 @@ def default_dirs():
         'litho_model': os.path.join(info, 'LITHO1.0.nc'),
         'gf_bank': paths['surf_gf_bank'],
         'strong_motion_gf_bank2': os.path.join(
-                compute_near_gf, 'green_bank_openmp_f95'),
+            compute_near_gf, 'green_bank_openmp_f95'),
         'strong_motion_gf': os.path.join(get_near_gf, 'get_strong_motion'),
         'cgps_gf_bank': os.path.join(get_near_gf, 'cgps'),
         'gps_gf': os.path.join(compute_near_gf, 'gf_static_f95'),
@@ -109,7 +105,7 @@ def default_dirs():
         'finite_fault': os.path.join(modelling, 'run_modelling'),
         'forward': os.path.join(modelling, 'run_forward'),
         'trench_graphics': os.path.join(
-                paths['cartopy_files'], 'PB2002_plates'),
+            paths['cartopy_files'], 'PB2002_plates'),
         'sac_exec': paths['sac_exec']
     }
     return default_dirs

@@ -36,7 +36,7 @@ def read_solution_static_format(segments):
 
     if not os.path.isfile('Solucion.txt'):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), 'Solucion.txt')
+            errno.ENOENT, os.strerror(errno.ENOENT), 'Solucion.txt')
     with open('Solucion.txt', 'r') as input_file:
         jk = [line.split() for line in input_file]
 
@@ -48,8 +48,8 @@ def read_solution_static_format(segments):
     headers = headers[1:] + [len(jk)]
     if not len(headers) == len(segments):
         raise RuntimeError(
-                'Inconsistency between Fault.time and Solucion.txt.'\
-                ' Different amount of fault segments')
+        'Inconsistency between Fault.time and Solucion.txt.'\
+        ' Different amount of fault segments')
     for segment, start, end in zip(segments, faults_data, headers):
 #
 # load FFM solution model and coordinates
@@ -70,8 +70,8 @@ def read_solution_static_format(segments):
 #
         if not slip_fault.size == stk_subfaults * dip_subfaults:
             raise RuntimeError(
-                    'Inconsistency between Fault.time and Solucion.txt.'\
-                    ' Different size of fault segment')
+                'Inconsistency between Fault.time and Solucion.txt.'\
+                ' Different size of fault segment')
         lat_fault.shape = dip_subfaults, stk_subfaults
         lon_fault.shape = dip_subfaults, stk_subfaults
         depth_fault.shape = dip_subfaults, stk_subfaults
@@ -92,15 +92,15 @@ def read_solution_static_format(segments):
         moment = moment + [moment_fault]
 
     solution = {
-            'slip': slip,
-            'rake': rake,
-            'rupture_time': trup,
-            'trise': trise,
-            'tfall': tfall,
-            'lat': lat,
-            'lon': lon,
-            'depth': depth,
-            'moment': moment
+        'slip': slip,
+        'rake': rake,
+        'rupture_time': trup,
+        'trise': trise,
+        'tfall': tfall,
+        'lat': lat,
+        'lon': lon,
+        'depth': depth,
+        'moment': moment
     }
     return solution
 
@@ -124,22 +124,22 @@ def read_solution_fsp_format(file_name, custom=False):
 
     if not os.path.isfile(file_name):
         raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), file_name)
+            errno.ENOENT, os.strerror(errno.ENOENT), file_name)
     with open(file_name, 'r') as input_file:
         jk = [line.split() for line in input_file]
 
     tensor_info = {
-            'lat': float(jk[5][5]),
-            'lon': float(jk[5][8]),
-            'depth': float(jk[5][11])
+        'lat': float(jk[5][5]),
+        'lon': float(jk[5][8]),
+        'depth': float(jk[5][11])
     }
     n_segments = int(jk[14][8])
     subfaults_data = {
-            'stk_subfaults': int(jk[12][5]),
-            'dip_subfaults': int(jk[12][8]),
-            'delta_strike': float(jk[13][5]),
-            'delta_dip': float(jk[13][9]),
-            'strike': float(jk[7][5])
+        'stk_subfaults': int(jk[12][5]),
+        'dip_subfaults': int(jk[12][8]),
+        'delta_strike': float(jk[13][5]),
+        'delta_dip': float(jk[13][9]),
+        'strike': float(jk[7][5])
     }
 
     line0 = [i for i, line in enumerate(jk)\
@@ -187,14 +187,14 @@ def read_solution_fsp_format(file_name, custom=False):
             line0 = line0 + subfaults_seg + 1
 
     solution = {
-            'slip': slip,
-            'rake': rake,
-            'trup': trup,
-            'trise': trise,
-            'lat': lat,
-            'lon': lon,
-            'depth': depth,
-            'new_width': width
+        'slip': slip,
+        'rake': rake,
+        'trup': trup,
+        'trise': trise,
+        'lat': lat,
+        'lon': lon,
+        'depth': depth,
+        'new_width': width
     }
     return tensor_info, solution, subfaults_data
 
@@ -226,11 +226,12 @@ def get_data_dict(traces_info, syn_file=None, observed=True, checker=False,
             name = file['name']
             channel = file['component']
             channel = __get_channel(channel)
-            index = next(i for i in lines0 if lines[i][2]==name\
-                 and lines[i][3] in channel)
-            npts = int(lines[index][0])
-            synthetic = [float(real) for real, imag in lines[index + 1:index + npts]]
-            file['synthetic'] = np.array(synthetic)
+            indexes = [i for i in lines0 if lines[i][2]==name\
+                 and lines[i][3] in channel]
+            for index in indexes:
+                npts = int(lines[index][0])
+                synthetic = [float(real) for real, imag in lines[index + 1:index + npts]]
+                file['synthetic'] = np.array(synthetic)
     if observed:
         if obs_file:
             for file in traces_info:
@@ -240,7 +241,8 @@ def get_data_dict(traces_info, syn_file=None, observed=True, checker=False,
                 file['observed'] = _get_observed_from_chen2(file, margin=margin)
                 derivative = False if not 'derivative' in file else file['derivative']
                 dt = file['dt']
-                file['observed'] = np.gradient(file['observed'], dt)\
+                file['observed'] = np.gradient(
+                    file['observed'], dt, edge_order=2)\
                     if derivative else file['observed']
 
     else:
@@ -260,8 +262,9 @@ def _get_synthetic_from_chen(file, syn_file):
         lines = [line.split() for line in infile]
 
     lines0 = [i for i, line in enumerate(lines) if len(line) > 2]
-    index = next(i for i in lines0 if lines[i][2]==name\
-                 and lines[i][3] in channel)
+    index = next(
+        i for i in lines0 if lines[i][2]==name and lines[i][3] in channel
+    )
     npts = int(lines[index][0])
     synthetic = [float(real) for real, imag in lines[index + 1:index + npts]]
     return np.array(synthetic)
@@ -277,10 +280,12 @@ def _get_observed_from_chen(file, obse_file):
     with open(obse_file, 'r') as infile:
         lines = [line.split() for line in infile]
 
-    lines0 = [i for i, line in enumerate(lines)\
-                    if not __is_number(line[0])]
-    indexes = [i for i in lines0\
-               if (len(lines[i]) > 1 and lines[i][1] == name)]
+    lines0 = [
+        i for i, line in enumerate(lines) if not __is_number(line[0])
+    ]
+    indexes = [
+        i for i in lines0 if (len(lines[i]) > 1 and lines[i][1] == name)
+    ]
     index = next(i for i in indexes if lines[i + 1][1] in channel)
     npts = int(lines[index + 3][1])
     npts = min(file['duration'], npts)
@@ -365,9 +370,61 @@ def retrieve_gps(syn_name='static_synthetics.txt'):
     name_synthetic = [[line[1], line[4:]] for line in lines[1:]]
     synthetic = []
     for index, name in enumerate(names):
-        synthetic_gps = [gps_syn for gps_name, gps_syn in name_synthetic if gps_name == name]
+        synthetic_gps = [
+            gps_syn for gps_name, gps_syn in name_synthetic if gps_name == name]
         synthetic = synthetic + synthetic_gps
     return names, lats, lons, observed, synthetic, error
+
+
+def get_insar():
+    """
+    """
+    insar_data = json.load(open('insar_data.json'))
+
+    with open('insar_synthetics.txt', 'r') as syn_file:
+        lines_syn = [line.split() for line in syn_file]
+
+    if 'ascending' in insar_data:
+        insar_points = []
+        insar_asc = insar_data['ascending']['name']
+        with open(insar_asc, 'r') as asc_file:
+            lines_asc = [line.split() for line in asc_file]
+        len_ascending = len(lines_asc)
+        zipped = zip(lines_asc[1:], lines_syn[1:len_ascending])
+        for line1, line2 in zipped:
+            lat = float(line1[1])
+            lon = float(line1[0])
+            observed = 100*float(line1[2])
+            synthetic = float(line2[4])
+            new_dict = {
+                'lat': lat,
+                'lon': lon,
+                'observed': observed,
+                'synthetic': synthetic
+            }
+            insar_points = insar_points + [new_dict]
+        insar_data['ascending']['points'] = insar_points
+    if 'descending' in insar_data:
+        insar_points = []
+        insar_desc = insar_data['descending']['name']
+        with open(insar_desc, 'r') as desc_file:
+            lines_desc = [line.split() for line in desc_file]
+        len_descending = len(lines_desc)  - 1
+        zipped = zip(lines_desc[1:], lines_syn[-len_descending:])
+        for line1, line2 in zipped:
+            lat = float(line1[1])
+            lon = float(line1[0])
+            observed = 100*float(line1[2])
+            synthetic = float(line2[4])
+            new_dict = {
+                'lat': lat,
+                'lon': lon,
+                'observed': observed,
+                'synthetic': synthetic
+            }
+            insar_points = insar_points + [new_dict]
+        insar_data['descending']['points'] = insar_points
+    return insar_data
 
 
 def __is_number(string):

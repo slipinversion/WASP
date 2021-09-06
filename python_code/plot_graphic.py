@@ -6,7 +6,7 @@ as moment rate function, and waveform fits.
 
 import argparse
 from matplotlib import pyplot as plt
-from matplotlib import gridspec, ticker, patches
+from matplotlib import gridspec, ticker, patches, colors
 import cartopy.crs as ccrs
 import cartopy.io.shapereader as shpreader
 import cartopy.feature as cf
@@ -28,7 +28,7 @@ import velocity_models as mv
 import plane_management as pl_mng
 import seismic_tensor as tensor
 from waveform_plots import plot_waveform_fits
-from plot_maps import plot_map, set_map_cartopy
+from plot_maps import plot_map, set_map_cartopy, plot_borders
 
 
 def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
@@ -105,73 +105,22 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     _PlotMap(tensor_info, segments, point_sources, solution, default_dirs)
 
 
-def plot_beachballs(tensor_info, data_type):
+def plot_beachballs(segments, data_type):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
 
-    :param tensor_info: dictionary with moment tensor information
     :param segments: list of dictionaries with properties of fault segments
-    :param default_dirs: dictionary with default directories to be used
-    :type default_dirs: dict
-    :type tensor_info: dict
+    :param data_type: list with data types used in modelling
+    :type data_type: list
     :type segments: list
-
-    .. rubric:: Example:
-
-    First, we load necessary modules.
-
-    >>> import json
-    >>> import get_outputs # Allows us to get properties of inverted model
-    >>> import management as mng # Allows us to load location of plotting files
-    >>> import fault_plane as pf
-    >>> import plane_management as pl_mng
-
-    Next, we load necessary data for plots.
-
-    >>> vel_model = json.load(open('velmodel_data.json')) # Assume vel_model stored in file 'velmodel_data.json'
-    >>> segments, rise_time, point_sources = pl_mng.__read_planes_info() # Loads point sources and segments information
-    >>> solution = get_outputs.read_solution_static_format(segments, point_sources)
-    >>> shear = pf.shear_modulous(point_sources, velmodel=vel_model)
-    >>> tensor_info = {
-            'moment_mag': 7 * 10 ** 27,
-            'date_origin': UTCDateTime(2014, 04, 01, 23, 46, 47)
-            'lat': -19.5,
-            'lon': -70.5,
-            'depth': 25,
-            'time_shift': 44,
-            'half_duration': 40,
-            'centroid_lat': -21,
-            'centroid_lon': -70,
-            'centroid_depth': 35
-        }
-
-    Next, we plot solution
-
-    >>> default_dirs = mng.default_dirs()
-    >>> plot_ffm_sol(tensor_info, segments, point_sources, shear, solution,
-    >>>              vel_model, default_dirs)
-
-    .. note::
-
-        To plot the results of the FFM modelling, we need to run this code
-        in a folder whih contains files Solucion.txt, Fault.time, Fault.pos,
-        Event_mult.in, and some among the files synm.tele, synm.str_low,
-        synm.str and synm.cgps.
-
-    .. note::
-
-        When running this code manually, it is good idea to check if
-        the information among files Solucion.txt, Fault.pos, Fault.time,
-        and Event_mult.in is consistent.
-
     """
     if 'tele_body' in data_type:
         if not os.path.isfile('tele_waves.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'tele_waves.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'tele_waves.json')
         traces_info = json.load(open('tele_waves.json'))
-        plot_beachball(tensor_info, files=traces_info, phase='P')
-        plot_beachball(tensor_info, files=traces_info, phase='SH')
+        plot_beachball(segments, files=traces_info, phase='P')
+        plot_beachball(segments, files=traces_info, phase='SH')
 
 
 def plot_misfit(used_data_type, forward=False):
@@ -185,48 +134,52 @@ def plot_misfit(used_data_type, forward=False):
     if 'tele_body' in used_data_type:
         if not os.path.isfile('tele_waves.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'tele_waves.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'tele_waves.json')
         traces_info = json.load(open('tele_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synthetics_body.txt')
+            traces_info, syn_file='synthetics_body.txt')
         values = [['BHZ'], ['SH']]
         for components in values:
-            plot_waveform_fits(traces_info, components, 'tele_body',
-                               forward=forward)
+            plot_waveform_fits(
+                traces_info, components, 'tele_body', forward=forward)
     if 'surf_tele' in used_data_type:
         if not os.path.isfile('surf_waves.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'surf_waves.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'surf_waves.json')
         traces_info = json.load(open('surf_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synthetics_surf.txt', margin=0)
+            traces_info, syn_file='synthetics_surf.txt', margin=0)
         values = [['BHZ'], ['SH']]
         for components in values:
-            plot_waveform_fits(traces_info, components, 'surf_tele',
-                               forward=forward)
+            plot_waveform_fits(
+                traces_info, components, 'surf_tele', forward=forward)
     if 'strong_motion' in used_data_type:
         if not os.path.isfile('strong_motion_waves.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT),
-                    'strong_motion_waves.json')
+                errno.ENOENT, os.strerror(errno.ENOENT),
+                'strong_motion_waves.json')
         traces_info = json.load(open('strong_motion_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synthetics_strong.txt')
+            traces_info, syn_file='synthetics_strong.txt')
         values = [['HLZ', 'HNZ'], ['HLE', 'HNE'], ['HLN', 'HNN']]
         for components in values:
-            plot_waveform_fits(traces_info, components, 'strong_motion',
-                               forward=forward)
+            plot_waveform_fits(
+                traces_info, components, 'strong_motion', forward=forward)
     if 'cgps' in used_data_type:
         if not os.path.isfile('cgps_waves.json'):
             raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), 'cgps_waves.json')
+                errno.ENOENT, os.strerror(errno.ENOENT), 'cgps_waves.json')
         traces_info = json.load(open('cgps_waves.json'))
         traces_info = get_outputs.get_data_dict(
-                traces_info, syn_file='synthetics_cgps.txt')
-        values = [['LXZ', 'LHZ', 'LYZ'], ['LXE', 'LHE', 'LYE'], ['LXN', 'LHN', 'LYN']]
+            traces_info, syn_file='synthetics_cgps.txt')
+        values = [
+            ['LXZ', 'LHZ', 'LYZ'],
+            ['LXE', 'LHE', 'LYE'],
+            ['LXN', 'LHN', 'LYN']
+        ]
         for components in values:
-            plot_waveform_fits(traces_info, components, 'cgps',
-                               forward=forward)
+            plot_waveform_fits(
+                traces_info, components, 'cgps', forward=forward)
     return
 
 
@@ -300,8 +253,8 @@ def _PlotRuptTime(segments, point_sources, solution):
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         cb = fig.colorbar(im, cax=cbar_ax)
         cb.set_label('Rupt_time (s)')
-        plt.savefig('RuptTime_plane{}.png'.format(i_segment),
-                    bbox_inches='tight')
+        plt.savefig(
+            'RuptTime_plane{}.png'.format(i_segment), bbox_inches='tight')
         plt.close()
     return
 
@@ -335,20 +288,20 @@ def _PlotRiseTime(segments, point_sources, solution):
         if i_segment == 0:
             axes[0].plot(0, 0, 'w*', ms=20)
         axes[0], im = __several_axes(
-            trise_seg, segment, ps_seg, axes[0], max_val=max_trise,
-            autosize=False)
+            trise_seg, segment, ps_seg, axes[0],
+            max_val=max_trise, autosize=False)
         axes[1].set_ylabel(y_label)
         axes[1].set_xlabel(x_label)
         if i_segment == 0:
             axes[1].plot(0, 0, 'w*', ms=20)
         axes[1], im = __several_axes(
-            tfall_seg, segment, ps_seg, axes[1], max_val=max_tfall,
-            autosize=False)
+            tfall_seg, segment, ps_seg, axes[1],
+            max_val=max_tfall, autosize=False)
         cbar_ax = fig.add_axes([0.1, 0.05, 0.8, 0.05])
         cb = fig.colorbar(im, cax=cbar_ax, orientation='horizontal')
         cb.set_label('Rise_time (s)')
-        plt.savefig('RiseTime_plane{}.png'.format(i_segment),
-                    bbox_inches='tight')
+        plt.savefig(
+            'RiseTime_plane{}.png'.format(i_segment), bbox_inches='tight')
         plt.close()
     return
 
@@ -376,19 +329,19 @@ def _PlotSlipDistribution(segments, point_sources, solution):
         ax.set_xlabel(x_label)
         fig.subplots_adjust(right=0.75)
         stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
-                = pl_mng.__unpack_plane_data(segment)
+            = pl_mng.__unpack_plane_data(segment)
         x = np.arange(stk_subfaults) * delta_strike - hyp_stk * delta_strike
         y = np.arange(dip_subfaults) * delta_dip - hyp_dip * delta_dip
         ax.quiver(x, y, u, v, scale=15.0, width=0.003)
         if i_segment == 0:
             ax.plot(0, 0, 'w*', ms=20)
         ax, im = __several_axes(
-                slip_seg, segment, ps_seg, ax, max_val=max_slip)
+            slip_seg, segment, ps_seg, ax, max_val=max_slip)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         cb = fig.colorbar(im, cax=cbar_ax)
         cb.set_label('Slip (cm)')
-        plt.savefig('SlipDist_plane{}.png'.format(i_segment),
-                    bbox_inches='tight')
+        plt.savefig(
+            'SlipDist_plane{}.png'.format(i_segment), bbox_inches='tight')
         plt.close()
     return
 
@@ -436,10 +389,12 @@ def _PlotSlipDist_Compare(segments, point_sources, input_model,
         if i_segment == 0:
             ax0.plot(0, 0, 'w*', ms=20)
             ax1.plot(0, 0, 'w*', ms=20)
-        ax0, im = __several_axes(slip_seg, segment, ps_seg, ax0,
-                                 max_val=max_slip, autosize=False)
-        ax1, im = __several_axes(slip_seg2, segment, ps_seg, ax1,
-                                 max_val=max_slip, autosize=False)
+        ax0, im = __several_axes(
+            slip_seg, segment, ps_seg, ax0,
+            max_val=max_slip, autosize=False)
+        ax1, im = __several_axes(
+            slip_seg2, segment, ps_seg, ax1,
+            max_val=max_slip, autosize=False)
         ax0.set_title('Inverted model', fontsize=20)
         ax1.set_title('Original model', fontsize=20)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
@@ -478,20 +433,20 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     lon0 = tensor_info['lon']
     tectonic = '{}.shp'.format(default_dirs['trench_graphics'])
     dictn = {
-            'projection': ccrs.PlateCarree(),
-            'facecolor': '#eafff5'
+        'projection': ccrs.PlateCarree(),
+        'facecolor': '#eafff5'
     }
 
     fig, ax = plt.subplots(1, 1, figsize=(15, 15), subplot_kw=dictn)
     fig.subplots_adjust(hspace=0, wspace=0, top=0.9, bottom=0.1, right=0.8)
     tectonic = cf.ShapelyFeature(
-            shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
-            edgecolor='red', facecolor=(198/255., 236/255., 253/255.))
+        shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
+        edgecolor='red', facecolor=(198/255., 236/255., 253/255.))
     shpfilename = shpreader.natural_earth(
-                resolution='10m', category='cultural', name='admin_0_countries')
+        resolution='10m', category='cultural', name='admin_0_countries')
     countries = cf.ShapelyFeature(
-            shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
-            edgecolor='black', facecolor='lightgray')
+        shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
+        edgecolor='black', facecolor='lightgray')
 
     if files_str is not None:
         for file in files_str:
@@ -503,10 +458,12 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             max_lon = max(max_lon, lonp)
             distance = max(np.abs(latp - lat0), np.abs(lonp - lon0))
             margin = max(margin, 1.2 * distance)
-            ax.plot(lonp, latp, 'wo', markersize=10,
-                    transform=ccrs.PlateCarree(), zorder=4)
-            ax.text(lonp + 0.1, latp + 0.1, '{}'.format(name),
-                    transform=ccrs.PlateCarree(), zorder=4)
+            ax.plot(
+                lonp, latp, 'wo', markersize=10,
+                transform=ccrs.PlateCarree(), zorder=4)
+            ax.text(
+                lonp + 0.1, latp + 0.1, '{}'.format(name),
+                transform=ccrs.PlateCarree(), zorder=4)
     if stations_gps is not None:
         max_obs = np.zeros(3)
         stations_gps2 = []
@@ -521,66 +478,158 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             distance = max(np.abs(sta_lat - lat0), np.abs(sta_lon - lon0))
             margin = max(margin, 1.2 * distance)
         max_obs = np.max(max_obs)
-        plt.text(lon0 + margin - 2, lat0 + margin - 0.25,
-                 '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
-        plt.text(lon0 + margin - 2, lat0 + margin - 0.45,
-                 '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
+        plt.text(
+            lon0 + margin - 2, lat0 + margin - 0.25,
+            '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
+        plt.text(
+            lon0 + margin - 2, lat0 + margin - 0.45,
+            '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
         for name, sta_lat, sta_lon, obs, syn, error in stations_gps2:
-            plt.plot(sta_lon, sta_lat, 'ks', transform=ccrs.PlateCarree(),
-                     markersize=14)
+            plt.plot(
+                sta_lon, sta_lat, 'ks', transform=ccrs.PlateCarree(),
+                markersize=14)
             gps_z, gps_n, gps_e = syn
             east_west = float(gps_e) / max_obs
             north_south = float(gps_n) / max_obs
-            plt.arrow(sta_lon, sta_lat, east_west, north_south, color='r',
-                      zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
-                      transform=ccrs.PlateCarree())
+            plt.arrow(
+                sta_lon, sta_lat, east_west, north_south, color='r',
+                zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
+                transform=ccrs.PlateCarree())
             up_down = float(gps_z) / max_obs
-            plt.arrow(sta_lon, sta_lat, 0.0, up_down, color='r', zorder=3,
-                      linewidth=2, head_width=0.05, head_length=0.05,
-                      transform=ccrs.PlateCarree())
+            plt.arrow(
+                sta_lon, sta_lat, 0.0, up_down, color='r', zorder=3,
+                linewidth=2, head_width=0.05, head_length=0.05,
+                transform=ccrs.PlateCarree())
             gps_z, gps_n, gps_e = obs
             east_west = float(gps_e) / max_obs
             north_south = float(gps_n) / max_obs
-            plt.arrow(sta_lon, sta_lat, east_west, north_south, zorder=3,
-                      linewidth=2, head_width=0.05, head_length=0.05,
-                      transform=ccrs.PlateCarree())
+            plt.arrow(
+                sta_lon, sta_lat, east_west, north_south, zorder=3,
+                linewidth=2, head_width=0.05, head_length=0.05,
+                transform=ccrs.PlateCarree())
             up_down = float(gps_z) / max_obs
-            plt.arrow(sta_lon, sta_lat, 0.0, up_down, zorder=3,
-                      linewidth=2, head_width=0.05, head_length=0.05,
-                      transform=ccrs.PlateCarree())
-            plt.text(sta_lon + 0.1, sta_lat + 0.1, '{}'.format(name),
-                     transform=ccrs.PlateCarree())
+            plt.arrow(
+                sta_lon, sta_lat, 0.0, up_down, zorder=3,
+                linewidth=2, head_width=0.05, head_length=0.05,
+                transform=ccrs.PlateCarree())
+            plt.text(
+                sta_lon + 0.1, sta_lat + 0.1, '{}'.format(name),
+                transform=ccrs.PlateCarree())
             err_z, err_n, err_e = error
             width = float(err_e) / max_obs#/ 100
             height = float(err_n) / max_obs#/ 100
             ellipse = patches.Ellipse(
-                    (sta_lon + east_west, sta_lat + north_south), width,
-                    height, zorder=4, color='k', linewidth=10,
-                    transform=ccrs.PlateCarree())
+                (sta_lon + east_west, sta_lat + north_south), width,
+                height, zorder=4, color='k', linewidth=10,
+                transform=ccrs.PlateCarree())
             plt.gca().add_patch(ellipse)
-        plt.arrow(lon0 + margin - 0.2, lat0 + margin - 0.2, -1, 0, color='r',
-                  zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
-                  transform=ccrs.PlateCarree())
-        plt.arrow(lon0 + margin - 0.2, lat0 + margin - 0.4, -1, 0, color='k',
-                  zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
-                  transform=ccrs.PlateCarree())
+        plt.arrow(
+            lon0 + margin - 0.2, lat0 + margin - 0.2, -1, 0, color='r',
+            zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
+            transform=ccrs.PlateCarree())
+        plt.arrow(
+            lon0 + margin - 0.2, lat0 + margin - 0.4, -1, 0, color='k',
+            zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
+            transform=ccrs.PlateCarree())
     max_slip = max([np.amax(slip_fault) for slip_fault in slip])\
         if not max_slip else max_slip
     margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
     ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries)
-    ax.plot(lon0, lat0, 'w*', markersize=15, transform=ccrs.PlateCarree(),
-            zorder=4)
+    ax.plot(
+        lon0, lat0, 'w*', markersize=15, transform=ccrs.PlateCarree(), zorder=4)
 #
 # plot slip map
 #
-    ax, cs = plot_map(ax, segments_lats, segments_lons, slip, max_val=max_slip,
-                      transform=dictn['projection'])
+    ax, cs = plot_map(
+        ax, segments_lats, segments_lons, slip,
+        max_val=max_slip, transform=dictn['projection'])
     cbar_ax = fig.add_axes([0.85, 0.1, 0.05, 0.8])
     cbar = plt.colorbar(cs, cax=cbar_ax)
     cbar.set_label('Slip (cm)', size=15)
     cbar.ax.yaxis.set_ticks_position('left')
     ax.set_aspect('auto', adjustable=None)
     plt.savefig('Map.png', bbox_inches='tight')
+    plt.close()
+    return
+
+
+def _PlotInsar(tensor_info, segments, point_sources, default_dirs,
+               insar_points, los='ascending'):
+    """We plot slip map.
+    """
+    plane_info = segments[0]
+    stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
+        = pl_mng.__unpack_plane_data(plane_info)
+    slip = solution['slip']
+#
+# accurate plot coordinates
+#
+    segments_lats, segments_lons = __redefine_lat_lon(segments, point_sources)
+    min_lats = [np.min(segment_lat.flatten()) for segment_lat in segments_lats]
+    max_lats = [np.max(segment_lat.flatten()) for segment_lat in segments_lats]
+    min_lons = [np.min(segment_lon.flatten()) for segment_lon in segments_lons]
+    max_lons = [np.max(segment_lon.flatten()) for segment_lon in segments_lons]
+    min_lat = np.min(min_lats)# - 0.5
+    max_lat = np.max(max_lats)# + 0.5
+    min_lon = np.min(min_lons)# - 0.5
+    max_lon = np.max(max_lons)# + 0.5
+
+    margin = 1.3 * (stk_subfaults * delta_strike) / 111.19
+    lat0 = tensor_info['lat']
+    lon0 = tensor_info['lon']
+    tectonic = '{}.shp'.format(default_dirs['trench_graphics'])
+    dictn = {
+        'projection': ccrs.PlateCarree(),
+        'facecolor': '#eafff5'
+    }
+
+    fig, axes = plt.subplots(1, 3, figsize=(30, 15), subplot_kw=dictn)
+    tectonic = cf.ShapelyFeature(
+        shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
+        edgecolor='red', facecolor=(198/255., 236/255., 253/255.))
+    shpfilename = shpreader.natural_earth(
+        resolution='10m', category='cultural', name='admin_0_countries')
+    countries = cf.ShapelyFeature(
+        shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
+        edgecolor='black', facecolor='lightgray')
+
+    max_diff = -1
+    min_diff = 1
+    lats = [point['lat'] for point in insar_points]
+    lons = [point['lon'] for point in insar_points]
+    min_lat = min(min_lat, np.min(lats))
+    max_lat = max(max_lat, np.max(lats))
+    min_lon = min(min_lon, np.min(lons))
+    max_lon = max(max_lon, np.max(lons))
+    observed = [point['observed'] for point in insar_points]
+    synthetic = [point['synthetic'] for point in insar_points]
+    diffs = [obs - syn for obs, syn in zip(observed, synthetic)]
+    margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
+
+    values = [observed, synthetic, diffs]
+    titles = ['Observed', 'Synthetic', 'Misfit']
+    zipped = zip(axes, values, titles)
+    for ax, value, title in zipped:
+        ax.set_title(title, fontdict={'fontsize': 20})
+        max_abs = np.max(np.abs(value))
+        vmin = -max_abs# if not title == 'Misfit' else -40
+        vmax = max_abs# if not title == 'Misfit' else 40
+        norm = colors.TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)
+        cs = ax.scatter(
+            lons, lats, zorder=4, c=value, cmap='bwr',
+            norm=norm, transform=ccrs.PlateCarree())
+        ax = set_map_cartopy(
+            ax, margins, tectonic=tectonic, countries=countries)
+        ax.plot(
+            lon0, lat0, 'y*', markersize=15,
+            transform=ccrs.PlateCarree(), zorder=4)
+        ax = plot_borders(
+            ax, segments_lats, segments_lons, transform=dictn['projection'])
+        fig.colorbar(cs, ax=ax, orientation="horizontal")
+        ax.set_aspect('auto', adjustable=None)
+
+    fig.tight_layout()
+    plt.savefig('Insar_{}_fit.png'.format(los), bbox_inches='tight')
     plt.close()
     return
 
@@ -618,18 +667,21 @@ def _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
     fig.subplots_adjust(hspace=0, wspace=0.1, top=0.9, bottom=0.3)
     for ax in [ax1, ax2]:
         ax = set_map_cartopy(ax, margins, countries=countries)
-        ax.plot(lon0, lat0, 'w*', markersize=15, transform=ccrs.PlateCarree(),
-            zorder=4)
+        ax.plot(
+            lon0, lat0, 'w*', markersize=15,
+            transform=ccrs.PlateCarree(), zorder=4)
     max_slip = max([np.amax(slip_fault) for slip_fault in slip])
     max_slip2 = max([np.amax(input_slip2) for input_slip2 in input_slip])
     max_slip = max(max_slip, max_slip2)
 #
 # plot slip map
 #
-    ax1, cs1 = plot_map(ax1, segments_lats, segments_lons, slip, max_val=max_slip,
-                       transform=dictn['projection'])
-    ax2, cs2 = plot_map(ax2, segments_lats, segments_lons, input_slip,
-                        max_val=max_slip, transform=dictn['projection'])
+    ax1, cs1 = plot_map(
+        ax1, segments_lats, segments_lons, slip,
+        max_val=max_slip, transform=dictn['projection'])
+    ax2, cs2 = plot_map(
+        ax2, segments_lats, segments_lons, input_slip,
+        max_val=max_slip, transform=dictn['projection'])
     fig.subplots_adjust(bottom=0.15)
     cbar_ax = fig.add_axes([0.1, 0.05, 0.8, 0.05])
     cb = fig.colorbar(cs2, cax=cbar_ax, orientation='horizontal')
@@ -746,7 +798,8 @@ def _plot_moment_rate_function(segments_data, shear, point_sources):
         0.5 * max(time), 0.95 * max(mr),
         '$M_0$: {:.2E} $Nm$'.format(seismic_moment))
     plt.text(
-        0.5 * max(time), 0.85 * max(mr), '$M_w$: {:.2f}'.format(magnitude))
+        0.5 * max(time), 0.85 * max(mr),
+        '$M_w$: {:.2f}'.format(magnitude))
     plt.grid('on')
     plt.fill_between(time, mr)
     plt.savefig('MomentRate.png', bbox_inches='tight')
@@ -793,10 +846,11 @@ def _PlotSnapshotSlip(tensor_info, segments, point_sources, solution):
         ax.set_yticklabels([])
         ax.set_xticklabels([])
         if np.max(broken) > np.min(broken):
-            ax.contour(-broken, 1, colors='k',
-                       extent=__extent_plot(plane_info))
-        ax.contourf(cslip, cmap='jet', vmin=0, vmax=vmax,
-                    extent=__extent_plot(plane_info))
+            ax.contour(
+                -broken, 1, colors='k', extent=__extent_plot(plane_info))
+        ax.contourf(
+            cslip, cmap='jet', vmin=0, vmax=vmax,
+            extent=__extent_plot(plane_info))
         ax.plot(0, 0, 'r*', ms=20)
         ax.invert_yaxis()
         ax.set_aspect(ratio)
@@ -808,25 +862,25 @@ def _PlotSnapshotSlip(tensor_info, segments, point_sources, solution):
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
     cb = fig.colorbar(im, cax=cbar_ax)
     cb.set_label('Slip (cm)')
-    fig.text(0.1, 0.1, 'CSN Automatic \nSolution', fontsize=50, color='gray',
-             ha='left', va='bottom', alpha=0.5, wrap=True)
+    fig.text(
+        0.1, 0.1, 'CSN Automatic \nSolution', fontsize=50,
+        color='gray', ha='left', va='bottom', alpha=0.5, wrap=True)
     plt.savefig('SlipSnapshot.png', bbox_inches='tight')
     plt.close()
     return
 
 
-def plot_beachball(tensor_info, files=None, phase=None):
+def plot_beachball(segments, files=None, phase=None):
     """Here we plot the beachball for the event. Optionally, we add the
     location of teleseismic data used in the FFM modelling.
     """
-    np1_plane, np2_plane = tensor.planes_from_tensor(tensor_info)
-    np1_plane = np1_plane['plane_info']
+    segment = segments[0]
 #
 # Get the focal mechanism
 #
-    strike = np1_plane['strike']
-    dip = np1_plane['dip']
-    rake = np1_plane['rake']
+    strike = segment['strike']
+    dip = segment['dip']
+    rake = segment['rake']
     fm = [strike, dip, rake]
 #
 # Plot the beach ball
@@ -863,154 +917,6 @@ def plot_beachball(tensor_info, files=None, phase=None):
     return
 
 
-#def _plot_runup(field=None):
-#    """
-#    """
-#    inputfile = os.path.join(os.getcwd(),'Solucion.txt')
-#    resolucion = 60 * 2 # Cantidad de puntos por grado (60 = 1 minuto resolucion)
-#
-#    #########################################
-#    # Cambiar de formato los archivos
-#
-#    with open(inputfile) as f:
-#        content = f.readlines()
-#    content = [x.strip() for x in content]
-#    print(content[1].split())
-#    delta_strike, delta_dip = [val for val in content[1].split() if 'km' in val]
-#    delta_strike = delta_strike.split('=')[1] if '=' in delta_strike else delta_strike
-#    delta_strike = delta_strike[:-2]
-#    print(delta_strike)
-#    delta_dip = delta_dip.split('=')[1] if '=' in delta_dip else delta_dip
-#    delta_dip = delta_dip[:-2]
-#    print(delta_dip)
-#    dx = float(delta_strike) * np.ones((len(content[10:-1])))
-#    dy = float(delta_dip) * np.ones((len(content[10:-1])))
-#    f.close()
-#
-#    input_units = {"length":"km", "width":"km", "depth":"km", "slip":"cm"}
-#
-#    data = np.loadtxt(inputfile, skiprows=10)
-#    lat = data[:,0]
-#    lon = data[:,1]
-#    depth = data[:,2]
-#    slip = data[:,3]
-#    rake = data[:,4]
-#    strike = data[:,5]
-#    dip = data[:,6]
-#
-#    dir=os.getcwd()
-#
-#    ##look for runup field measure
-#    import glob
-#    q=glob.glob('r*.txt')
-#    print(q)
-#
-#    field = None
-#    if len(q)==1:
-#        field=np.loadtxt(q[0])
-#        field = field[:,[0,2]]
-#
-#    InputFile = "Temp.csv"
-#
-#    hdr = "Longitude,Latitude,Depth(km),Length,Width,Strike,Dip,Rake,Slip"
-#    np.savetxt(
-#        InputFile,
-#        list(zip(lon, lat, depth, dx, dy, strike, dip, rake, slip, slip)),
-#        delimiter=',', header=hdr, fmt="%.5f", comments="")
-#
-#    fault = dtopotools.CSVFault()
-#    fault.read(InputFile, input_units=input_units)
-#
-#    # Mostrar los valores relevantes
-#    print("The seismic moment is %g N-m" % fault.Mo())
-#    print("The Moment magnitude is %g" % fault.Mw())
-#    print("  (Assuming the rigidity mu of all subfaults is the default value %g Pa)"\
-#	  % fault.subfaults[0].mu)
-#
-#
-#    # Cear archivo dtopo necesario para GeoClaw
-#    xlower = min(lon) - 1
-#    xupper = max(lon) + 1
-#    ylower = min(lat) - 1
-#    yupper = max(lat) + 1
-#    dx = 1. / resolucion
-#    mx = int((xupper - xlower)/dx + 1)
-#    xupper = xlower + (mx-1)*dx
-#    my = int((yupper - ylower)/dx + 1)
-#    yupper = ylower + (my-1)*dx
-#    x = np.linspace(xlower,xupper,mx)
-#    y = np.linspace(ylower,yupper,my)
-#
-#    dtopo = fault.create_dtopography(x,y,times=[1.], verbose=True)
-#    os.remove(InputFile)
-#
-#    ### INPUT ###############################
-#
-#    outputfile = os.path.join(os.getcwd(), "runup_output.dat")
-#
-#    ### Cargar variables ####################
-#
-#    lon = dtopo.x
-#    lat = dtopo.y
-#
-#    deformation = dtopo.dZ[0,:,:]
-#    max_def = np.amax(deformation,axis=1)
-#
-#    ### Calculo del runup ###################
-#    H = np.amax(max_def)
-#    d = 4*1000.
-#    alpha = np.sqrt(1 + H/d)
-#    beta_1 = 1./180.*2*np.pi
-#    beta_2 = 2./180.*2*np.pi
-#    theta = np.pi/2
-#    f = max_def/H
-#    f[f < 0] = 0
-#    ro_1 = 2.831 * H * np.power(H/d, 1./4.)\
-#        * np.sqrt(alpha * np.power(np.tan(beta_1), -1))
-#    ro_2 = 2.831 * H * np.power(H/d, 1./4.)\
-#        * np.sqrt(alpha * np.power(np.tan(beta_2), -1))
-#    runup_1 =  f * ro_1 * np.sqrt(np.sin(theta))
-#    runup_2 =  f * ro_2 * np.sqrt(np.sin(theta))
-#
-#    ### Graficar deformacion y runup calculado
-#
-#    d = {'figsize':(13,6)}
-#    fig, (ax0, ax1, ax2) = plt.subplots(1, 3, sharey=True, **d)
-#
-#    fault.plot_subfaults(slip_color=True, axes=ax0)
-#
-#    cax1 = ax1.imshow(
-#        deformation, extent=[lon[1], lon[-1], lat[1], lat[-1]],
-#        origin='lower', cmap="seismic", vmin=-max_def.max(), vmax=max_def.max())
-#    plt.colorbar(cax1, ax=ax1, orientation='vertical')
-#    ax1.set_title('Seafloor Deformation [m]')
-#    max_lev = round(max_def.max())
-#    levels = np.linspace(-max_lev, max_lev, 4*int(max_lev) + 1)
-#    ax1.contour(deformation, levels, linewidths=0.5, colors='black',
-#                extent=[lon[1], lon[-1], lat[1], lat[-1]])
-#
-#    ax2.plot(runup_1, lat, label=r'$\beta=1$')
-#    ax2.plot(runup_2, lat, label=r'$\beta=2$')
-#    ax2.set_title('Runup analitico [m]')
-#    ax2.legend()
-#    ax2.grid(linestyle='--')
-#
-#    if field is not None:
-#        for l,r in zip(field[:,0],field[:,1]):
-##            ax2.plot([0,r], [l, l], color='k', linewidth=2, alpha=0.3)
-#            ax2.scatter(r, l, alpha=0.5)
-#
-#    plt.autoscale(enable=True, tight=True)
-#
-#    ### Guardar datos
-#    print(outputfile)
-#    np.savetxt(outputfile, np.transpose([lat, runup_1]), fmt='%.3f')
-#
-#    fig.savefig(os.path.join(dir,'analitic_runup.png'),bbox_inches='tight')
-#    plt.close()
-#    return
-
-
 def __extent_plot(plane_info):
     """
     """
@@ -1039,9 +945,9 @@ def __several_axes(data, segment, point_source_seg, ax, max_val=None,
         min_depth = min_depth - delta_z
         max_depth = max_depth + delta_z
     max_val = np.max(data.flatten()) if not max_val else max_val
-    im = ax.imshow(data, cmap='jet', origin='lower', vmax=max_val,
-                   aspect='auto',
-                   extent=[min_strike, max_strike, min_dist, max_dist])
+    im = ax.imshow(
+        data, cmap='jet', origin='lower', vmax=max_val, aspect='auto',
+        extent=[min_strike, max_strike, min_dist, max_dist])
     ax2 = ax.twinx()
     ax2.set_xlim([min_strike, max_strike])
     ax2.set_ylim([min_depth, max_depth])
@@ -1099,21 +1005,30 @@ if __name__ == '__main__':
     """
     import management as mng
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--folder", default=os.getcwd(),
-                        help="folder where there are input files")
-    parser.add_argument("-gcmt", "--gcmt_tensor",
-                        help="location of GCMT moment tensor file")
-    parser.add_argument("-ffms", "--ffm_solution", action="store_true",
-                        help="plot FFM solution slip maps, rise time")
-    parser.add_argument("-t", "--tele", action="store_true",
-                        help="plot misfit of teleseismic data")
-    parser.add_argument("-su", "--surface", action="store_true",
-                        help="plot misfit of surface waves data")
-    parser.add_argument("-st", "--strong", action="store_true",
-                        help="plot strong motion stations and strong motion misfit")
-    parser.add_argument("--cgps", action="store_true",
-                        help="plot misfit of cGPS data")
+    parser.add_argument(
+        "-f", "--folder", default=os.getcwd(),
+        help="folder where there are input files")
+    parser.add_argument(
+        "-gcmt", "--gcmt_tensor", help="location of GCMT moment tensor file")
+    parser.add_argument(
+        "-ffms", "--ffm_solution", action="store_true",
+        help="plot FFM solution slip maps, rise time")
+    parser.add_argument(
+        "-t", "--tele", action="store_true",
+        help="plot misfit of teleseismic data")
+    parser.add_argument(
+        "-su", "--surface", action="store_true",
+        help="plot misfit of surface waves data")
+    parser.add_argument(
+        "-st", "--strong", action="store_true",
+        help="plot strong motion stations and strong motion misfit")
+    parser.add_argument(
+        "--cgps", action="store_true", help="plot misfit of cGPS data")
     parser.add_argument("--gps", action="store_true", help="plot GPS data")
+    parser.add_argument(
+        "-in", "--insar", action="store_true", help="plot InSar data")
+    parser.add_argument(
+        "-bb", "--beachballs", action="store_true", help="plot beachballs")
     args = parser.parse_args()
     os.chdir(args.folder)
     if args.gcmt_tensor:
@@ -1140,27 +1055,42 @@ if __name__ == '__main__':
         else:
             vel_model = json.load(open('velmodel_data.json'))
         shear = pf.shear_modulous(point_sources, velmodel=vel_model)
-        plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
-                     vel_model, default_dirs)
+        plot_ffm_sol(
+            tensor_info, segments_data, point_sources, shear,
+            solution, vel_model, default_dirs)
 
     traces_info, stations_gps = [None, None]
     if args.gps:
         names, lats, lons, observed, synthetic, error\
-                = get_outputs.retrieve_gps()
+            = get_outputs.retrieve_gps()
         stations_gps = zip(names, lats, lons, observed, synthetic, error)
     if args.strong:
         traces_info = json.load(open('strong_motion_waves.json'))
     if args.strong or args.gps:
         solution = get_outputs.read_solution_static_format(segments)
-        _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
-                 files_str=traces_info, stations_gps=stations_gps)
+        _PlotMap(
+            tensor_info, segments, point_sources, solution, default_dirs,
+            files_str=traces_info, stations_gps=stations_gps)
         input_model = load_ffm_model.load_ffm_model(
             segments_data, point_sources, option='fault&rise_time.txt')
         _PlotSlipDist_Compare(segments, point_sources, input_model, solution)
-        _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
-                           solution)
+        _PlotComparisonMap(
+            tensor_info, segments, point_sources, input_model, solution)
+    if args.insar:
+        insar_data = get_outputs.get_insar()
+        if 'ascending' in insar_data:
+            insar_points = insar_data['ascending']['points']
+            _PlotInsar(
+                tensor_info, segments, point_sources,
+                default_dirs, insar_points, los='ascending')
+        if 'descending' in insar_data:
+            insar_points = insar_data['descending']['points']
+            _PlotInsar(
+                tensor_info, segments, point_sources,
+                default_dirs, insar_points, los='descending')
 
-    plot_beachballs(tensor_info, used_data)
+    if args.beachballs:
+        plot_beachballs(segments, used_data)
     plot_misfit(used_data)#, forward=True)
     plot_files = glob.glob(os.path.join('plots', '*png'))
     for plot_file in plot_files:

@@ -31,43 +31,54 @@ def gf_retrieve(used_data_type, default_dirs):
     ch.setLevel(logging.ERROR)
     
     if 'tele_body' in used_data_type:
-        logger1 = ml.create_log('body_wave_GF',
-                                os.path.join('logs', 'green_tele_log'))
+        logger1 = ml.create_log(
+            'body_wave_GF', os.path.join('logs', 'green_tele_log'))
         logger1.addHandler(ch)
-        p1 = subprocess.Popen([green_fun_tele], stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
+        p1 = subprocess.Popen(
+            [green_fun_tele], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # with open(os.path.join('logs', 'green_tele_log'), "w") as out_tele:
         #     p1 = subprocess.Popen([green_fun_tele], stdout=out_tele)
         processes = processes + [p1]
         loggers = loggers + [logger1]
     if 'strong_motion' in used_data_type:
-        logger2 = ml.create_log('get_strong_motion_GF',
-                                os.path.join('logs', 'green_str_log'))
+        logger2 = ml.create_log(
+            'get_strong_motion_GF', os.path.join('logs', 'green_str_log'))
         logger2.addHandler(ch)
-        p2 = subprocess.Popen([green_fun_str], stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
+        p2 = subprocess.Popen(
+            [green_fun_str], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # with open(os.path.join('logs', 'green_np1_str_log'), "w") as out_strong:
         #     p2 = subprocess.Popen([green_fun_str], stdout=out_strong)
         processes = processes + [p2]
         loggers = loggers + [logger2]
     if 'cgps' in used_data_type:
-        logger3 = ml.create_log('get_cgps_GF',
-                                os.path.join('logs', 'green_cgps_log'))
+        logger3 = ml.create_log(
+            'get_cgps_GF', os.path.join('logs', 'green_cgps_log'))
         logger3.addHandler(ch)
-        p3 = subprocess.Popen([green_fun_str, 'cgps'], stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
+        p3 = subprocess.Popen(
+            [green_fun_str, 'cgps'], stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
         # with open(os.path.join('logs', 'green_np1_cgps_log'), "w") as out_cgps:
             # p3 = subprocess.Popen([green_fun_str, 'cgps'], stdout=out_cgps)
         processes = processes + [p3]
         loggers = loggers + [logger3]
     if 'gps' in used_data_type:
-        logger4 = ml.create_log('GPS_GF',
-                                os.path.join('logs', 'green_gps_log'))
+        logger4 = ml.create_log(
+            'GPS_GF', os.path.join('logs', 'green_gps_log'))
         logger4.addHandler(ch)
-        p4 = subprocess.Popen([green_fun_gps, ], stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
+        p4 = subprocess.Popen(
+            [green_fun_gps, 'gps'], stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
         processes = processes + [p4]
         loggers = loggers + [logger4]
+    if 'insar' in used_data_type:
+        logger5 = ml.create_log(
+            'INSAR_GF', os.path.join('logs', 'green_insar_log'))
+        logger5.addHandler(ch)
+        p5 = subprocess.Popen(
+            [green_fun_gps, 'insar'], stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        processes = processes + [p5]
+        loggers = loggers + [logger5]
 
     # [p.wait() for p in processes]
     for p, log in zip(processes, loggers):
@@ -159,19 +170,19 @@ def fk_green_fun0(dt, tensor_info, default_dirs, gf_bank=None):
         location = os.path.join(default_dirs['cgps_gf_bank'], gf_bank)
     
     green_dict = {
-            'location': location,
-            'min_depth': min_depth,
-            'max_depth': max_depth,
-            'min_dist': 0,
-            'max_dist': max_dist,
-            'dt': dt
+        'location': location,
+        'min_depth': min_depth,
+        'max_depth': max_depth,
+        'min_dist': 0,
+        'max_dist': max_dist,
+        'dt': dt
     }
     
     name = 'strong_motion_gf.json' if dt < 0.9 else 'cgps_gf.json'
     with open(name, 'w') as f:
-         json.dump(
-                 green_dict, f, sort_keys=True, indent=4,
-                 separators=(',', ': '), ensure_ascii=False)
+        json.dump(
+            green_dict, f, sort_keys=True, indent=4,
+            separators=(',', ': '), ensure_ascii=False)
     return green_dict
 
 
@@ -198,20 +209,20 @@ def fk_green_fun1(data_prop, tensor_info, location, cgps=False):
     time_corr = 10 if not cgps else 25
     
     green_dict = {
-            'location': location,
-            'min_depth': min_depth,
-            'max_depth': max_depth,
-            'min_dist': min_dist,
-            'max_dist': max_dist,
-            'dt': dt,
-            'time_corr': time_corr
+        'location': location,
+        'min_depth': min_depth,
+        'max_depth': max_depth,
+        'min_dist': min_dist,
+        'max_dist': max_dist,
+        'dt': dt,
+        'time_corr': time_corr
     }
     
     name = 'strong_motion_gf.json' if not cgps else 'cgps_gf.json'
     with open(name, 'w') as f:
-         json.dump(
-                 green_dict, f, sort_keys=True, indent=4,
-                 separators=(',', ': '), ensure_ascii=False)
+        json.dump(
+            green_dict, f, sort_keys=True, indent=4,
+            separators=(',', ': '), ensure_ascii=False)
     return green_dict
 
 
@@ -221,20 +232,25 @@ if __name__ == '__main__':
     import management as mng
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--folder", default=os.getcwd(),
-                        help="folder where there are input files")
-    parser.add_argument("-gcmt", "--gcmt_tensor",
-                        help="location of GCMT moment tensor file")
-    parser.add_argument("-t", "--tele", action="store_true",
-                        help="compute teleseismic body waves GF")
-    parser.add_argument("-st", "--strong", action="store_true",
-                        help="compute strong motion GF")
-    parser.add_argument("--cgps", action="store_true",
-                        help="compute cGPS GF")
-    parser.add_argument("--gps", action="store_true",
-                        help="compute static GPS GF")
-    parser.add_argument("-dt", type=float, default=0.2,
-                        help="sampling step of strong motion data")
+    parser.add_argument(
+        "-f", "--folder", default=os.getcwd(),
+        help="folder where there are input files")
+    parser.add_argument(
+        "-gcmt", "--gcmt_tensor",
+        help="location of GCMT moment tensor file")
+    parser.add_argument(
+        "-t", "--tele", action="store_true",
+        help="compute teleseismic body waves GF")
+    parser.add_argument(
+        "-st", "--strong", action="store_true",
+        help="compute strong motion GF")
+    parser.add_argument(
+        "--cgps", action="store_true", help="compute cGPS GF")
+    parser.add_argument(
+        "--gps", action="store_true", help="compute static GPS GF")
+    parser.add_argument(
+        "-dt", type=float, default=0.2,
+        help="sampling step of strong motion data")
     args = parser.parse_args()
     os.chdir(args.folder)
     if args.gcmt_tensor:
