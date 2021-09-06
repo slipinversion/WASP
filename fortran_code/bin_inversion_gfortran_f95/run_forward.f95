@@ -8,12 +8,14 @@ program run_forward
    use retrieve_gf, only : get_gf, deallocate_gf
    use save_forward, only : write_forward
    use static_data, only : initial_gps
+   use insar_data, only : initial_insar, get_insar_gf, deallocate_insar_gf
    implicit none
    integer i
    character(len=10) :: input
-   logical :: static, strong, cgps, body, surf, dart
+   logical :: static, strong, cgps, body, surf, dart, insar
 
    static = .False.
+   insar = .False.
    strong = .False.
    cgps = .False.
    body = .False.
@@ -23,6 +25,7 @@ program run_forward
       call getarg(i, input)
       input = trim(input)
       if (input .eq.'gps') static = .True.
+      if (input .eq.'insar') insar = .True.
       if (input .eq.'strong') strong = .True.
       if (input .eq.'cgps') cgps = .True.
       if (input .eq.'body') body = .True.
@@ -35,9 +38,12 @@ program run_forward
    call get_gf(strong, cgps, body, surf, dart)
    call write_forward(slip0, rake0, rupt_time0, t_rise0, t_fall0, strong, cgps, body, surf)
    if (static) call initial_gps(slip0, rake0)
+   if (insar) call get_insar_gf()
+   if (insar) call initial_insar(slip0, rake0)
    call write_model(slip0, rake0, rupt_time0, t_rise0, t_fall0)
    call deallocate_gf()
    call deallocate_ps()
+   if (insar) call deallocate_insar_gf()
 
 
 end program run_forward

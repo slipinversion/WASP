@@ -10,6 +10,7 @@ program run_modelling
    use save_forward, only : write_forward
    use rise_time, only : get_source_fun, deallocate_source
    use static_data, only : initial_gps
+   use insar_data, only : initial_insar, get_insar_gf, deallocate_insar_gf
    use random_gen, only : start_seed
    use annealing, only : initial_model, print_summary, &
                      &   annealing_iter3, annealing_iter4, n_threads
@@ -18,11 +19,12 @@ program run_modelling
    real :: slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg)
    real :: t_rise(max_subf, max_seg), t_fall(max_subf, max_seg)
    real :: t
-   logical :: static, strong, cgps, dart, body, surf, auto, get_coeff
+   logical :: static, strong, cgps, dart, body, surf, auto, get_coeff, insar
    character(len=10) :: input
 
    write(*,'(/A/)')"CHEN-JI'S WAVELET KINEMATIC MODELLING METHOD"
    static = .False.
+   insar = .False.
    get_coeff = .True.
    strong = .False.
    cgps = .False.
@@ -34,6 +36,7 @@ program run_modelling
       call getarg(i, input)
       input = trim(input)
       if (input .eq.'gps') static = .True.
+      if (input .eq.'insar') insar = .True.
       if (input .eq.'strong') strong = .True.
       if (input .eq.'cgps') cgps = .True.
       if (input .eq.'body') body = .True.
@@ -53,13 +56,16 @@ program run_modelling
    call get_gf(strong, cgps, body, surf, dart)
    call initial_model(slip, rake, rupt_time, t_rise, t_fall)
    if (static) call initial_gps(slip, rake)
-   call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, get_coeff)
+   if (insar) call get_insar_gf()
+   if (insar) call initial_insar(slip, rake)
+   call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, insar, get_coeff)
    t = t_mid
    if (io_re .eq. 0) t = t0
    write(*,*)'Start simmulated annealing...'
-   if (static) then
+   if (static .or. insar) then
       do i = 1, n_iter
-         call annealing_iter4(slip, rake, rupt_time, t_rise, t_fall, t)
+         call annealing_iter4(slip, rake, rupt_time, t_rise, t_fall, &
+         &  t, static, insar)
          write(*,*)'iter: ', i
          if (t .lt. t_stop) then
             t = t*0.995
@@ -79,14 +85,16 @@ program run_modelling
       end do
    end if
    get_coeff = .False.
-   call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, get_coeff)
+   call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, insar, get_coeff)
    call write_forward(slip, rake, rupt_time, t_rise, t_fall, strong, cgps, body, surf)
    if (static) call initial_gps(slip, rake)
+   if (insar) call initial_insar(slip, rake)
    call write_model(slip, rake, rupt_time, t_rise, t_fall)
    write(*,'(/A/)')"END CHEN-JI'S WAVELET KINEMATIC MODELLING METHOD"
    call deallocate_source()
    call deallocate_gf()
    call deallocate_ps()
+   if (insar) call deallocate_insar_gf()
 
 
 end program run_modelling

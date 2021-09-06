@@ -1,7 +1,7 @@
 MY_BIN=.
 
 modules = constants.o modelling_inputs.o model_parameters.o wavelet_param.o wavelets.o get_stations_data.o retrieve_surf_gf.o rad_pattern.o geodesics.o rise_time.o retrieve_gf.o save_forward.o
-modules2 = $(modules) static_data.o misfit_eval.o regularization.o random_gen.o annealing.o
+modules2 = $(modules) static_data.o insar_data.o misfit_eval.o regularization.o random_gen.o annealing.o
 
 #Linux
 #F95= ifort -shared-intel -mcmodel=large -O2 -assume byterecl -p#-p -132 -shared-intel
@@ -13,8 +13,8 @@ F77= gfortran -O1 -fno-range-check -mcmodel=large -g -fbacktrace
 all: run_forward run_modelling green_tele clean
 
 
-run_forward: $(modules) static_data.o run_forward.o
-	$(F95) -o run_forward $(modules) static_data.o run_forward.o
+run_forward: $(modules) static_data.o insar_data.o run_forward.o
+	$(F95) -o run_forward $(modules) static_data.o insar_data.o run_forward.o
 
 run_modelling: $(modules2) run_modelling.o
 	$(F95) -o run_modelling -fopenmp $(modules2) run_modelling.o #-fopenmp
@@ -40,7 +40,7 @@ ddis.o : ddis.f
 	$(F77) -c ddis.f
 
 annealing.o: annealing.f95
-	$(F95) -fopenmp -c annealing.f95 #-fopenmp
+	$(F95) -fopenmp -c annealing.f95
 
 %.o: %.f95
 	$(F95) -c $<
