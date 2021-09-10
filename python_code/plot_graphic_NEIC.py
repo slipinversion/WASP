@@ -6,7 +6,7 @@ as moment rate function, and waveform fits.
 
 import argparse
 from matplotlib import pyplot as plt
-from matplotlib import gridspec, ticker, patches
+from matplotlib import gridspec, ticker, patches, colors
 import matplotlib
 from scipy.interpolate import griddata
 import cartopy.crs as ccrs
@@ -22,6 +22,7 @@ import errno
 from datetime import datetime
 from shutil import copy2, move
 import glob
+from cartopy.io.img_tiles import Stamen
 #from clawpack.geoclaw import dtopotools
 #
 # local modules
@@ -32,7 +33,7 @@ import plane_management as pl_mng
 import seismic_tensor as tensor
 import shakemap_tools as shakemap
 from waveform_plots_NEIC import plot_waveform_fits
-from plot_maps_NEIC import plot_map, set_map_cartopy
+from plot_maps_NEIC import plot_map, set_map_cartopy, plot_borders
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from static2fsp import static_to_fsp
@@ -823,7 +824,6 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     fig, ax = plt.subplots(1, 1, figsize=(15, 15), subplot_kw=dictn)
     ax.spines['geo'].set_linewidth(2)
     fig.subplots_adjust(hspace=0, wspace=0, top=0.9, bottom=0.1, right=0.8)
-    from cartopy.io.img_tiles import Stamen
     tiler = Stamen('terrain-background')
     ax.add_image(tiler, 10)
     tectonic = cf.ShapelyFeature(
@@ -955,6 +955,99 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     cbar.ax.xaxis.set_label_position('top')
     ax.set_aspect('auto', adjustable=None)
     plt.savefig('Map.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    return
+
+
+def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
+               insar_points, los='ascending'):
+    """We plot slip map.
+    """
+    plane_info = segments[0]
+    stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
+        = pl_mng.__unpack_plane_data(plane_info)
+    slip = solution['slip']
+#
+# accurate plot coordinates
+#
+    segments_lats, segments_lons, segments_deps = __redefine_lat_lon(segments, point_sources)
+    min_lats = [np.min(segment_lat.flatten()) for segment_lat in segments_lats]
+    max_lats = [np.max(segment_lat.flatten()) for segment_lat in segments_lats]
+    min_lons = [np.min(segment_lon.flatten()) for segment_lon in segments_lons]
+    max_lons = [np.max(segment_lon.flatten()) for segment_lon in segments_lons]
+    min_lat = np.min(min_lats)# - 0.5
+    max_lat = np.max(max_lats)# + 0.5
+    min_lon = np.min(min_lons)# - 0.5
+    max_lon = np.max(max_lons)# + 0.5
+
+    margin = 1.3 * (stk_subfaults * delta_strike) / 111.19
+    lat0 = tensor_info['lat']
+    lon0 = tensor_info['lon']
+    tectonic = '{}.shp'.format(default_dirs['trench_graphics'])
+    dictn = {
+        'projection': ccrs.PlateCarree(),
+        'facecolor': '#eafff5'
+    }
+
+    fig, axes = plt.subplots(1, 3, figsize=(30, 15), subplot_kw=dictn)
+    tiler = Stamen('terrain-background')
+    tectonic = cf.ShapelyFeature(
+        shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
+        edgecolor='white', facecolor="None", lw=2)
+    shpfilename = shpreader.natural_earth(
+        resolution='10m', category='cultural', name='admin_0_countries')
+    countries = cf.ShapelyFeature(
+        shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
+        edgecolor='black', facecolor='None')
+
+    max_diff = -1
+    min_diff = 1
+    lats = [point['lat'] for point in insar_points]
+    lons = [point['lon'] for point in insar_points]
+    min_lat = min(min_lat, np.min(lats))
+    max_lat = max(max_lat, np.max(lats))
+    min_lon = min(min_lon, np.min(lons))
+    max_lon = max(max_lon, np.max(lons))
+    observed = [point['observed'] for point in insar_points]
+    synthetic = [point['synthetic'] for point in insar_points]
+    diffs = [obs - syn for obs, syn in zip(observed, synthetic)]
+
+    max_obs_abs = np.max(np.abs(observed))
+    min_obs_abs = -max_obs_abs
+
+    margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
+
+    values = [observed, synthetic, diffs]
+    titles = ['Observed', 'Synthetic', 'Misfit']
+    labels = ['Observed LOS (m)', 'Modeled LOS (m)', 'Residual (m)']
+    zipped = zip(axes, values, titles, labels)
+    for ax, value, title, label in zipped:
+        ax.spines['geo'].set_linewidth(1)
+        ax.add_image(tiler,10)
+        ax.set_title(title, fontdict={'fontsize': 20})
+        max_abs = np.max(np.abs(value))
+        #vmin = -max_abs# if not title == 'Misfit' else -40
+        #vmax = max_abs# if not title == 'Misfit' else 40
+        norm = colors.TwoSlopeNorm(vmin=min_obs_abs, vcenter=0, vmax=max_obs_abs)
+        cs = ax.scatter(
+            lons, lats, zorder=4, c=value, cmap='bwr',
+            norm=norm, transform=ccrs.PlateCarree())
+        ax = set_map_cartopy(
+            ax, margins, tectonic=tectonic, countries=countries)
+        ax.plot(
+            lon0, lat0, 'y*', markersize=15,
+            transform=ccrs.PlateCarree(), zorder=4)
+        ax = plot_borders(
+            ax, segments_lats, segments_lons, transform=dictn['projection'])
+        cbar = fig.colorbar(cs, ax=ax, orientation="horizontal")
+        cbar.outline.set_linewidth(2)
+        cbar.set_label(label, fontsize=20)
+        cbar.ax.xaxis.set_ticks_position('top')
+        cbar.ax.xaxis.set_label_position('top')
+        ax.set_aspect('auto', adjustable=None)
+
+    fig.tight_layout()
+    plt.savefig('Insar_{}_fit.png'.format(los), bbox_inches='tight')
     plt.close()
     return
 
@@ -1634,6 +1727,8 @@ if __name__ == '__main__':
     parser.add_argument("--cgps", action="store_true",
                         help="plot misfit of cGPS data")
     parser.add_argument("--gps", action="store_true", help="plot GPS data")
+    parser.add_argument(
+        "-in", "--insar", action="store_true", help="plot InSar data")
     parser.add_argument("-o","--option",choices=['autoscale','noscale'],
                         help="choose whether Rupture plot needs to be scaled")
     parser.add_argument("-mr","--mrtime", default='0', type=float,
@@ -1712,6 +1807,19 @@ if __name__ == '__main__':
         #_PlotSlipDist_Compare(segments, point_sources, input_model, solution)
         #_PlotComparisonMap(tensor_info, segments, point_sources, input_model,
         #                   solution)
+    if args.insar:
+        solution = get_outputs.read_solution_static_format(segments)
+        insar_data = get_outputs.get_insar()
+        if 'ascending' in insar_data:
+            insar_points = insar_data['ascending']['points']
+            _PlotInsar(
+                tensor_info, segments, point_sources, solution,
+                default_dirs, insar_points, los='ascending')
+        if 'descending' in insar_data:
+            insar_points = insar_data['descending']['points']
+            _PlotInsar(
+                tensor_info, segments, point_sources, solution,
+                default_dirs, insar_points, los='descending')
     if args.downloads:
        dwnlds.write_CMTSOLUTION_file()
        if args.EventID:
