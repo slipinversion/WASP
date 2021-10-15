@@ -128,7 +128,7 @@ def shift_match_regional(data_type, plot=False, method='full', zero_start=True):
     if not os.path.isdir(plot_folder):
         os.mkdir(plot_folder)
     synthetics_file = 'synthetics_strong.txt'\
-    if data_type == 'strong' else 'synnthetics_cgps.txt'
+    if data_type == 'strong' else 'synthetics_cgps.txt'
 
     dt = float(files[0]['dt'])
     files = get_outputs.get_data_dict(files, syn_file=synthetics_file)

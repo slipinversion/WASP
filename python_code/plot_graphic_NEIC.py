@@ -411,6 +411,7 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False):
         ax.text(0, -.04, 'Rupture Front Contours Plotted Every 10 s', fontsize=15,
                      fontweight='bold', transform=ax.transAxes, va='top', ha='left')
         plt.savefig('SlipDist_plane{}.png'.format(i_segment), dpi=300)
+        plt.savefig('SlipDist_plane{}.ps'.format(i_segment))
         plt.close()
     return
 
@@ -692,6 +693,7 @@ def _PlotCumulativeSlip(segments, point_sources, solution, tensor_info, evID=Non
                      transform=ax1.transAxes, va='top', ha='center')
 
         plt.savefig('CumulativeSlip_plane{}.png'.format(i_segment), dpi=300)
+        plt.savefig('CumulativeSlip_plane{}.ps'.format(i_segment))
         plt.close()
 
         ### recover edge lat/lon/dep from _AS and _AD info: ###
@@ -904,6 +906,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             #plt.arrow(sta_lon, sta_lat, 0.0, up_down, zorder=3,
             #          linewidth=2, head_width=0.05, head_length=0.05,
             #          transform=ccrs.PlateCarree())
+            ### INCLUDE GNSS STATION NAMES ON PLOT? ###
             plt.text(sta_lon + 0.02, sta_lat + 0.02, '{}'.format(name),
                      transform=ccrs.PlateCarree())
             err_z, err_n, err_e = error
@@ -921,17 +924,18 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         #          zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
         #          transform=ccrs.PlateCarree())
         from matplotlib.patches import Rectangle
+        legend_len = .1 #cm
         ax.add_patch(Rectangle((min_lon, min_lat), (max_lon - min_lon), 0.1*(max_lat-min_lat), edgecolor='k', facecolor='0.5', alpha=0.5))
-        plt.arrow(max_lon-1, min_lat, 10 / max_obs, 0, zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
-        plt.arrow(max_lon-1, min_lat - 0.3, 10 / max_obs, 0, color='r', zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
-        plt.text(max_lon -1 , min_lat + 0.1, '10 cm')
+        plt.arrow(max_lon-1, min_lat, legend_len / max_obs, 0, zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
+        plt.arrow(max_lon-1, min_lat - 0.3, legend_len / max_obs, 0, color='r', zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
+        plt.text(max_lon -1 , min_lat + 0.1, str(legend_len) + ' cm')
         plt.text(max_lon - 3.2, min_lat - 0.05, 'Observed GNSS')
         plt.text(max_lon - 3.2, min_lat - 0.35, 'Synthetic GNSS')
     max_slip = max([np.amax(slip_fault) for slip_fault in slip])\
         if not max_slip else max_slip
     margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
     #ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries)
-    ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries, bathymetry=None)
+    ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries, bathymetry=None, faults=True, aftershocks=True)
     ax.plot(lon0, lat0, '*', markersize=15, transform=ccrs.PlateCarree(),
             zorder=4, markerfacecolor="None", markeredgecolor='k', markeredgewidth=1.5)
     ax.plot(corners[0,:],corners[1,:], 'k',lw=5)
@@ -955,6 +959,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     cbar.ax.xaxis.set_label_position('top')
     ax.set_aspect('auto', adjustable=None)
     plt.savefig('Map.png', dpi=300, bbox_inches='tight')
+    plt.savefig('Map.ps')
     plt.close()
     return
 
@@ -963,6 +968,7 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
                insar_points, los='ascending'):
     """We plot slip map.
     """
+    print('Creating InSAR plots')
     plane_info = segments[0]
     stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
         = pl_mng.__unpack_plane_data(plane_info)
@@ -1033,7 +1039,7 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
             lons, lats, zorder=4, c=value, cmap='bwr',
             norm=norm, transform=ccrs.PlateCarree())
         ax = set_map_cartopy(
-            ax, margins, tectonic=tectonic, countries=countries)
+            ax, margins, tectonic=tectonic, countries=countries, faults=True, aftershocks=False)
         ax.plot(
             lon0, lat0, 'y*', markersize=15,
             transform=ccrs.PlateCarree(), zorder=4)
@@ -1048,6 +1054,7 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
 
     fig.tight_layout()
     plt.savefig('Insar_{}_fit.png'.format(los), bbox_inches='tight')
+    plt.savefig('Insar_{}_fit.ps'.format(los))
     plt.close()
     return
 
@@ -1242,9 +1249,9 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     plt.grid(which='major',linestyle='dotted', color='0.5')
     ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.2))
     ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
-    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(50))
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
     ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
-    ax.fill_between(time, rel_mr, color='0.9')
+    #ax.fill_between(time, rel_mr, color='0.9')
     ax.plot(time, rel_mr, 'k', lw=2)
     if mr_time == None:
         tenth = np.ones(len(time))*0.1
@@ -1255,6 +1262,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     ax.set_ylim([0,1])
     ax.set_xlim([0,max(time)])
     plt.savefig('MomentRate.png')#, bbox_inches='tight')
+    plt.savefig('MomentRate.ps')
     plt.close()
     return
 
@@ -1788,7 +1796,7 @@ if __name__ == '__main__':
             evID = None
         shakemap_polygon(segments, point_sources, solution, tensor_info, evID=evID)
 
-    traces_info, stations_gps = [None, None]
+    traces_info, traces_info_cgps, stations_gps = [None, None, None]
     if args.gps:
         names, lats, lons, observed, synthetic, error\
                 = get_outputs.retrieve_gps()

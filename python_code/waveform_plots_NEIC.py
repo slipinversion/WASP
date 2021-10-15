@@ -219,20 +219,21 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     axes2 = add_metadata(axes2, **dict)
 
     if type_str == 'tele_body':
-        if 'BHZ' in components: plot_name = 'P_body_waves.png'
-        if 'SH' in components: plot_name = 'SH_body_waves.png'
+        if 'BHZ' in components: plot_name = 'P_body_waves'
+        if 'SH' in components: plot_name = 'SH_body_waves'
 
     if type_str == 'surf_tele':
-        if 'BHZ' in components: plot_name = 'Rayleigh_surf_waves.png'
-        if 'SH' in components: plot_name = 'Love_surf_waves.png'
+        if 'BHZ' in components: plot_name = 'Rayleigh_surf_waves'
+        if 'SH' in components: plot_name = 'Love_surf_waves'
 
     if type_str == 'cgps':
-        plot_name = 'cGPS_waves.png'
+        plot_name = 'cGPS_waves'
 
     if type_str == 'strong_motion':
-        plot_name = 'strong_motion_waves.png'
+        plot_name = 'strong_motion_waves'
 
-    plt.savefig(plot_name, dpi=300)#bbox_inches='tight')
+    plt.savefig(plot_name+'.png', dpi=300)#bbox_inches='tight')
+    plt.savefig(plot_name+'.ps')
     plt.close()
     return
 

@@ -415,6 +415,9 @@ def insar_data(insar_asc=None, insar_desc=None):
     :param unit: units of static data
     :type unit: string, optional
     """
+    print('InSAR data')
+    print(f'insar_asc: {insar_asc}')
+    print(f'insar_desc: {insar_desc}')
     insar_dict = {}
     if not insar_asc and not insar_desc:
         return
@@ -450,7 +453,8 @@ def select_tele_stations(files, phase, tensor_info):
     event_lon = tensor_info['lon']
     weight = 1.0 if not phase == 'SH' else 0.5
     if phase in ['P', 'Rayleigh']:
-        min_snr = 6.0 if phase == 'P' else 4.0
+        #min_snr = 6.0 if phase == 'P' else 4.0
+        min_snr = 5.0 if phase == 'P' else 4.0
         window = 100 if phase == 'P' else 1500
         jump = 2
         total = __used_stations(jump, files, tensor_info)
@@ -460,7 +464,7 @@ def select_tele_stations(files, phase, tensor_info):
         if total > 50:
             jump = 8
     if phase in ['SH', 'Love']:
-        min_snr = 3.0#4.0
+        min_snr = 2.5 #3.0#4.0
         window = 200 if phase == 'SH' else 1500
         jump = 8
         total = __used_stations(jump, files, tensor_info)
