@@ -886,9 +886,10 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         for name, sta_lat, sta_lon, obs, syn, error in stations_gps2:
             #plt.plot(sta_lon, sta_lat, 'ks', transform=ccrs.PlateCarree(),
             #         markersize=14)
+            scale = 4
             gps_z, gps_n, gps_e = syn
-            east_west = float(gps_e) / max_obs #/ 100
-            north_south = float(gps_n) / max_obs #/ 100
+            east_west = float(gps_e) / max_obs / scale
+            north_south = float(gps_n) / max_obs / scale
             plt.arrow(sta_lon, sta_lat, east_west, north_south, color='r',
                       zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
@@ -897,8 +898,8 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             #          linewidth=2, head_width=0.05, head_length=0.05,
             #          transform=ccrs.PlateCarree())
             gps_z, gps_n, gps_e = obs
-            east_west = float(gps_e) / max_obs #/ 100
-            north_south = float(gps_n) / max_obs #/ 100
+            east_west = float(gps_e) / max_obs / scale
+            north_south = float(gps_n) / max_obs / scale
             plt.arrow(sta_lon, sta_lat, east_west, north_south, zorder=3,
                       linewidth=2, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
@@ -910,8 +911,8 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             plt.text(sta_lon + 0.02, sta_lat + 0.02, '{}'.format(name),
                      transform=ccrs.PlateCarree())
             err_z, err_n, err_e = error
-            width = float(err_e) / max_obs#/ 100
-            height = float(err_n) / max_obs#/ 100
+            width = float(err_e) / max_obs/ scale
+            height = float(err_n) / max_obs/ scale
         #    ellipse = patches.Ellipse(
         #            (sta_lon + east_west, sta_lat + north_south), width,
         #            height, zorder=4, color='k', linewidth=10,
@@ -926,8 +927,8 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         from matplotlib.patches import Rectangle
         legend_len = .1 #cm
         ax.add_patch(Rectangle((min_lon, min_lat), (max_lon - min_lon), 0.1*(max_lat-min_lat), edgecolor='k', facecolor='0.5', alpha=0.5))
-        plt.arrow(max_lon-1, min_lat, legend_len / max_obs, 0, zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
-        plt.arrow(max_lon-1, min_lat - 0.3, legend_len / max_obs, 0, color='r', zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
+        plt.arrow(max_lon-1, min_lat, legend_len / max_obs / scale, 0, zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
+        plt.arrow(max_lon-1, min_lat - 0.3, legend_len / max_obs / scale, 0, color='r', zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
         plt.text(max_lon -1 , min_lat + 0.1, str(legend_len) + ' cm')
         plt.text(max_lon - 3.2, min_lat - 0.05, 'Observed GNSS')
         plt.text(max_lon - 3.2, min_lat - 0.35, 'Synthetic GNSS')
@@ -1216,7 +1217,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
         outf.write('dt: {}\n'.format(dt))
         outf.write('Time[s]     Moment_Rate [Nm]\n')
         for t, val in zip(time, mr):
-            outf.write('{:8.2f}:   {:8.4e}\n'.format(t, val))
+            outf.write('{:8.2f}\t{:8.4e}\n'.format(t, val))
 
     seismic_moment = np.trapz(mr, dx=0.01)
     magnitude = 2.0 * (np.log10(seismic_moment * 10 ** 7) - 16.1) / 3.0
