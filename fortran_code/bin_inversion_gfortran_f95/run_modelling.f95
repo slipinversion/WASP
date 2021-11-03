@@ -10,7 +10,8 @@ program run_modelling
    use save_forward, only : write_forward
    use rise_time, only : get_source_fun, deallocate_source
    use static_data, only : initial_gps
-   use insar_data, only : initial_insar, get_insar_gf, deallocate_insar_gf
+   use insar_data, only : initial_insar, get_insar_gf, deallocate_insar_gf, &
+                    &   get_insar_data, is_ramp, initial_ramp
    use random_gen, only : start_seed
    use annealing, only : initial_model, print_summary, &
                      &   annealing_iter3, annealing_iter4, n_threads
@@ -19,7 +20,9 @@ program run_modelling
    real :: slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg)
    real :: t_rise(max_subf, max_seg), t_fall(max_subf, max_seg)
    real :: t
-   logical :: static, strong, cgps, dart, body, surf, auto, get_coeff, insar
+   real*8 :: ramp(18)
+   logical :: static, strong, cgps, dart, body, surf, auto
+   logical :: get_coeff, insar, ramp_gf_file
    character(len=10) :: input
 
    write(*,'(/A/)')"CHEN-JI'S WAVELET KINEMATIC MODELLING METHOD"
@@ -55,17 +58,20 @@ program run_modelling
    call get_source_fun()
    call get_gf(strong, cgps, body, surf, dart)
    call initial_model(slip, rake, rupt_time, t_rise, t_fall)
-   if (static) call initial_gps(slip, rake)
-   if (insar) call get_insar_gf()
-   if (insar) call initial_insar(slip, rake)
-   call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, insar, get_coeff)
    t = t_mid
    if (io_re .eq. 0) t = t0
-   write(*,*)'Start simmulated annealing...'
-   if (static .or. insar) then
+   if (static) call initial_gps(slip, rake)
+   if (insar .eqv. .False.) then
+      call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, &
+           &  insar, get_coeff)
+      write(*,*)'Start simmulated annealing...'
       do i = 1, n_iter
-         call annealing_iter4(slip, rake, rupt_time, t_rise, t_fall, &
-         &  t, static, insar)
+         if (static) then
+            call annealing_iter4(slip, rake, rupt_time, t_rise, t_fall, &
+               &  t, static, insar)
+         else
+            call annealing_iter3(slip, rake, rupt_time, t_rise, t_fall, t)
+         endif   
          write(*,*)'iter: ', i
          if (t .lt. t_stop) then
             t = t*0.995
@@ -73,22 +79,56 @@ program run_modelling
             t = t*cooling_rate
          end if
       end do
+      get_coeff = .False.
+      call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, &
+              &  insar, get_coeff)
    else
-      do i = 1, n_iter
-         call annealing_iter3(slip, rake, rupt_time, t_rise, t_fall, t)
-         write(*,*)'iter: ', i
-         if (t .lt. t_stop) then
-            t = t*0.995
-         else
-            t = t*cooling_rate
-         end if
-      end do
+      call get_insar_gf()
+      call get_insar_data()
+      call is_ramp(ramp_gf_file)
+      if (ramp_gf_file .eqv. .False.) then
+         call initial_insar(slip, rake)
+         call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, &
+              &  insar, get_coeff)
+         write(*,*)'Start simmulated annealing...'
+         do i = 1, n_iter
+            call annealing_iter4(slip, rake, rupt_time, t_rise, t_fall, &
+               &  t, static, insar)
+            write(*,*)'iter: ', i
+            if (t .lt. t_stop) then
+               t = t*0.995
+            else
+               t = t*cooling_rate
+            end if
+         end do
+         get_coeff = .False.
+         call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, &
+              &  insar, get_coeff)
+         call initial_insar(slip, rake)
+      else
+         call initial_ramp(ramp) 
+         call initial_insar(slip, rake, ramp)
+         call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, &
+              &  insar, get_coeff, ramp)
+         write(*,*)'Start simmulated annealing...'
+         do i = 1, n_iter
+            call annealing_iter4(slip, rake, rupt_time, t_rise, t_fall, &
+               &  t, static, insar, ramp)
+            write(*,*)'iter: ', i
+            if (t .lt. t_stop) then
+               t = t*0.995
+            else
+               t = t*cooling_rate
+            end if
+         end do
+         get_coeff = .False.
+         call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, &
+              &  insar, get_coeff, ramp)
+         call initial_insar(slip, rake, ramp)
+      endif
    end if
-   get_coeff = .False.
-   call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, insar, get_coeff)
    call write_forward(slip, rake, rupt_time, t_rise, t_fall, strong, cgps, body, surf)
    if (static) call initial_gps(slip, rake)
-   if (insar) call initial_insar(slip, rake)
    call write_model(slip, rake, rupt_time, t_rise, t_fall)
    write(*,'(/A/)')"END CHEN-JI'S WAVELET KINEMATIC MODELLING METHOD"
    call deallocate_source()

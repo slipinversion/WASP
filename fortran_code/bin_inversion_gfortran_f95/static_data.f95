@@ -16,7 +16,7 @@ module static_data
    integer, parameter, private :: n_stations = 500
    integer :: n_chan
    real*8 :: synm_whole(n_stations, 3), weight_sum
-   real :: lat(n_stations), lon(n_stations)
+   real :: lat(n_stations), lon(n_stations), max_gps
    real :: green(n_stations, 6, max_subf, max_seg), syn_disp(n_stations, 3)
    real :: obse(n_stations, 3), weight(n_stations, 3)
    character(len=6) :: sta_name(n_stations)
@@ -26,6 +26,7 @@ contains
 
 
    subroutine initial_gps(slip, rake)
+   implicit none
    integer k, j, segment, channel, no, nxy, i, segmenteg
    integer iys, ixs, n_tt
    real slip(max_subf, max_seg), rake(max_subf, max_seg)
@@ -45,6 +46,7 @@ contains
             weight_sum = weight_sum + weight(i, k)
          end do
       end do
+      max_gps = maxval(abs(obse(:, :)))
       close(9) 
 
       open(33, file='Green_static_subfault.txt', status='old')
@@ -98,6 +100,7 @@ contains
 ! routine for loading static synthetic seismograms, given a rupture model
 !
    subroutine static_synthetic(slip, rake, subfaults_segment, err)
+   implicit none
    real slip(max_subf, max_seg), rake(max_subf, max_seg)!, err
    integer k, j, segment, channel, subfaults_segment(max_seg), nxy
    real err, dif, angle, sinal, cosal
@@ -120,7 +123,7 @@ contains
          end do
          synm_whole(channel, k) = disp
          dif = synm_whole(channel, k) - obse(channel, k)
-         err2 = err2 + weight(channel, k) * dif * dif / 100.0
+         err2 = err2 + weight(channel, k) * dif * dif / max_gps / max_gps!100.0
       end do
    end do
    err2 = sqrt((err2/weight_sum))
@@ -132,19 +135,20 @@ contains
 ! subroutine for removing the static response of current subfault for all static stations
 !  
    subroutine static_remove_subfault(slip, rake, n_s, n_sub)
-   real, intent(in) :: slip(max_subf, max_seg), rake(max_subf, max_seg)
+   implicit none
+   real, intent(in) :: slip, rake
    integer, intent(in) :: n_s, n_sub
    integer k, j, channel
    real disp, angle, sinal, cosal
 !
-   angle = rake(n_sub, n_s)*dpi
+   angle = rake*dpi
    sinal = sin(angle)
    cosal = cos(angle)
 
    do k = 1, 3
       j = 2*k-1
       do channel = 1, n_chan
-         disp = slip(n_sub, n_s) &
+         disp = slip &
      &   *(sinal*green(channel, j, n_sub, n_s)+cosal*green(channel, j+1, n_sub, n_s))
          synm_whole(channel, k) = synm_whole(channel, k)-disp
       end do
@@ -158,6 +162,7 @@ contains
 ! we also give the misfit error of static data
 !
    pure subroutine static_modify_subfault(slip, rake, n_s, n_sub, err)
+   implicit none
    real, intent(in) :: slip, rake
    real, intent(out) :: err
    integer, intent(in) :: n_s, n_sub
@@ -176,7 +181,7 @@ contains
          disp = slip &
        & *(sinal*green(channel, j, n_sub, n_s)+cosal*green(channel, j+1, n_sub, n_s))
          dif = (synm_whole(channel, k) + disp) - obse(channel, k)
-         err2 = err2 + weight(channel, k) * dif * dif / 100.0
+         err2 = err2 + weight(channel, k) * dif * dif / max_gps / max_gps!100.0
       end do
    end do
    err2 = sqrt(err2/weight_sum)
@@ -189,31 +194,25 @@ contains
 ! subroutine for asliping response of current subfault, for all stations.
 ! we also give the misfit error of static data
 !
-   subroutine static_add_subfault(slip, rake, n_s, n_sub, err)
-   real, intent(in) :: slip(max_subf, max_seg), rake(max_subf, max_seg)
-   real, intent(out) :: err
+   subroutine static_add_subfault(slip, rake, n_s, n_sub)
+   implicit none
+   real, intent(in) :: slip, rake
    integer, intent(in) :: n_s, n_sub
    integer k, j, channel
    real disp, angle, dif, sinal, cosal
-   real*8 :: err2
-!
-   angle = rake(n_sub, n_s)*dpi
+   
+   angle = rake*dpi
    sinal = sin(angle)
    cosal = cos(angle)
 
-   err2 = 0.d0
    do k = 1, 3
       j = 2*k-1
       do channel = 1, n_chan
-         disp = slip(n_sub, n_s) &
+         disp = slip &
        & *(sinal*green(channel, j, n_sub, n_s)+cosal*green(channel, j+1, n_sub, n_s))
          synm_whole(channel, k) = synm_whole(channel, k)+disp
-         dif = synm_whole(channel, k) - obse(channel, k)
-         err2 = err2 + weight(channel, k) * dif * dif / 100.0
       end do
    end do
-   err2 = sqrt(err2/weight_sum)
-   err = real(err2)
 
    end subroutine static_add_subfault
 
