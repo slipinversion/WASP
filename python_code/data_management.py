@@ -409,7 +409,7 @@ def static_data(tensor_info, unit='m'):
     return info_traces
 
 
-def insar_data(insar_asc=None, insar_desc=None):
+def insar_data(insar_asc=None, insar_desc=None, ramp=None):
     """Write json dictionary for InSar data
 
     :param unit: units of static data
@@ -418,7 +418,7 @@ def insar_data(insar_asc=None, insar_desc=None):
     print('InSAR data')
     print(f'insar_asc: {insar_asc}')
     print(f'insar_desc: {insar_desc}')
-    insar_dict = {}
+    insar_dict = {'ramp': ramp}
     if not insar_asc and not insar_desc:
         return
 
@@ -881,6 +881,9 @@ if __name__ == '__main__':
         "-ina", "--insar_asc", help="Ascending InSar data")
     parser.add_argument(
         "-ind", "--insar_desc", help="Descending InSar data")
+    parser.add_argument(
+        "-inr", "--insar_ramp", default=None,
+        help="Type of ramp for insar")
     args = parser.parse_args()
     data_folder = os.path.abspath(args.data_folder)
     if not os.path.isfile('sampling_filter.json'):
@@ -902,4 +905,7 @@ if __name__ == '__main__':
     data_type = data_type + ['surf_tele'] if args.surface else data_type
     filling_data_dicts(tensor_info, data_type, data_prop, data_folder)
     if args.insar:
-        insar_data(insar_asc=args.insar_asc, insar_desc=args.insar_desc)
+        insar_data(
+            insar_asc=args.insar_asc,
+            insar_desc=args.insar_desc,
+            ramp=args.insar_ramp)

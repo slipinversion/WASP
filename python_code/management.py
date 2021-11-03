@@ -182,6 +182,55 @@ def _distazbaz(station_lat, station_lon, event_lat, event_lon):
     return distance, azimuth, back_azimuth
 
 
+def coords2utm(lat, lon, ref_lon):
+    """
+    """
+    deg2rad = np.pi / 180
+    lat2 = deg2rad * lat
+    lon2 = deg2rad * lon
+    ref_lon2 = ref_lon * deg2rad
+    radius = 6378.137
+    flattening = 1 / 298.257223563
+    k0 = 0.9996
+    easting0 = 500
+    northing0 = 0 if lat >= 0 else 10000
+    n = flattening / (2 - flattening)
+    A = radius * (1 + (n**2) / 4 + (n**4) / 64 + (n**6) / 256) / (1 + n)
+    alfa1 = 0.5*n - (2/3)*n**2 + (5/16)*n**3 + (41/180)*n**4\
+        - (127/288)*n**5 + (7891/37800)*n**6
+    alfa2 = (13/48)*n**2 - (3/5)*n**3 + (557/1440)*n**4\
+        + (281/630)*n**5 - (1983433/1935360)*n**6
+    alfa3 = (61/240)*n**3 - (103/140)*n**4 + (15061/26880)*n**5\
+        + (167603/181440)*n**6
+    alfa4 = (49561/161280)*n**4 - (179/168)*n**5 + (6601661/7257600)*n**6
+    alfa5 = (34729/80640)*n**5 - (3418889/1995840)*n**6
+    alfa6 = (212378941/319334400)*n**6
+    t = np.arctanh(np.sin(lat2))\
+        - 2*np.sqrt(n)*np.arctanh(2*np.sqrt(n)*np.sin(lat2)/(n + 1))/(n + 1)
+    t = np.sinh(t)
+    delta = lon2 - ref_lon2
+    psi = np.arctan(t / np.cos(delta))
+    eta = np.arcsinh(np.sin(delta) / np.sqrt(t**2 + np.cos(delta)**2))
+    easting = eta\
+        + alfa1 * np.cos(2*psi) * np.sinh(2*eta)\
+        + alfa2 * np.cos(4*psi) * np.sinh(4*eta)\
+        + alfa3 * np.cos(6*psi) * np.sinh(6*eta)\
+        + alfa4 * np.cos(8*psi) * np.sinh(8*eta)\
+        + alfa5 * np.cos(10*psi) * np.sinh(10*eta)\
+        + alfa6 * np.cos(12*psi) * np.sinh(12*eta)
+    easting = easting0 + k0*A*easting
+    northing = psi\
+        + alfa1 * np.sin(2*psi) * np.cosh(2*eta)\
+        + alfa2 * np.sin(4*psi) * np.cosh(4*eta)\
+        + alfa3 * np.sin(6*psi) * np.cosh(6*eta)\
+        + alfa4 * np.sin(8*psi) * np.cosh(8*eta)\
+        + alfa5 * np.sin(10*psi) * np.cosh(10*eta)\
+        + alfa6 * np.sin(12*psi) * np.cosh(12*eta)
+    northing = northing0 + k0*A*northing
+    return easting, northing
+    
+
+
 def correct_response_file(tensor_info, pzfile):
     """Routine for selecting instrumental response only in period of earthquake
     """
