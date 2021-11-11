@@ -161,9 +161,20 @@ contains
    close(10)
    
    if (present(ramp)) then
-      open(11,file='insar_ramp.txt')
+      open(11,file='ramp_coefficients.txt')
       write(11,*) ramp(:)
       close(11)
+   
+      open(12,file='insar_ramp.txt')
+      write(12,*) n_chan, lines_asc, lines_desc
+      do channel = 1, n_chan
+         ramp2 = 0.d0 
+         do k = 1, ramp_length
+            ramp2 = ramp2 + ramp_gf(k, channel)*ramp(k)
+         end do 
+         write(12,*) channel, sta_name(channel), lat(channel), lon(channel), ramp2
+      end do
+      close(12)
    end if
    end subroutine initial_insar
   
