@@ -349,11 +349,14 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False):
     rupt_time = solution['rupture_time']
     max_slip = [np.max(slip_seg.flatten()) for slip_seg in slip]
     max_slip = np.max(max_slip)
+    print('Max Slip: ' + str(max_slip))
+    #max_slip = 268.936584
     x_label = 'Distance Along Strike (km)'
-    y_label = 'Dist Along Dip (km)'
+    y_label = 'Distance Along Dip (km)'
     for i_segment, (segment, slip_seg, rake_seg, rupttime_seg, ps_seg)\
     in enumerate(zip(segments, slip, rake, rupt_time, point_sources)):
         max_slip_seg = np.max(slip_seg.flatten())
+        #max_slip_seg = 268.936584
         u = slip_seg * np.cos(rake_seg * np.pi / 180.0) / max_slip_seg
         v = slip_seg * np.sin(rake_seg * np.pi / 180.0) / max_slip_seg
 #
@@ -860,7 +863,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             max_lon = max(max_lon, lonp)
             distance = max(np.abs(latp - lat0), np.abs(lonp - lon0))
             margin = max(margin, 1.2 * distance)
-            ax.plot(lonp, latp, 'k', marker='^', markersize=10, lw=0.3, markeredgecolor='k',
+            ax.plot(lonp, latp, 'b', marker='^', markersize=10, lw=0.3, markeredgecolor='k',
                     transform=ccrs.PlateCarree(), zorder=4)
             ax.text(lonp + 0.02, latp + 0.02, '{}'.format(name),
                     transform=ccrs.PlateCarree(), zorder=4)
@@ -900,7 +903,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             gps_z, gps_n, gps_e = obs
             east_west = float(gps_e) / max_obs / scale
             north_south = float(gps_n) / max_obs / scale
-            plt.arrow(sta_lon, sta_lat, east_west, north_south, zorder=3,
+            plt.arrow(sta_lon, sta_lat, east_west, north_south, color='k', zorder=3,
                       linewidth=2, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
             up_down = float(gps_z) / max_obs#/ 100
@@ -908,8 +911,8 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             #          linewidth=2, head_width=0.05, head_length=0.05,
             #          transform=ccrs.PlateCarree())
             ### INCLUDE GNSS STATION NAMES ON PLOT? ###
-            plt.text(sta_lon + 0.02, sta_lat + 0.02, '{}'.format(name),
-                     transform=ccrs.PlateCarree())
+#            plt.text(sta_lon + 0.02, sta_lat + 0.02, '{}'.format(name),
+#                     transform=ccrs.PlateCarree())
             err_z, err_n, err_e = error
             width = float(err_e) / max_obs/ scale
             height = float(err_n) / max_obs/ scale
@@ -925,9 +928,9 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         #          zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
         #          transform=ccrs.PlateCarree())
         from matplotlib.patches import Rectangle
-        legend_len = .1 #cm
+        legend_len = 10 #cm
         ax.add_patch(Rectangle((min_lon, min_lat), (max_lon - min_lon), 0.1*(max_lat-min_lat), edgecolor='k', facecolor='0.5', alpha=0.5))
-        plt.arrow(max_lon-1, min_lat, legend_len / max_obs / scale, 0, zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
+        plt.arrow(max_lon-1, min_lat, legend_len / max_obs / scale, 0, color='k', zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
         plt.arrow(max_lon-1, min_lat - 0.3, legend_len / max_obs / scale, 0, color='r', zorder=3, linewidth=2, head_width=0.05, head_length=0.05,transform=ccrs.PlateCarree())
         plt.text(max_lon -1 , min_lat + 0.1, str(legend_len) + ' cm')
         plt.text(max_lon - 3.2, min_lat - 0.05, 'Observed GNSS')
@@ -996,7 +999,7 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
         'facecolor': '#eafff5'
     }
 
-    fig, axes = plt.subplots(1, 3, figsize=(30, 15), subplot_kw=dictn)
+    fig, axes = plt.subplots(2, 3, figsize=(30, 15), subplot_kw=dictn)
     tiler = Stamen('terrain-background')
     tectonic = cf.ShapelyFeature(
         shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
@@ -1017,30 +1020,37 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
     max_lon = max(max_lon, np.max(lons))
     observed = [point['observed'] for point in insar_points]
     synthetic = [point['synthetic'] for point in insar_points]
+    ramp = [point['ramp'] for point in insar_points]
     diffs = [obs - syn for obs, syn in zip(observed, synthetic)]
+    obs_no_ramp = [obs - ramp for obs, ramp in zip(observed, ramp)]
+    syn_no_ramp = [syn - ramp for syn, ramp in zip(synthetic, ramp)]
 
     max_obs_abs = np.max(np.abs(observed))
     min_obs_abs = -max_obs_abs
 
     margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
 
-    values = [observed, synthetic, diffs]
-    titles = ['Observed', 'Synthetic', 'Misfit']
-    labels = ['Observed LOS (m)', 'Modeled LOS (m)', 'Residual (m)']
-    zipped = zip(axes, values, titles, labels)
-    for ax, value, title, label in zipped:
-        ax.spines['geo'].set_linewidth(1)
-        ax.add_image(tiler,10)
-        ax.set_title(title, fontdict={'fontsize': 20})
+    values = [observed, synthetic, diffs, obs_no_ramp, syn_no_ramp, ramp]
+    titles = ['Observed', 'Synthetic', 'Misfit', 'Observed - Ramp', 'Synthetic - Ramp', 'Ramp']
+    labels = ['Observed LOS (m)', 'Modeled LOS (m)', 'Residual (m)','Observed LOS (m)', 'Modeled LOS (m)', 'Modeled Ramp LOS (m)']
+    rows = [0, 0, 0, 1, 1, 1]
+    cols = [0, 1, 2, 0, 1, 2]
+    zipped = zip(values, titles, labels, rows, cols)
+    i=0
+    for value, title, label, row, col in zipped:
+        print(axes[row][col])
+        axes[row][col].spines['geo'].set_linewidth(1)
+        axes[row][col].add_image(tiler,10)
+        axes[row][col].set_title(title, fontdict={'fontsize': 20})
         max_abs = np.max(np.abs(value))
         #vmin = -max_abs# if not title == 'Misfit' else -40
         #vmax = max_abs# if not title == 'Misfit' else 40
         norm = colors.TwoSlopeNorm(vmin=min_obs_abs, vcenter=0, vmax=max_obs_abs)
-        cs = ax.scatter(
+        cs = axes[row][col].scatter(
             lons, lats, zorder=4, c=value, cmap='bwr',
             norm=norm, transform=ccrs.PlateCarree())
         ax = set_map_cartopy(
-            ax, margins, tectonic=tectonic, countries=countries, faults=True, aftershocks=False)
+            axes[row][col], margins, tectonic=tectonic, countries=countries, faults=True, aftershocks=False)
         ax.plot(
             lon0, lat0, 'y*', markersize=15,
             transform=ccrs.PlateCarree(), zorder=4)
@@ -1052,6 +1062,7 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
         cbar.ax.xaxis.set_ticks_position('top')
         cbar.ax.xaxis.set_label_position('top')
         ax.set_aspect('auto', adjustable=None)
+        i+=1
 
     fig.tight_layout()
     plt.savefig('Insar_{}_fit.png'.format(los), bbox_inches='tight')
@@ -1217,7 +1228,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
         outf.write('dt: {}\n'.format(dt))
         outf.write('Time[s]     Moment_Rate [Nm]\n')
         for t, val in zip(time, mr):
-            outf.write('{:8.2f}\t{:8.4e}\n'.format(t, val))
+            outf.write('{:8.2f}\t\t{:8.4e}\n'.format(t, val))
 
     seismic_moment = np.trapz(mr, dx=0.01)
     magnitude = 2.0 * (np.log10(seismic_moment * 10 ** 7) - 16.1) / 3.0
