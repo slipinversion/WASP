@@ -583,7 +583,7 @@ def _PlotInsar(tensor_info, segments, point_sources, default_dirs,
         'facecolor': '#eafff5'
     }
 
-    fig, axes = plt.subplots(1, 3, figsize=(30, 15), subplot_kw=dictn)
+    fig, axes = plt.subplots(2, 3, figsize=(30, 15), subplot_kw=dictn)
     tectonic = cf.ShapelyFeature(
         shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
         edgecolor='red', facecolor=(198/255., 236/255., 253/255.))
@@ -603,23 +603,30 @@ def _PlotInsar(tensor_info, segments, point_sources, default_dirs,
     max_lon = max(max_lon, np.max(lons))
     observed = [point['observed'] for point in insar_points]
     synthetic = [point['synthetic'] for point in insar_points]
+    ramp = [point['ramp'] for point in insar_points]
     diffs = [obs - syn for obs, syn in zip(observed, synthetic)]
+    obs_no_ramp = [obs - ramp for obs, ramp in zip(observed, ramp)]
+    syn_no_ramp = [syn - ramp for syn, ramp in zip(synthetic, ramp)]
+
     margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
 
-    values = [observed, synthetic, diffs]
-    titles = ['Observed', 'Synthetic', 'Misfit']
-    zipped = zip(axes, values, titles)
-    for ax, value, title in zipped:
+    values = [observed, synthetic, diffs, obs_no_ramp, syn_no_ramp, ramp]
+    titles = ['Observed', 'Synthetic', 'Misfit','Observed - Ramp', 'Synthetic - Ramp', 'Ramp']
+    labels = ['Observed LOS (m)', 'Modeled LOS (m)', 'Residual (m)', 'Observed LOS (m)', 'Modeled LOS (m)', 'Modeled Ramp (m)']
+    rows = [0, 0, 0, 1, 1, 1]
+    cols = [0, 1, 2, 0, 1, 2]
+    zipped = zip(values, titles, labels, rows, cols)
+    for value, title, label, row, col in zipped:
         ax.set_title(title, fontdict={'fontsize': 20})
         max_abs = np.max(np.abs(value))
         vmin = -max_abs# if not title == 'Misfit' else -40
         vmax = max_abs# if not title == 'Misfit' else 40
         norm = colors.TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)
-        cs = ax.scatter(
+        cs = axes[row][col].scatter(
             lons, lats, zorder=4, c=value, cmap='bwr',
             norm=norm, transform=ccrs.PlateCarree())
         ax = set_map_cartopy(
-            ax, margins, tectonic=tectonic, countries=countries)
+            axes[row][col], margins, tectonic=tectonic, countries=countries)
         ax.plot(
             lon0, lat0, 'y*', markersize=15,
             transform=ccrs.PlateCarree(), zorder=4)
