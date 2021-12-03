@@ -11,7 +11,8 @@ module retrieve_gf
    &  dxs, dys, nx_p, ny_p, dip, strike, shear, t_latest
    use wavelets, only : fourier_coefs, meyer_yamada
    use wavelet_param, only : lnpt, nlen, jmin, jmax, max_freq
-   use retrieve_surf_gf, only : get_surf_gf_data, interp_gf, get_surf_gf, npt_bank, dt_bank
+   use retrieve_surf_gf, only : get_surf_gf_data, interp_gf, get_surf_gf, &
+   &  npt_bank, dt_bank, check_bounds
    use rad_pattern, only : rad_coef
    use geodesics, only : distaz
    use get_stations_data, only : sta_name1, sta_name2, sta_name3, disp_or_vel, &
@@ -526,6 +527,9 @@ contains
    do segment = 1, segments
       dip_segment = dip(segment)
       theta = strike(segment)
+      dep_min = point_sources(3, 1, 1, 1, 1, segment)
+      dep_max = point_sources(3, 1, ny_p, 1, nys_sub(segment), segment)
+      call check_bounds(30.0, 90.0, dep_min, dep_max)
       do iys = 1, nys_sub(segment)
          segment_subfault = (iys-1)*nxs_sub(segment)+1
          depth_sub = point_sources(3, 1, int(ny_p/2) + 1, 1, iys, segment)

@@ -15,14 +15,14 @@ module insar_data
    implicit none
    integer, parameter, private :: n_stations = 2500
    integer, private :: n_chan, lines_asc, lines_desc
-   integer :: ramp_length
+   integer :: ramp_length1, ramp_length2, ramp_length
    real*8 :: synm_whole(n_stations), weight_sum
    real*8 :: ramp_gf(18, n_stations)
    real :: lat(n_stations), lon(n_stations), max_los, syn_disp(n_stations)
    real, private, allocatable :: green(:, :, :, :)
    real :: obse(n_stations), look(3, n_stations), weight(n_stations)
    character(len=6) :: sta_name(n_stations)
-   character(len=10) :: ramp_type
+   character(len=10) :: ramp_type1, ramp_type2
   
 
 contains
@@ -60,19 +60,26 @@ contains
    inquire( file = 'ramp_gf.txt', exist = ramp_gf_file )
    if (ramp_gf_file) then
       open(23, file='ramp_gf.txt', status='old')
-      read(23,*) ramp_type
-      ramp_length = 0
-      select case (ramp_type)
+      read(23,*) ramp_type1, ramp_type2
+      ramp_length1 = 0
+      ramp_length2 = 0
+      select case (ramp_type1)
       case ('linear')
-         if (lines_asc .gt. 0) ramp_length = ramp_length + 3
-         if (lines_desc .gt. 0) ramp_length = ramp_length + 3
+         if (lines_asc .gt. 0) ramp_length1 = ramp_length1 + 3
       case ('bilinear')
-         if (lines_asc .gt. 0) ramp_length = ramp_length + 6
-         if (lines_desc .gt. 0) ramp_length = ramp_length + 6
+         if (lines_asc .gt. 0) ramp_length1 = ramp_length1 + 6
       case ('quadratic')
-         if (lines_asc .gt. 0) ramp_length = ramp_length + 5
-         if (lines_desc .gt. 0) ramp_length = ramp_length + 5
+         if (lines_asc .gt. 0) ramp_length1 = ramp_length1 + 5
       end select
+      select case (ramp_type2)
+      case ('linear')
+         if (lines_desc .gt. 0) ramp_length2 = ramp_length2 + 3
+      case ('bilinear')
+         if (lines_desc .gt. 0) ramp_length2 = ramp_length2 + 6
+      case ('quadratic')
+         if (lines_desc .gt. 0) ramp_length2 = ramp_length2 + 5
+      end select
+      ramp_length = ramp_length1 + ramp_length2
       do channel = 1, n_chan
          ramp_gf(:, channel) = 0.d0
          read(23,*)ramp_gf(:ramp_length, channel)
