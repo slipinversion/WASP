@@ -11,7 +11,18 @@ from obspy import read
 
 
 def plot_waveforms(axes, times, waveforms, color='blue', custom=None):
-    """
+    """Method to plot some (waveform) time series.
+
+    :param axes: where to plot the waveform time series
+    :param times: times of data to be plotted
+    :param waveforms: waveforms to plot
+    :param color: color of the plotted waveform
+    :param custom: fancier plotting methods
+    :type axes: list
+    :type times: list
+    :type waveforms: list
+    :type color: string
+    :type custom: string
     """
     for ax, time, waveform in zip(axes, times, waveforms):
         if waveform is None:
@@ -37,7 +48,7 @@ def plot_waveforms(axes, times, waveforms, color='blue', custom=None):
 
 
 def add_metadata(axes, **kwargs):
-    """
+    """Add metadata to some axes.
     """
     if 'names' in kwargs:
         for ax, name in zip(axes, kwargs['names']):
@@ -71,8 +82,17 @@ def add_metadata(axes, **kwargs):
 
 
 def plot_waveform_fits(files, components, type_str, start_margin=10,
-                       test=False, forward=False):
-    """
+                       test=False):
+    """Plot fit of observed to synthetic data for selected channels.
+
+    :param files: waveform files to plot
+    :param components: components (channels) of data selected for plotting
+    :param type_str: data type of given waveform files
+    :param start_margin: start margin of data for plotting
+    :type files: list
+    :type components: list
+    :type type_str: string
+    :type start_margin: float, optinoal
     """
     files = [file for file in files if file['component'] in components]
     files = sorted(files, key=lambda k: k['azimuth'])
@@ -138,32 +158,32 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     return
 
 
-def filt_waveform(file, high_freq):
-    """
-    """
-    stream = read(file['file'])
-    data = stream[0][1000:]
-    high_freq = high_freq / 25
-    b, a = butter(2, high_freq, btype='lowpass')
-    filt_data = filtfilt(b, a, data)
-    file['synthetic'] = filt_data
-    return file
+# def filt_waveform(file, high_freq):
+#     """
+#     """
+#     stream = read(file['file'])
+#     data = stream[0][1000:]
+#     high_freq = high_freq / 25
+#     b, a = butter(2, high_freq, btype='lowpass')
+#     filt_data = filtfilt(b, a, data)
+#     file['synthetic'] = filt_data
+#     return file
 
 
-def plot_spectra(files, dt):
-    """
-    """
-    for file in files:
-        waveform = file['synthetic']
-        name = file['name']
-        comp = file['component']
-        fft = np.fft.fft(waveform)
-        n = len(waveform)
-        freq = np.fft.fftfreq(n, d=dt)
-        plt.loglog(freq[:n//2], np.abs(fft[:n//2]))
-        plt.title('{} {}'.format(name, comp))
-        plt.savefig('spectra_{}_{}'.format(name, comp))
-        plt.close()
+# def plot_spectra(files, dt):
+#     """
+#     """
+#     for file in files:
+#         waveform = file['synthetic']
+#         name = file['name']
+#         comp = file['component']
+#         fft = np.fft.fft(waveform)
+#         n = len(waveform)
+#         freq = np.fft.fftfreq(n, d=dt)
+#         plt.loglog(freq[:n//2], np.abs(fft[:n//2]))
+#         plt.title('{} {}'.format(name, comp))
+#         plt.savefig('spectra_{}_{}'.format(name, comp))
+#         plt.close()
 
 
 if __name__ == '__main__':

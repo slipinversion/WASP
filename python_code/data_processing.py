@@ -45,45 +45,7 @@ def select_process_tele_body(tele_files0, tensor_info, data_prop):
     :type tensor_info: dict
     :type data_prop: dict
     :type tele_files0: list
-    .. rubric:: Example:
 
-    >>> from obspy.core.utcdatetime import UTCDateTime
-    >>> import glob
-    >>> data_prop = {
-            "sampling": {
-                 "dt_strong": 0.4,
-                 "dt_tele": 0.2
-            },
-            "strong_filter": {
-                 "high_freq": 0.125,
-                 "low_freq": 0.01
-            },
-            "tele_filter": {
-                 "freq0": 0.002,
-                 "freq3": 1.2,
-                 "high_freq": 1.0,
-                 "low_freq": 0.004
-            },
-            "wavelet_scales": [
-                1,
-                8
-            ]
-        }
-    >>> tensor_info = {
-            'moment_mag': 7 * 10 ** 27,
-            'date_origin': UTCDateTime(2014, 04, 01, 23, 46, 47)
-            'lat': -19.5,
-            'lon': -70.5,
-            'depth': 25,
-            'time_shift': 44,
-            'half_duration': 40,
-            'centroid_lat': -21,
-            'centroid_lon': -70,
-            'centroid_depth': 35,
-            'timedelta': 30 * 60
-        }
-    >>> tele_files0 = glob.glob('*sac')
-    >>> select_process_tele_body(tele_files0, tensor_info, data_prop)
     .. note::
 
         Currently, this code allows only to process files in sac format, where the
@@ -584,45 +546,7 @@ def select_process_cgps(cgps_files, tensor_info, data_prop):
     :type tensor_info: dict
     :type data_prop: dict
     :type cgps_files: list
-    .. rubric:: Example:
 
-    >>> from obspy.core.utcdatetime import UTCDateTime
-    >>> import glob
-    >>> data_prop = {
-            "sampling": {
-                 "dt_strong": 0.4,
-                 "dt_tele": 0.2
-            },
-            "strong_filter": {
-                 "high_freq": 0.125,
-                 "low_freq": 0.01
-            },
-            "tele_filter": {
-                 "freq0": 0.002,
-                 "freq3": 1.2,
-                 "high_freq": 1.0,
-                 "low_freq": 0.004
-            },
-            "wavelet_scales": [
-                1,
-                8
-            ]
-        }
-    >>> tensor_info = {
-            'moment_mag': 7 * 10 ** 27,
-            'date_origin': UTCDateTime(2014, 04, 01, 23, 46, 47)
-            'lat': -19.5,
-            'lon': -70.5,
-            'depth': 25,
-            'time_shift': 44,
-            'half_duration': 40,
-            'centroid_lat': -21,
-            'centroid_lon': -70,
-            'centroid_depth': 35,
-            'timedelta': 30 * 60
-        }
-    >>> cgps_files0 = glob.glob('*sac')
-    >>> select_process_cgps(cgps_files0, tensor_info, data_prop)
     .. note::
 
         Currently, this code allows only to process files in sac format.
@@ -889,48 +813,12 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
     :param strong_files0: files with strong motions to be selected and processed
+    :param remove_response: whether to remove paz response in processing
     :type tensor_info: dict
     :type data_prop: dict
     :type strong_files0: list
-    .. rubric:: Example:
+    :type remove_repsonse: bool, optional
 
-    >>> from obspy.core.utcdatetime import UTCDateTime
-    >>> import glob
-    >>> data_prop = {
-            "sampling": {
-                 "dt_strong": 0.4,
-                 "dt_tele": 0.2
-            },
-            "strong_filter": {
-                 "high_freq": 0.125,
-                 "low_freq": 0.01
-            },
-            "tele_filter": {
-                 "freq0": 0.002,
-                 "freq3": 1.2,
-                 "high_freq": 1.0,
-                 "low_freq": 0.004
-            },
-            "wavelet_scales": [
-                1,
-                8
-            ]
-        }
-    >>> tensor_info = {
-            'moment_mag': 7 * 10 ** 27,
-            'date_origin': UTCDateTime(2014, 04, 01, 23, 46, 47)
-            'lat': -19.5,
-            'lon': -70.5,
-            'depth': 25,
-            'time_shift': 44,
-            'half_duration': 40,
-            'centroid_lat': -21,
-            'centroid_lon': -70,
-            'centroid_depth': 35,
-            'timedelta': 30 * 60
-        }
-    >>> strong_files0 = glob.glob('*sac')
-    >>> select_process_strong(strong_files0, tensor_info, data_prop)
     .. note::
         Currently, this code allows only to process files in sac format, where the
         instrumental response is in a SACPZ file. Other data formats are not
@@ -952,8 +840,6 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
     strong_files1 = glob.glob('acc*')
     if remove_response:
         logger1.info('Remove response for selected strong motion traces')
-        # for file in response_files:
-        #     __convert_response_acc(file)
         __remove_response_str(strong_files1, response_files, logger=logger1)
 
     logger1.info('Select strong motion traces')
@@ -1113,7 +999,7 @@ def process_strong_motion(strong_files, tensor_info, data_prop, logger=None):
 
     :param tensor_info: dictionary with moment tensor information
     :param data_prop: dictionary with waveform properties
-    :param strong_files: files with strong motion to be resampled and integrated to velocity
+    :param strong_files: strong motion to be resampled and integrated to velocity
     :param logger: where to log results of strong motion resampling and integration
     :type tensor_info: dict
     :type data_prop: dict
@@ -1313,8 +1199,6 @@ if __name__ == '__main__':
                     + glob.glob('*.HN*sac') + glob.glob('*.HL*sac')\
                     + glob.glob('*.AH?.*') + glob.glob('*.AH?.*')\
                     + glob.glob('*_HN*sac') + glob.glob('*_HL*sac')
-        # strong_motion_processing_custom(
-        #     strong_files, tensor_info, data_prop, type='acc')
         select_process_strong(strong_files, tensor_info, data_prop)
     if args.cgps:
         cgps_files = glob.glob('*.L[HXY]*SAC') + glob.glob('*.L[HXY]*sac')

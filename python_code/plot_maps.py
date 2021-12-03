@@ -10,7 +10,16 @@ import cartopy.feature as cf
 
 
 def set_map_cartopy(ax, margins, tectonic=None, countries=None):
-    """
+    """Initialize cartopy map with some properties
+
+    :param ax: object where to plot cartopy map
+    :param margins: (lat, lon) margins of plot
+    :param tectonic: tectonic features to plot
+    :param countries: plot countries boundaries
+    :type ax: Axes
+    :type margins: list
+    :type tectonic: shapefile, optional
+    :type countries: shapefile, optional
     """
     ax.coastlines(resolution='10m', zorder=3)
     gl = ax.gridlines(linewidth=1, color='black', alpha=0.3, draw_labels=True)
@@ -28,7 +37,22 @@ def set_map_cartopy(ax, margins, tectonic=None, countries=None):
 
 def plot_map(ax, latitudes, longitudes, values, min_val=None, max_val=None,
              transform=None):
-    """
+    """Plot data values in a (lat, lon) grid in a cartopy map
+
+    :param ax: object where to plot cartopy map
+    :param latitudes: latitudes of the grid
+    :param longitudes: longitudes of the grid
+    :param values: values over the (lat, lon) grid
+    :param min_val: minimum value in the colorbar of the plot
+    :param max_val: maximum value in the colorbar of the plot
+    :param transform: coordinate transform to use
+    :type ax: Axes
+    :type latitudes: array
+    :type longitudes: array
+    :type values: array
+    :type min_val: float, optional
+    :type max_val: float, optional
+    :type transform: CRS
     """
     min_val = min([np.amin(value) for value in values]) if not min_val else min_val
     max_val = max([np.amax(value) for value in values]) if not max_val else max_val
@@ -42,7 +66,16 @@ def plot_map(ax, latitudes, longitudes, values, min_val=None, max_val=None,
 
 
 def plot_borders(ax, latitudes, longitudes, transform=None):
-    """
+    """Plot borders of a (lat, lon) grid in a cartopy map.
+
+    :param ax: object where to plot cartopy map
+    :param latitudes: latitudes of the grid
+    :param longitudes: longitudes of the grid
+    :param transform: coordinate transform to use
+    :type ax: Axes
+    :type latitudes: array
+    :type longitudes: array
+    :type transform: CRS
     """
     zipped = zip(longitudes, latitudes)
     for longitude, latitude in zipped:

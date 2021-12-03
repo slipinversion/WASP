@@ -223,37 +223,6 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
     return
 
 
-def from_event_mult_in():
-    """Code to create files Fault.time, Fault.pos and Niu_model
-    """
-    if not os.path.isfile('Event_mult.in'):
-        raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), 'Event_mult.in')
-    pk_dirs = mng.default_dirs()
-    create_fault_files = pk_dirs['create_fault_files']
-    compute_shear = pk_dirs['compute_shear']
-    p = subprocess.Popen(
-        [create_fault_files, 'Event_mult.in', 'no'], stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p.wait()
-    p2 = subprocess.Popen(
-        [compute_shear, 'vel_model',], stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p2.wait()
-##
-## create a json file with fault properties, and another for rise_time info
-##
-#    segments, rise_time, point_sources = pl_mng.__read_planes_info()
-#    dictionary = {
-#            'segments': segments,
-#            'rise_time': rise_time
-#    }
-#    with open('segments_data.json', 'w') as outfile:
-#        json.dump(dictionary, outfile, sort_keys=True, indent=4,
-#                  separators=(',', ': '), ensure_ascii=False)
-    return
-
-
 ################################
 # station data
 ################################
@@ -594,10 +563,15 @@ def input_chen_insar():
     weight_desc = 0
     lines_asc = 0
     lines_desc = 0
+    size1 = 0
+    size2 = 0
+    ramp_asc = None
+    ramp_desc = None
     if 'ascending' in insar_info:
         ascending = insar_info['ascending']
         insar_asc = ascending['name']
         weight_asc = ascending['weight']
+        ramp_asc = ascending['ramp']
         with open(insar_asc, 'r') as infile:
             lines = [line.split() for line in infile]
         lines = lines[1:]
@@ -606,6 +580,7 @@ def input_chen_insar():
         descending = insar_info['descending']
         insar_desc = descending['name']
         weight_desc = descending['weight']
+        ramp_desc = descending['ramp']
         with open(insar_desc, 'r') as infile:
             new_lines = [line.split() for line in infile]
         lines = lines + new_lines[1:]
@@ -632,8 +607,7 @@ def input_chen_insar():
                 )
             )
 
-    ramp = insar_info['ramp']
-    if not ramp:
+    if not ramp_asc and not ramp_desc:
         if os.path.isfile('ramp_gf.txt'):
             os.remove('ramp_gf.txt')
         return
@@ -647,74 +621,86 @@ def input_chen_insar():
     min_northing = np.min(northings)
     min_easting = np.min(eastings)
 
-    size1 = 3
-    if ramp == 'bilinear':
-        size1 = 6
-    elif ramp == 'quadratic':
-        size1 = 5
-
     if lines_asc > 0:
-        east1  = (np.array(eastings[:lines_asc])-min_easting)
-        north1  = (np.array(northings[:lines_asc])-min_northing)
-        east1 = east1 / np.max(np.abs(east1))
-        north1 = north1 / np.max(np.abs(north1))
-        east2  = east1**2
-        north2  = north1**2
-        east2  = east2 / np.max(east2)
-        north2  = north2 / np.max(north2)
-        east_north = east1*north1
-        east_north = east_north / np.max(east_north)
-        if ramp == 'linear':
+        if ramp_asc is not None:
             size1 = 3
-            zipped = zip(east1, north1)
-            gf_ramp1 = [[east, north, 1] for east, north in zipped]
-            gf_ramp1 = np.array(gf_ramp1)
-        elif ramp == 'bilinear':
-            size1 = 3
-            zipped = zip(east1, north1, east_north, east2, north2)
-            gf_ramp1 = [[e1, n1, 1, en, e2, n2] for e1, n1, en, e2, n2 in zipped]
-            gf_ramp1 = np.array(gf_ramp1)
-        elif ramp == 'quadratic':
-            zipped = zip(east1, north1, east_north)
-            gf_ramp1 = [[e1, n1, 1, en, en**2] for e1, n1, en in zipped]
-            gf_ramp1 = np.array(gf_ramp1)
+            if ramp_asc == 'bilinear':
+                size1 = 6
+            elif ramp_asc == 'quadratic':
+                size1 = 5
+            east1  = (np.array(eastings[:lines_asc])-min_easting)
+            north1  = (np.array(northings[:lines_asc])-min_northing)
+            east1 = east1 / np.max(np.abs(east1))
+            north1 = north1 / np.max(np.abs(north1))
+            east2  = east1**2
+            north2  = north1**2
+            east2  = east2 / np.max(east2)
+            north2  = north2 / np.max(north2)
+            east_north = east1*north1
+            east_north = east_north / np.max(east_north)
+            if ramp_asc == 'linear':
+                size1 = 3
+                zipped = zip(east1, north1)
+                gf_ramp1 = [[east, north, 1] for east, north in zipped]
+                gf_ramp1 = np.array(gf_ramp1)
+            elif ramp_asc == 'bilinear':
+                size1 = 3
+                zipped = zip(east1, north1, east_north, east2, north2)
+                gf_ramp1 = [[e1, n1, 1, en, e2, n2] for e1, n1, en, e2, n2 in zipped]
+                gf_ramp1 = np.array(gf_ramp1)
+            elif ramp_asc == 'quadratic':
+                zipped = zip(east1, north1, east_north)
+                gf_ramp1 = [[e1, n1, 1, en, en**2] for e1, n1, en in zipped]
+                gf_ramp1 = np.array(gf_ramp1)
 
     if lines_desc > 0:
-        east1  = (np.array(eastings[lines_asc:])-min_easting)
-        north1  = (np.array(northings[lines_asc:])-min_northing)
-        east1 = east1 / np.max(np.abs(east1))
-        north1 = north1 / np.max(np.abs(north1))
-        east2  = east1**2
-        north2  = north1**2
-        east2  = east2 / np.max(east2)
-        north2  = north2 / np.max(north2)
-        east_north = east1*north1
-        east_north = east_north / np.max(east_north)
-        if ramp == 'linear':
-            zipped = zip(east1, north1)
-            gf_ramp2 = [[east, north, 1] for east, north in zipped]
-            gf_ramp2 = np.array(gf_ramp2)
-        elif ramp == 'bilinear':
-            zipped = zip(east1, north1, east_north, east2, north2)
-            gf_ramp2 = [[e1, n1, 1, en, e2, n2] for e1, n1, en, e2, n2 in zipped]
-            gf_ramp2 = np.array(gf_ramp2)
-        elif ramp == 'quadratic':
-            zipped = zip(east1, north1, east_north)
-            gf_ramp2 = [[e1, n1, 1, en, en**2] for e1, n1, en in zipped]
-            gf_ramp2 = np.array(gf_ramp2)
+        if ramp_desc is not None:
+            size2 = 3
+            if ramp_desc == 'bilinear':
+                size2 = 6
+            elif ramp_desc == 'quadratic':
+                size2 = 5
+            east1  = (np.array(eastings[lines_asc:])-min_easting)
+            north1  = (np.array(northings[lines_asc:])-min_northing)
+            east1 = east1 / np.max(np.abs(east1))
+            north1 = north1 / np.max(np.abs(north1))
+            east2  = east1**2
+            north2  = north1**2
+            east2  = east2 / np.max(east2)
+            north2  = north2 / np.max(north2)
+            east_north = east1*north1
+            east_north = east_north / np.max(east_north)
+            if ramp_desc == 'linear':
+                zipped = zip(east1, north1)
+                gf_ramp2 = [[east, north, 1] for east, north in zipped]
+                gf_ramp2 = np.array(gf_ramp2)
+            elif ramp_desc == 'bilinear':
+                zipped = zip(east1, north1, east_north, east2, north2)
+                gf_ramp2 = [[e1, n1, 1, en, e2, n2] for e1, n1, en, e2, n2 in zipped]
+                gf_ramp2 = np.array(gf_ramp2)
+            elif ramp_desc == 'quadratic':
+                zipped = zip(east1, north1, east_north)
+                gf_ramp2 = [[e1, n1, 1, en, en**2] for e1, n1, en in zipped]
+                gf_ramp2 = np.array(gf_ramp2)
 
-    if lines_asc > 0 and lines_desc == 0:
-        gf_ramp = gf_ramp1.copy()
-    elif lines_asc == 0 and lines_desc > 0:
-        gf_ramp = gf_ramp2.copy()
+    if ramp_asc is not None and ramp_desc is None:
+        gf_ramp = np.block([
+            [gf_ramp1],
+            [np.zeros((lines_desc, size1))]
+        ])
+    elif ramp_asc is None and ramp_desc is not None:
+        gf_ramp = np.block([
+            [np.zeros((lines_asc, size2))],
+            [gf_ramp2]
+        ])
     else:
         gf_ramp = np.block([
-            [gf_ramp1, np.zeros((lines_asc, size1))],
+            [gf_ramp1, np.zeros((lines_asc, size2))],
             [np.zeros((lines_desc, size1)), gf_ramp2]
         ])
 
     with open('ramp_gf.txt', 'w') as outf:
-        outf.write('{}\n'.format(ramp))
+        outf.write('{} {}\n'.format(ramp_asc, ramp_desc))
         shape = gf_ramp.shape
         rows, cols = shape
         for row in range(0, rows):
@@ -997,9 +983,7 @@ def model_space(segments):
     r"""We write a file which describes the space of feasible FFM models.
 
     :param segments: dictionary with fault segments data
-    :param rise_time: dictionary with rise time function properties
     :type segments: dict
-    :type rise_time: dict
 
     .. note::
         Shouldn't yet be used for several fault planes.

@@ -262,7 +262,7 @@ def shear_modulous(point_sources, velmodel=None):
     :param point_sources: array with the information of point sources for all
      fault segments.
     :param velmodel: velocity model to be used
-    :type tensor_info: dict
+    :type point_sources: array
     :type velmodel: dict, optional
     :returns: array with shear modulous for all subfaults, for all fault
      segments.
@@ -434,9 +434,9 @@ def __rise_time_parameters(tensor_info, eq_time, fault_dimensions, data_type):
     windows = windows + 2#3
 
     rise_time_param = {
-            'min_rise': min_rise,
-            'delta_rise': delta_rise,
-            'windows': windows
+        'min_rise': min_rise,
+        'delta_rise': delta_rise,
+        'windows': windows
     }
     return rise_time_param
 

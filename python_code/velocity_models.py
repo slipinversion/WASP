@@ -49,10 +49,8 @@ def select_velmodel(tensor_info, default_dirs):
          
     .. note:: 
     
-        Currently, the velocity models are stored in
-        ``/home/ffault/Inversion_Chen_Ji/info``. These addresses can be
-        modified in the routine ``default_dirs()`` of the module
-        ``management.py``.
+        The locations of the velocity models can be modified in the routine
+        ``default_dirs()`` of the module ``management.py``.
 
     """
     # crust_model = __crust_crust_velmodel(tensor_info, default_dirs)
@@ -179,26 +177,26 @@ def __crust_mantle_model(crust_model, depth):
 # PREM velocity model
 #        
     p_vel_mantle = np.array(
-            [8.080, 8.594, 8.732, 8.871, 9.219, 9.561, 9.902, 10.073, 10.212,
-             10.791, 10.869])
+        [8.080, 8.594, 8.732, 8.871, 9.219, 9.561, 9.902, 10.073, 10.212,
+         10.791, 10.869])
     s_vel_mantle = np.array(
-            [4.473, 4.657, 4.707, 4.757, 4.981, 5.176, 5.370, 5.467, 5.543, 5.982,
-             6.056])
+        [4.473, 4.657, 4.707, 4.757, 4.981, 5.176, 5.370, 5.467, 5.543, 5.982,
+         6.056])
     dens_mantle = np.array(
-            [3.3754, 3.4465, 3.4895, 3.5325, 3.7448, 3.8288, 3.9128, 3.9548,
-             3.9840, 4.3886, 4.4043])
+        [3.3754, 3.4465, 3.4895, 3.5325, 3.7448, 3.8288, 3.9128, 3.9548,
+         3.9840, 4.3886, 4.4043])
     thick_mantle = np.array(
-            [196.000, 36.000, 108.00, 36.000, 33.333, 100.00, 33.333, 33.333,
-             70.000, 25.250, 0.0])
+        [196.000, 36.000, 108.00, 36.000, 33.333, 100.00, 33.333, 33.333,
+         70.000, 25.250, 0.0])
     qa_mantle = np.array(
-            [1.2e+03, 3.6e+02, 3.7e+02, 3.7e+02, 3.7e+02, 3.6e+02, 3.6e+02,
-             3.6e+02, 3.6e+02, 7.6e+02, 7.5e+02])
+        [1.2e+03, 3.6e+02, 3.7e+02, 3.7e+02, 3.7e+02, 3.6e+02, 3.6e+02,
+         3.6e+02, 3.6e+02, 7.6e+02, 7.5e+02])
     qb_mantle = np.array(
-            [5.0e+02, 1.4e+02, 1.4e+02, 1.4e+02, 1.4e+02, 1.4e+02, 1.4e+02,
-             1.4e+02, 1.4e+02, 3.1e+02, 3.1e+02])
+        [5.0e+02, 1.4e+02, 1.4e+02, 1.4e+02, 1.4e+02, 1.4e+02, 1.4e+02,
+         1.4e+02, 1.4e+02, 3.1e+02, 3.1e+02])
     mantle_model = __dict_velmodel(
-            p_vel_mantle, s_vel_mantle, dens_mantle, thick_mantle, qa_mantle,
-            qb_mantle)
+        p_vel_mantle, s_vel_mantle, dens_mantle,
+        thick_mantle, qa_mantle, qb_mantle)
 
     p_vel = np.concatenate([crust_model['p_vel'], mantle_model['p_vel']])
     s_vel = np.concatenate([crust_model['s_vel'], mantle_model['s_vel']])
@@ -218,7 +216,7 @@ def __crust_mantle_model(crust_model, depth):
     j = len(thick) if j == 0 else j
     
     velmodel = __dict_velmodel(
-            p_vel[:j], s_vel[:j], dens[:j], thick[:j], qa[:j], qb[:j])
+        p_vel[:j], s_vel[:j], dens[:j], thick[:j], qa[:j], qb[:j])
     return velmodel
     
     
@@ -239,8 +237,8 @@ def model2dict(model_file):
     qb_crust = np.array([__process_line(line)[5] for line in lines])
         
     crust_model = __dict_velmodel(
-            p_vel_crust, s_vel_crust, dens_crust, thick_crust, qa_crust,
-            qb_crust)
+        p_vel_crust, s_vel_crust, dens_crust, thick_crust,
+        qa_crust, qb_crust)
     return crust_model
     
     
@@ -272,12 +270,12 @@ def __dict_velmodel(p_vel, s_vel, dens, thick, qa, qb):
     """Helper routine. We create a dictionary for a given velocity model.
     """
     velmodel_dict = {
-            'p_vel': [str(v) for v in p_vel],
-            's_vel': [str(v) for v in s_vel],
-            'dens': [str(v) for v in dens],
-            'thick': [str(v) for v in thick],
-            'qa': [str(v) for v in qa],
-            'qb': [str(v) for v in qb]
+        'p_vel': [str(v) for v in p_vel],
+        's_vel': [str(v) for v in s_vel],
+        'dens': [str(v) for v in dens],
+        'thick': [str(v) for v in thick],
+        'qa': [str(v) for v in qa],
+        'qb': [str(v) for v in qb]
     }
     return velmodel_dict
 
@@ -366,8 +364,8 @@ def __litho_crust_velmodel(tensor_info, default_dirs):
     qa_crust = np.array([qa_crust[i] for i in indexes])
     qb_crust = np.array([qb_crust[i] for i in indexes])
     crust_velmodel = __dict_velmodel(
-            p_vel_crust, s_vel_crust, dens_crust, thick_crust,
-            qa_crust, qb_crust)
+        p_vel_crust, s_vel_crust, dens_crust, thick_crust,
+        qa_crust, qb_crust)
                 
     return crust_velmodel
 

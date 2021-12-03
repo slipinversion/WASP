@@ -16,8 +16,10 @@ def get_tensor(cmt_file=None, quake_file=None, timedelta=None):
     """From a cmt tensor file we get tensor information in a dictionary.
     
     :param cmt_file: location of text file to be used
+    :param quake_file: location of quake xml file to be used
     :param timedelta: difference between O.T. and run time
     :type cmt_file: string, optional
+    :type quake_file: string, optional
     :type timedelta: float, optional
     """
     if cmt_file:
@@ -163,11 +165,11 @@ def read_quake_file(quake_file):
     second_origin = []
     for i, origin in enumerate(origins):
         values = ['depthType' in elem.tag for elem in origin.iter()]
-        if any(values):
-            if i == 0:
-                first_origin = origin
-            else:
-                second_origin = origin
+        # if any(values):
+        if i == 0:
+            first_origin = origin
+        else:
+            second_origin = origin
 
     Event_Lat = next(elem for elem in first_origin.iter() if 'latitude' in elem.tag)
     event_lat = float(next(child.text for child in Event_Lat))

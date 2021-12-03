@@ -13,11 +13,15 @@ def load_ffm_model(segments_data, point_sources, option='Solucion.txt',
                    max_slip=1000, len_stk=4, len_dip=4):
     """Load FFM model from some input file.
 
+    :param segments_data: properties of fault segments and rise time
+    :param point_sources: properties of point sources
     :param option: file from where to load the input kinematic model
     :param max_slip: largest slip of kinematic model, when creating custom
      kinematic model
     :param len_stk: length of patches when creating checkerboard model
     :param len_dip: width of patches when creating checkerboard model
+    :type point_sources: list
+    :type segments_data: dict
     :type option: string, optional
     :type max_slip: float, optional
     :type len_stk: int, optional
