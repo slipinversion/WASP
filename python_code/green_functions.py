@@ -193,9 +193,11 @@ def fk_green_fun1(data_prop, tensor_info, location, cgps=False):
     :param tensor_info: dictionary with moment tensor information
     :param dt: sampling rate of data
     :param location: location of GF bank to be used.
+    :param cgps: whether GF are of cgps data or not.
     :type tensor_info: dict
     :type tensor_info: float
     :type location: string
+    :type cgps: bool, optional
     """
     sampling = data_prop['sampling']
     dt = sampling['dt_strong'] if not cgps else sampling['dt_cgps']

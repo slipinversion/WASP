@@ -42,11 +42,13 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     :param default_dirs: dictionary with default directories to be used
     :param velmodel: dictionary with velocity model
     :param dt_cgps: sampling interval for cgps data 
+    :param st_response: whether to remove paz response of strong motion 
     :type tensor_info: dict
     :type data_type: list
     :type default_dirs: dict
     :type velmodel: dict, optional
     :type dt_cgps: float, optional
+    :type st_response: bool, optional
     """
     logger = ml.create_log('automatic_ffm',
         os.path.join('logs', 'automatic_ffm.log'))  
@@ -146,12 +148,14 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
     :param data_type: list with data types to be used in modelling
     :param default_dirs: dictionary with default directories to be used
     :param data_prop: dictionary with properties for different waveform types
+    :param logger: logging object
     :param velmodel: dictionary with velocity model
     :type default_dirs: dict
     :type tensor_info: dict
     :type plane_data: dict
     :type data_type: list
     :type data_prop: dict
+    :type logger: Logger
     :type velmodel: dict, optional
     """
 #
@@ -208,9 +212,13 @@ def modelling_new_data(tensor_info, data_type, default_dirs,
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: list with data types to be used in modelling
     :param default_dirs: dictionary with default directories to be used
+    :param data_folder: location of data used for modelling
+    :param st_response: whether to remove paz response of strong motion
     :type default_dirs: dict
     :type tensor_info: dict
     :type data_type: list
+    :type data_folder: string
+    :type st_response: bool, optional
     """
     sol_folder = os.getcwd()
     sol_folder = os.path.abspath(sol_folder)
@@ -448,29 +456,31 @@ def set_directory_structure(tensor_info):
     return
 
 
-def adquisicion(tensor_info):
-    """Get waveforms and convert them to SAC using obspy.
-    """
-    event_time = tensor_info['date_origin']
-    event_lat = tensor_info['lat']
-    event_lon = tensor_info['lon']
-    depth = tensor_info['depth']
-    data_type = ['tele']
-    if -50 < event_lat < -18 and -75 < event_lon < -60\
-    and event_time.year >= 2014:
-        data_type = data_type + ['strong']
-    acquisition(event_time, event_lat, event_lon, depth, data_type)
+# def adquisicion(tensor_info):
+#     """Get waveforms and convert them to SAC using obspy.
+#     """
+#     event_time = tensor_info['date_origin']
+#     event_lat = tensor_info['lat']
+#     event_lon = tensor_info['lon']
+#     depth = tensor_info['depth']
+#     data_type = ['tele']
+#     if -50 < event_lat < -18 and -75 < event_lon < -60\
+#     and event_time.year >= 2014:
+#         data_type = data_type + ['strong']
+#     acquisition(event_time, event_lat, event_lon, depth, data_type)
    
  
 def processing(tensor_info, data_type, data_prop, st_response=True):
-    """Run all waveform data processing in parallel.
+    """Run all waveform data processing.
     
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: set with data types to be used in modelling
     :param data_prop: dictionary with properties for different waveform types
+    :param st_response: whether to remove paz response of strong motion
     :type tensor_info: dict
     :type data_type: set
     :type data_prop: dict
+    :type st_response: bool, optional
     """
     tele_files = glob.glob('*.BH*SAC') + glob.glob('*.BH*sac')\
                  + glob.glob('*_BH*sac') + glob.glob('*_BH*sac')
@@ -519,6 +529,7 @@ def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
     
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: set with data types to be used in modelling
+    :param segments_data: properties of fault segments and rise time
     :param min_vel: minimum rupture velocity
     :param max_vel: maximum rupture velocity
     :param moment_mag: input seismic moment
@@ -527,6 +538,7 @@ def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
     :type data_type: set
     :type min_vel: float
     :type max_vel: float
+    :type segments_data: dict
     :type moment_mag: float, optional
     :type forward_model: dict, optional
     """
@@ -589,13 +601,13 @@ def inversion(tensor_info, data_type, default_dirs, logger, forward=False):
     
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: set with data types to be used in modelling
-    :param name_log: name of logfile to write
+    :param logger: name of logfile to write
     :param forward: whether we solve the inverse problem or the forward problem
     :param default_dirs: dictionary with default directories to be used
     :type default_dirs: dict
     :type tensor_info: dict
     :type data_type: set
-    :type data_prop: string
+    :type logger: Logger
     :type forward: bool, optional
     """
     # print('Retrieve GF for modelling')
@@ -621,11 +633,15 @@ def inversion(tensor_info, data_type, default_dirs, logger, forward=False):
     else:
         logger.info('Forward at folder {}'.format(os.getcwd()))
         finite_fault = default_dirs['forward']
-    p1 = subprocess.Popen([finite_fault, *args])
+    p1 = subprocess.Popen(
+        [finite_fault, *args], stderr=subprocess.PIPE)
 #
 # need to wait until FFM modelling is finished.
 #
-    p1.wait()
+    outs, errs = p1.communicate(timeout=20*60)
+    if errs:
+        logger.error(errs.decode('utf-8'))
+    # p1.wait()
     time3 = time.time() - time3
     logger.info('Elapsed time of finite fault modelling: {}'.format(time3))
     run_stats['ffm_time'] = time3
@@ -642,10 +658,12 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs,
     :param plot_input: choose whether to plot initial kinematic model as well
     :param default_dirs: dictionary with default directories to be used
     :param velmodel: dictionary with velocity model
+    :param segments_data: properties of fault segments and rise time
     :type velmodel: dict, optional
     :type default_dirs: dict
     :type tensor_info: dict
     :type data_type: set
+    :type segments:data: dict
     :type plot_input: bool, optional
     """
 

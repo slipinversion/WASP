@@ -409,29 +409,37 @@ def static_data(tensor_info, unit='m'):
     return info_traces
 
 
-def insar_data(insar_asc=None, insar_desc=None, ramp=None):
+def insar_data(insar_asc=None, insar_desc=None, ramp_asc=None, ramp_desc=None):
     """Write json dictionary for InSar data
 
-    :param unit: units of static data
-    :type unit: string, optional
+    :param insar_asc: name of ascending insar track
+    :param insar_desc: name of descending insar track
+    :param ramp_asc: type of ramp to invert for ascending track
+    :param ramp_desc: type of ramp to invert for descending track
+    :type insar_asc: string, optional
+    :type insar_desc: string, optional
+    :type ramp_asc: string, optional
+    :type ramp_desc: string, optional
     """
     print('InSAR data')
     print(f'insar_asc: {insar_asc}')
     print(f'insar_desc: {insar_desc}')
-    insar_dict = {'ramp': ramp}
     if not insar_asc and not insar_desc:
         return
 
+    insar_dict = {}
     if insar_asc:
         insar_dict['ascending'] = {
             'name': insar_asc,
-            'weight': 1.0
+            'weight': 1.0,
+            'ramp': ramp_asc
         }
 
     if insar_desc:
         insar_dict['descending'] = {
             'name': insar_desc,
-            'weight': 1.0
+            'weight': 1.0,
+            'ramp': ramp_desc
         }
 
     with open('insar_data.json', 'w') as f:
@@ -446,8 +454,10 @@ def select_tele_stations(files, phase, tensor_info):
 
     :param files: list of used waveforms in sac format
     :param phase: string indicating whether wave is P or SH or Love or Rayleigh
-    :type tensor_info: list
+    :param tensor_info: properties of event
+    :type files: list
     :type phase: string
+    :type tensor_info: dict
     """
     event_lat = tensor_info['lat']
     event_lon = tensor_info['lon']
@@ -581,7 +591,6 @@ def filling_data_dicts(tensor_info, data_type, data_prop, data_folder):
     :type data_type: list
     :type data_prop: dict
     :type data_folder: string
-
 
     .. rubric:: Example:
 
@@ -882,8 +891,11 @@ if __name__ == '__main__':
     parser.add_argument(
         "-ind", "--insar_desc", help="Descending InSar data")
     parser.add_argument(
-        "-inr", "--insar_ramp", default=None,
-        help="Type of ramp for insar")
+        "-inar", "--insar_asc_ramp",
+        default=None, help="Ramp of ascending InSar data")
+    parser.add_argument(
+        "-indr", "--insar_desc_ramp",
+        default=None, help="Ramp of descending InSar data")
     args = parser.parse_args()
     data_folder = os.path.abspath(args.data_folder)
     if not os.path.isfile('sampling_filter.json'):
@@ -908,4 +920,5 @@ if __name__ == '__main__':
         insar_data(
             insar_asc=args.insar_asc,
             insar_desc=args.insar_desc,
-            ramp=args.insar_ramp)
+            ramp_asc=args.insar_asc_ramp,
+            ramp_desc=args.insar_desc_ramp)

@@ -20,11 +20,13 @@ def modelling_prop(tensor_info, segments_data, data_type=None, moment_mag=None):
     FFM modelling using simmulated annealing.
 
     :param moment_mag: seismic moment to be used in modelling
+    :param segments_data: properties of fault plane and rise time function.
     :param data_type: list of data types to be used in modelling.
     :param tensor_info: dictionary with moment tensor information
     :type moment_mag: float, optional
     :type data_type: list, optional
     :type tensor_info: dict
+    :type segments_data: dict
     """
     moment_mag = tensor_info['moment_mag'] if not moment_mag else moment_mag
     time_shift = tensor_info['time_shift']

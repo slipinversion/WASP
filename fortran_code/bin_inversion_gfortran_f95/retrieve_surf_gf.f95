@@ -23,12 +23,30 @@ contains
    read(1, *) dep_min, dep_step, nz
    read(1, *) dist_min, d_step, nx
    read(1, '(a)')gf_bank
-   write(*,*)'GF bank name'
-   write(*, *) gf_bank
    close(1)
    dep_max = dep_min + (nz-1)*dep_step
    dist_max = dist_min + (nx-1)*d_step
    end subroutine get_surf_gf_data
+
+
+   subroutine check_bounds(d_min, d_max, z_min, z_max)
+   implicit none
+   real :: d_min, d_max, z_min, z_max
+   if (dist_max .lt. d_max) then
+      write(*,*)"required maximum distance is large the Green"
+      write(*,*)"Function range, use the dist_max instead"
+   end if
+   if (dep_min .gt. z_min) then
+      write(*,*)"WARNING: minimum depth used is ", z_min, &
+      &  " but minimum GF depth available is ", dep_min
+   end if
+   if (dep_max .lt. z_max) then
+      write(0,*)"ERROR: Maximum depth used is ", z_max, &
+      &  " but maximum GF depth available is ", dep_max
+      write(0,*)"Do not use surface waves for run_modelling"
+      stop
+   end if
+   end subroutine check_bounds
 
    
    subroutine get_surf_gf(gf_bank, d_min, d_max, z_min, z_max)
@@ -40,7 +58,7 @@ contains
    real :: fault_bounds(2, 2)
    real :: dt_c, t0, dep, dis0
    integer :: iz, iz0, k, k0, npt_c, ntc, n_com, nptf
-   
+  
    call grid_properties()
    
    fault_bounds(1, 1) = d_min
@@ -64,19 +82,19 @@ contains
 ! anticipate potential errors
 !                 
          if (abs(dis0 - grid_dist(k)) .gt. 1e-4) then
-            write(*, *)"Error: distance to source should be ", grid_dist(k), " but real distance is ", dis0
-            write(*, *)"Check size of gf bank"
-            write(*, *)"Check size of 'green_bank' variable"
-            write(*, *)"Check given range of distances and depths agrees with size of gf bank"
-            write(*, *)"You may need to recompute GF bank"
+            write(0, *)"Error: distance to source should be ", grid_dist(k), " but real distance is ", dis0
+            write(0, *)"Check size of gf bank"
+            write(0, *)"Check size of 'green_bank' variable"
+            write(0, *)"Check given range of distances and depths agrees with size of gf bank"
+            write(0, *)"You may need to recompute GF bank"
             stop
          end if
          if (abs(dep - grid_depth(iz)) .gt. 1e-4) then
-            write(*, *)"Error: depth of source should be ", grid_depth(iz), " but real depth is ", dep
-            write(*, *)"Check size of gf bank"
-            write(*, *)"Check size of 'green_bank' variable"
-            write(*, *)"Check given range of distances and depths agrees with size of gf bank"
-            write(*, *)"You may need to recompute GF bank"
+            write(0, *)"Error: depth of source should be ", grid_depth(iz), " but real depth is ", dep
+            write(0, *)"Check size of gf bank"
+            write(0, *)"Check size of 'green_bank' variable"
+            write(0, *)"Check given range of distances and depths agrees with size of gf bank"
+            write(0, *)"You may need to recompute GF bank"
             stop
          end if
       end do
@@ -118,10 +136,10 @@ contains
    end if
    dep_use = max(dep_use, z_min)
    dep_use = min(dep_use, z_max)
-   if (depth .gt. z_max .or. depth .lt. z_min) then
-      write(*, *)"WARNING: The input depth is outside vertical boundary"
-      write(*, *)"Depth: ", depth, ", min_depth: ", z_min, ", max_depth: ", z_max!use the z_max or zmin instead", depth, z_max, z_min
-   end if
+!   if (depth .gt. z_max .or. depth .lt. z_min) then
+!      write(*, *)"WARNING: The input depth is outside vertical boundary"
+!      write(*, *)"Depth: ", depth, ", min_depth: ", z_min, ", max_depth: ", z_max!use the z_max or zmin instead", depth, z_max, z_min
+!   end if
 
    k_left = 1
    do k = 1, nx_e - nx_b + 1
@@ -141,8 +159,6 @@ contains
    end do
    k_up = min(k_up, nz_e - nz_b)
    k_down = k_up + 1
-!   write(*,*) distance, k_left, k_right
-!   write(*,*) depth, k_up, k_down
         
    ratio_x = (distance - subgrid_dist(k_left)) / d_step
    ratio_z = (dep_use - subgrid_depth(k_up)) / dep_step

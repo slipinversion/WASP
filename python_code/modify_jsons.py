@@ -4,7 +4,13 @@ import os
 
 
 def modify_channels(json_file, method='delete'):
-    """
+    """Method to select interactively channels to remove or downweight in
+    modelling.
+
+    :param json_file: file with different channels
+    :param method: whether to downweight or remove data
+    :type json_file: list
+    :type method: string, optional
     """
     channels = json.load(open(json_file))
     first_message = '\nWrite station for channel removal. To exit, type exit: '

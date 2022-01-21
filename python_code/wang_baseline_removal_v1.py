@@ -135,7 +135,7 @@ def _function(time, disp_data, a1, a2, a3, time_p, time_end, time_pgd, delta):
     time2 = int(time2 / delta)
     length = len(disp_data)
     disp_corr = _correct_disp(
-            length, delta, a1, a2, a3, time1, time2, time_end)
+        length, delta, a1, a2, a3, time1, time2, time_end)
     disp_data2 = disp_data - disp_corr
     gps = np.mean(disp_data2[time_end:])
     comparison = disp_data2 - gps / 2
@@ -368,14 +368,12 @@ def _opt_plots2(trace, vel_trace, disp_trace, tp):
     channel = disp_trace.stats.channel
     delta = disp_trace.stats.delta
     time = np.arange(len(disp_trace.data[:tp])) * delta
-    fig = plt.figure(figsize=(6, 8))
-    ax1 = fig.add_subplot(311)
+    fig, axes = plt.subplots(3, 1, figsize=(6, 8))
+    ax1, ax2, ax3 = axes
     ax1.set_title('Trend of accelerometer before signal')
     ax1.plot(time, trace.data[:tp])
-    ax2 = fig.add_subplot(312)
     ax2.set_title('Trend of velocity before signal')
     ax2.plot(time, vel_trace.data[:tp])
-    ax3 = fig.add_subplot(313)
     ax3.set_title('Trend of displacement before signal')
     ax3.plot(time, disp_trace.data[:tp])
     plt.savefig('plots/{}_{}_plot4'.format(station, channel))
@@ -390,35 +388,12 @@ def _optional_plots(vel, disp, corr_disp, constants):
     channel = disp.stats.channel
     delta = disp.stats.delta
     a0, a1, a2, a3, t1, t2, tp, t_d0, t_pgd, t_pga, t_end, gps, t_jump = constants
-#    fig1 = plt.figure(figsize=(10, 10))
-#    ax1 = fig1.add_subplot(411)
-#    ax1.set_title('Displacement tail fit')
-#    disp_tail = disp.data[t_end:]
-#    time = np.arange(len(disp_tail)) * delta
-#    time2 = time + t_end*delta
-#    ax1.plot(time2, disp_tail - a0 - a1*time - a2*time**2 - a3*time**3)
-#    ax1.plot(time2, np.zeros(len(disp_tail)), linewidth=2)
-#    ax10 = fig1.add_subplot(412)
-#    ax10.set_title('Displacement tail')
-#    ax10.plot(time2, disp_tail)
-#    ax10.plot(time2, a0 + a1*time + a2*time**2 + a3*time**3, linewidth=2)
-#    ax11 = fig1.add_subplot(413)
-#    ax11.set_title('Velocity tail fit')
-#    ax11.plot(time2, vel.data[t_end:] - a1 - 2*a2*time - 3*a3*time**2)
-#    ax11.plot(time2, np.zeros(len(disp_tail)), linewidth=2)
-#    ax110 = fig1.add_subplot(414)
-#    ax110.set_title('Velocity tail')
-#    ax110.plot(time2, vel.data[t_end:])
-#    ax110.plot(time2, a1 + 2 * a2 * time + 3 * a3 * time ** 2, linewidth=2)
-#    plt.savefig('plots/{}_{}_plot1'.format(station, channel))
-#    plt.close(fig1)
     
     length = len(disp.data)
     disp_corr = _correct_disp(length, delta, a1, a2, a3, t1, t2, t_end)
-    fig2 = plt.figure(figsize=(8, 5))
+    fig2, ax2 = plt.subplots(1, 1, figsize=(8, 5))
     time = np.arange(len(disp.data)) * delta
     plt.title('Fit of displacement trend to uncorrected displacement')
-    ax2 = fig2.add_subplot(111)
     ax2.set_xlabel('time[s]')
     ax2.set_ylabel('disp[mt]')
     ax2.plot(time, disp.data)
@@ -431,9 +406,8 @@ def _optional_plots(vel, disp, corr_disp, constants):
     plt.savefig('plots/{}_{}_plot2'.format(station, channel))
     plt.close(fig2)
     
-    fig3 = plt.figure(figsize=(8, 5))
+    fig3, ax3 = plt.subplots(1, 1, figsize=(8, 5))
     plt.title('Fit of corrected displacement to heaviside')
-    ax3 = fig3.add_subplot(111)
     ax3.set_xlabel('time[s]')
     ax3.set_ylabel('disp[mt]')
     ax3.plot(time, disp.data - disp_corr)
@@ -451,9 +425,8 @@ def _optional_plots(vel, disp, corr_disp, constants):
     vel = disp.copy()
     vel.differentiate()
     delta2 = int(15 / delta)
-    fig5 = plt.figure(figsize=(5, 3))
+    fig5, ax5 = plt.subplots(1, 1, figsize=(5, 3))
     plt.title('Detect arrival of P-wave to accelerometer')
-    ax5 = fig5.add_subplot(111)
     ax5.set_xlabel('time[s]')
     ax5.set_ylabel('vel[mt/s]')
     ax5.plot(time[:tp + delta2], vel.data[:tp + delta2])
@@ -468,7 +441,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--folder", default=os.getcwd(),
                         help="folder where there are input files")
-    parser.add_argument("-p", "--plot_results", action="store true",
+    parser.add_argument("-p", "--plot_results", action="store_true",
                         help="plot results for baseline removal procedure")
     args = parser.parse_args()
     os.chdir(args.folder)
@@ -477,7 +450,8 @@ if __name__ == '__main__':
     if not os.path.isdir('../int_STR'):
         os.mkdir('../int_STR')
     time0 = time.time()
-    files = glob.glob('*ACC')
+    files = glob.glob('acc*')
+    results = []
     for file in files:
         wang_process(file, plot=True)
     print('Time spent: ', time.time() - time0)

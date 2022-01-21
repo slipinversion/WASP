@@ -141,7 +141,7 @@ def plot_misfit(used_data_type, forward=False):
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(
-                traces_info, components, 'tele_body', forward=forward)
+                traces_info, components, 'tele_body')
     if 'surf_tele' in used_data_type:
         if not os.path.isfile('surf_waves.json'):
             raise FileNotFoundError(
@@ -152,7 +152,7 @@ def plot_misfit(used_data_type, forward=False):
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(
-                traces_info, components, 'surf_tele', forward=forward)
+                traces_info, components, 'surf_tele')
     if 'strong_motion' in used_data_type:
         if not os.path.isfile('strong_motion_waves.json'):
             raise FileNotFoundError(
@@ -164,7 +164,7 @@ def plot_misfit(used_data_type, forward=False):
         values = [['HLZ', 'HNZ'], ['HLE', 'HNE'], ['HLN', 'HNN']]
         for components in values:
             plot_waveform_fits(
-                traces_info, components, 'strong_motion', forward=forward)
+                traces_info, components, 'strong_motion')
     if 'cgps' in used_data_type:
         if not os.path.isfile('cgps_waves.json'):
             raise FileNotFoundError(
@@ -179,12 +179,17 @@ def plot_misfit(used_data_type, forward=False):
         ]
         for components in values:
             plot_waveform_fits(
-                traces_info, components, 'cgps', forward=forward)
+                traces_info, components, 'cgps')
     return
 
 
 def _plot_vel_model(velmodel, point_sources):
     """We plot the seismic velocity model as a function of depth
+
+    :param point_sources: properties of point sources of the fault plane
+    :param vel_model: dictionary with velocity model properties
+    :type point_sources: array
+    :type vel_model: dict
     """
     max_depth = [max(ps_segment[:, :, :, :, 2].flatten())\
         for ps_segment in point_sources]
@@ -225,6 +230,13 @@ def _plot_vel_model(velmodel, point_sources):
 
 def _PlotRuptTime(segments, point_sources, solution):
     """We plot time distribution based on the FFM solution model
+
+    :param segments: list of dictionaries with properties of fault segments
+    :param point_sources: properties of point sources of the fault plane
+    :param solution: dictionary with output kinematic model properties
+    :type segments: list
+    :type point_sources: array
+    :type solution: dict
     """
     rupt_time = solution['rupture_time']
     max_rupt_time = [np.max(rupt_time_seg.flatten()) for rupt_time_seg in rupt_time]
@@ -261,6 +273,13 @@ def _PlotRuptTime(segments, point_sources, solution):
 
 def _PlotRiseTime(segments, point_sources, solution):
     """We plot rise time distribution based on the FFM solution model
+
+    :param segments: list of dictionaries with properties of fault segments
+    :param point_sources: properties of point sources of the fault plane
+    :param solution: dictionary with output kinematic model properties
+    :type segments: list
+    :type point_sources: array
+    :type solution: dict
     """
     rise_time = solution['trise']
     max_trise = [np.max(trise_seg.flatten()) for trise_seg in rise_time]
@@ -308,6 +327,13 @@ def _PlotRiseTime(segments, point_sources, solution):
 
 def _PlotSlipDistribution(segments, point_sources, solution):
     """We plot slip distribution based on the FFM solution model
+
+    :param segments: list of dictionaries with properties of fault segments
+    :param point_sources: properties of point sources of the fault plane
+    :param solution: dictionary with output kinematic model properties
+    :type segments: list
+    :type point_sources: array
+    :type solution: dict
     """
     slip = solution['slip']
     rake = solution['rake']
@@ -348,7 +374,17 @@ def _PlotSlipDistribution(segments, point_sources, solution):
 
 def _PlotSlipDist_Compare(segments, point_sources, input_model,
                           solution):
-    """We plot slip distribution based on the FFM solution model
+    """We plot slip distribution based on the FFM solution model and compare
+    inverted model to an input model
+
+    :param segments: list of dictionaries with properties of fault segments
+    :param point_sources: properties of point sources of the fault plane
+    :param solution: dictionary with output kinematic model properties
+    :param input_model: input kinematic model
+    :type segments: list
+    :type point_sources: array
+    :type solution: dict
+    :type input_model: dict
     """
     slip = solution['slip']
     rake = solution['rake']
@@ -407,9 +443,25 @@ def _PlotSlipDist_Compare(segments, point_sources, input_model,
 
 
 def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
-             convex_hulls=[], files_str=None, stations_gps=None,
-             option='Solucion.txt', max_slip=None):
+             files_str=None, stations_gps=None, max_slip=None):
     """We plot slip map.
+
+    :param tensor_info: dictionary with moment tensor information
+    :param segments: list of dictionaries with properties of fault segments
+    :param point_sources: properties of point sources of the fault plane
+    :param files_str: location of regional data to add
+    :param station_gps: static data to add
+    :param solution: dictionary with output kinematic model properties
+    :param max_slip: maximum slip to appear in colorbar
+    :param default_dirs: dictionary with default directories to be used
+    :type default_dirs: dict
+    :type tensor_info: dict
+    :type segments: list
+    :type point_sources: array
+    :type files_str: list
+    :type station_gps: list
+    :type solution: dict
+    :type max_slip: float, optional
     """
     plane_info = segments[0]
     stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
@@ -555,7 +607,23 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
 
 def _PlotInsar(tensor_info, segments, point_sources, default_dirs,
                insar_points, los='ascending'):
-    """We plot slip map.
+    """We compare insar data with insar produced by the inverted earthquake
+    model.
+
+    :param tensor_info: dictionary with moment tensor information
+    :param segments: list of dictionaries with properties of fault segments
+    :param point_sources: properties of point sources of the fault plane
+    :param insar_points: location, observed and inverted data for insar
+    :param solution: dictionary with output kinematic model properties
+    :param default_dirs: dictionary with default directories to be used
+    :param los: whether insar track is ascending or descending
+    :type default_dirs: dict
+    :type tensor_info: dict
+    :type segments: list
+    :type point_sources: array
+    :type insar_points: list
+    :type solution: dict
+    :type los: string, optional
     """
     plane_info = segments[0]
     stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
@@ -617,10 +685,10 @@ def _PlotInsar(tensor_info, segments, point_sources, default_dirs,
     cols = [0, 1, 2, 0, 1, 2]
     zipped = zip(values, titles, labels, rows, cols)
     for value, title, label, row, col in zipped:
-        ax.set_title(title, fontdict={'fontsize': 20})
+        axes[row][col].set_title(title, fontdict={'fontsize': 20})
         max_abs = np.max(np.abs(value))
-        vmin = -max_abs# if not title == 'Misfit' else -40
-        vmax = max_abs# if not title == 'Misfit' else 40
+        vmin = -max_abs - 0.001# if not title == 'Misfit' else -40
+        vmax = max_abs + 0.001# if not title == 'Misfit' else 40
         norm = colors.TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)
         cs = axes[row][col].scatter(
             lons, lats, zorder=4, c=value, cmap='bwr',
@@ -643,7 +711,18 @@ def _PlotInsar(tensor_info, segments, point_sources, default_dirs,
 
 def _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
                        solution):
-    """We plot slip map.
+    """We plot slip map and compare with map from input model.
+
+    :param tensor_info: dictionary with moment tensor information
+    :param segments: list of dictionaries with properties of fault segments
+    :param point_sources: properties of point sources of the fault plane
+    :param solution: dictionary with output kinematic model properties
+    :param input_model: input kinematic model
+    :type tensor_info: dict
+    :type segments: list
+    :type point_sources: array
+    :type solution: dict
+    :type input_model: dict
     """
     input_slip = input_model['slip']
     plane_info = segments[0]
@@ -770,7 +849,6 @@ def _plot_moment_rate_function(segments_data, shear, point_sources):
                 duration = int(max(delta_strike, delta_dip) / dt / rupt_vel)
                 source_dur = np.ones(duration) / duration
                 start_index = max(0, int(trup_seg[iy, ix] / dt))
-#                source_dur[start_index:start_index + duration] = np.ones(duration)
                 product = slip_seg[iy, ix] * shear_seg[iy, ix] / 100 / 10
                 sub_rise_time = rise_time[:tend]
                 convolve = np.convolve(source_dur, sub_rise_time)
@@ -816,6 +894,15 @@ def _plot_moment_rate_function(segments_data, shear, point_sources):
 
 def _PlotSnapshotSlip(tensor_info, segments, point_sources, solution):
     """we plot snapshots of the rupture process.
+
+    :param tensor_info: dictionary with moment tensor information
+    :param segments: list of dictionaries with properties of fault segments
+    :param point_sources: properties of point sources of the fault plane
+    :param solution: dictionary with output kinematic model properties
+    :type tensor_info: dict
+    :type segments: list
+    :type point_sources: array
+    :type solution: dict
     """
     plane_info = segments[0]
     dt = 0.01
