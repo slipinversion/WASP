@@ -103,7 +103,7 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                  ticker.NullLocator())
         elif type_str == 'cgps' or type_str == 'strong_motion':
             ax.xaxis.set_major_locator(
-                 ticker.MultipleLocator(20))
+                 ticker.MultipleLocator(40))
             ax.yaxis.get_major_locator().set_params(integer=True)
             #ax.yaxis.tick_right()
             #ax.yaxis.set_major_locator(

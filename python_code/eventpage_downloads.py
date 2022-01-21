@@ -124,17 +124,36 @@ def temporary_file_reorganization_for_publishing(evID,directory=None):
     mv_slip = os.path.join(pub_directory, 'SlipDist_plane0.png')
     pub_slip = os.path.join(pub_directory, evID + '_slip2.png')
     os.rename(mv_slip, pub_slip)
-    ######################
-    ### WAVEFORM PLOTS ###
-    ######################
+    ############################
+    ### DATA/SYNTHETIC PLOTS ###
+    ############################
     wave_plots = glob(os.path.join(directory , 'plots') + '/*_waves.png')
-    wave_plots_pub_directory = os.path.join(pub_directory, 'waveplots')
+    wave_plots_pub_directory = os.path.join(pub_directory, 'fits')
     if not os.path.exists(wave_plots_pub_directory):
         os.makedirs(wave_plots_pub_directory)
     for wp in range(len(wave_plots)):
        orig_wp = wave_plots[wp]
        shutil.copy(orig_wp, wave_plots_pub_directory)
-    shutil.make_archive(os.path.join(pub_directory, 'waveplots'), 'zip', os.path.join(pub_directory, wave_plots_pub_directory))
+    insar_plots = glob(os.path.join(directory, 'plots') + '/InSAR_*_fit.png')
+    for ip in range(len(insar_plots)):
+       orig_ip = insar_plots[ip]
+       shutil.copy(orig_ip, wave_plots_pub_directory)
+    shutil.make_archive(os.path.join(pub_directory, 'fits'), 'zip', os.path.join(pub_directory, wave_plots_pub_directory))
+    #######################
+    ### RESAMPLED INSAR ###
+    #######################
+    resampled_insar_data_asc = glob(directory + '/*ascending.txt')
+    resampled_insar_data_desc = glob(directory + '/*descending.txt')
+    interferograms_pub_directory = os.path.join(pub_directory, 'resampled_interferograms')
+    if not os.path.exists(interferograms_pub_directory):
+        os.makedirs(interferograms_pub_directory)
+    for asc in range(len(resampled_insar_data_asc)):
+        orig_asc = resampled_insar_data_asc[asc]
+        shutil.copy(orig_asc, interferograms_pub_directory)
+    for desc in range(len(resampled_insar_data_desc)):
+        orig_desc = resampled_insar_data_desc[desc]
+        shutil.copy(orig_desc, interferograms_pub_directory)
+    shutil.make_archive(os.path.join(pub_directory, 'resampled_interferograms'), 'zip', os.path.join(pub_directory, interferograms_pub_directory))
 
 def make_waveproperties_json(directory=None):
     print('Counting Observations for Waveform Properties JSON')
@@ -148,8 +167,11 @@ def make_waveproperties_json(directory=None):
     bodywave_count = Counter(bodywave_components)
     num_pwaves = int(bodywave_count['BHZ'])
     num_shwaves = int(bodywave_count['SH'])
-    surfwave_channels = json.load(open(directory+'/surf_waves.json'))
-    num_longwaves = int(len(surfwave_channels))
+    if os.path.exists(directory+'/surf_waves.json'):
+        surfwave_channels = json.load(open(directory+'/surf_waves.json'))
+        num_longwaves = int(len(surfwave_channels))
+    else:
+        num_longwaves = 0
     #############################################
     ### WRITE RESULTS TO WAVE_PROPERTIES.JSON ###
     #############################################

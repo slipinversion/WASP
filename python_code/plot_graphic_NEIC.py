@@ -350,13 +350,14 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False):
     max_slip = [np.max(slip_seg.flatten()) for slip_seg in slip]
     max_slip = np.max(max_slip)
     print('Max Slip: ' + str(max_slip))
-    #max_slip = 268.936584
+    #max_slip = 561.484314
     x_label = 'Distance Along Strike (km)'
     y_label = 'Distance Along Dip (km)'
     for i_segment, (segment, slip_seg, rake_seg, rupttime_seg, ps_seg)\
     in enumerate(zip(segments, slip, rake, rupt_time, point_sources)):
         max_slip_seg = np.max(slip_seg.flatten())
         #max_slip_seg = 268.936584
+        max_slip_seg = max_slip
         u = slip_seg * np.cos(rake_seg * np.pi / 180.0) / max_slip_seg
         v = slip_seg * np.sin(rake_seg * np.pi / 180.0) / max_slip_seg
 #
@@ -1052,7 +1053,7 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
         ax = set_map_cartopy(
             axes[row][col], margins, tectonic=tectonic, countries=countries, faults=True, aftershocks=False)
         ax.plot(
-            lon0, lat0, 'y*', markersize=15,
+            lon0, lat0, 'k*', markersize=10,
             transform=ccrs.PlateCarree(), zorder=4)
         ax = plot_borders(
             ax, segments_lats, segments_lons, transform=dictn['projection'])
@@ -1065,8 +1066,8 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
         i+=1
 
     fig.tight_layout()
-    plt.savefig('Insar_{}_fit.png'.format(los), bbox_inches='tight')
-    plt.savefig('Insar_{}_fit.ps'.format(los))
+    plt.savefig('InSAR_{}_fit.png'.format(los), bbox_inches='tight')
+    plt.savefig('InSAR_{}_fit.ps'.format(los))
     plt.close()
     return
 
@@ -1263,7 +1264,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
     ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
     ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
-    #ax.fill_between(time, rel_mr, color='0.9')
+    ax.fill_between(time, rel_mr, color='0.9')
     ax.plot(time, rel_mr, 'k', lw=2)
     if mr_time == None:
         tenth = np.ones(len(time))*0.1
@@ -1274,7 +1275,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     ax.set_ylim([0,1])
     ax.set_xlim([0,max(time)])
     plt.savefig('MomentRate.png')#, bbox_inches='tight')
-    plt.savefig('MomentRate.ps')
+    #plt.savefig('MomentRate.ps')
     plt.close()
     return
 

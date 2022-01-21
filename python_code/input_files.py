@@ -590,6 +590,7 @@ def input_chen_insar():
 
     insar_info = json.load(open('insar_data.json'))
     lines = []
+    new_lines = []
     weight_asc = 0
     weight_desc = 0
     lines_asc = 0
@@ -599,16 +600,26 @@ def input_chen_insar():
         insar_asc = ascending['name']
         weight_asc = ascending['weight']
         with open(insar_asc, 'r') as infile:
-            lines = [line.split() for line in infile]
-        lines = lines[1:]
+            for line in infile:
+                if line.startswith('#'):
+                    continue
+                else:
+                    lines.append(line.split())
+            #lines = [line.split() for line in infile]
+        #lines = lines[1:]
         lines_asc = len(lines)
     if 'descending' in insar_info:
         descending = insar_info['descending']
         insar_desc = descending['name']
         weight_desc = descending['weight']
         with open(insar_desc, 'r') as infile:
-            new_lines = [line.split() for line in infile]
-        lines = lines + new_lines[1:]
+            for line in infile:
+                if line.startswith('#'):
+                    continue
+                else:
+                    new_lines.append(line.split())
+#            new_lines = [line.split() for line in infile]
+        lines = lines + new_lines#[1:]
         lines_desc = len(lines) - lines_asc
 
     string = '{0:3d} {1:>5} {2:>12.6f} {3:>12.6f} {4:>12.6f} {5:>12.6f}'\
