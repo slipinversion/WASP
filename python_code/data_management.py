@@ -579,7 +579,9 @@ def __failsafe(filtro, header, cgps=False):
             raise RuntimeError('Selected filter doesn\'t match filter applied to data')
 
 
-def filling_data_dicts(tensor_info, data_type, data_prop, data_folder):
+def filling_data_dicts(
+        tensor_info, data_type, data_prop, data_folder,
+        insar_asc=None, insar_desc=None, ramp_asc=None, ramp_desc=None):
     """Routine to fill JSON dictionaries containing data properties, for all
     data types selected.
 
@@ -587,6 +589,14 @@ def filling_data_dicts(tensor_info, data_type, data_prop, data_folder):
     :param data_type: list with data types to use in modelling.
     :param data_prop: dictionary with moment tensor information
     :param data_folder: string with folder where data is located.
+    :param insar_asc: name of ascending insar track
+    :param insar_desc: name of descending insar track
+    :param ramp_asc: type of ramp to invert for ascending track
+    :param ramp_desc: type of ramp to invert for descending track
+    :type insar_asc: string, optional
+    :type insar_desc: string, optional
+    :type ramp_asc: string, optional
+    :type ramp_desc: string, optional
     :type tensor_info: dict
     :type data_type: list
     :type data_prop: dict
@@ -656,6 +666,10 @@ def filling_data_dicts(tensor_info, data_type, data_prop, data_folder):
             cgps_traces(cgps_data, tensor_info, data_prop)
     if 'gps' in data_type:
         static_data(tensor_info, unit='m')
+    if 'insar' in data_type:
+        insar_data(
+            insar_asc=insar_asc, insar_desc=insar_desc,
+            ramp_asc=ramp_asc, ramp_desc=ramp_desc)
 
 
 def get_traces_files(data_type):
@@ -859,6 +873,7 @@ def __is_number(string):
 
 if __name__ == '__main__':
     import seismic_tensor as tensor
+    import manage_parser as mp
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -867,35 +882,8 @@ if __name__ == '__main__':
     parser.add_argument(
         "-d", "--data_folder", default=os.getcwd(),
         help="folder with waveform data")
-    parser.add_argument(
-        "-gcmt", "--gcmt_tensor",
-        help="location of GCMT moment tensor file")
-    parser.add_argument(
-        "-t", "--tele", action="store_true",
-        help="create JSON for teleseismic body waves")
-    parser.add_argument(
-        "-su", "--surface", action="store_true",
-        help="create JSON for surface waves")
-    parser.add_argument(
-        "-st", "--strong", action="store_true",
-        help="create JSON for strong motion data")
-    parser.add_argument(
-        "--cgps", action="store_true", help="create JSON for cGPS data")
-    parser.add_argument(
-        "--gps", action="store_true", help="create JSON for static GPS data")
-    parser.add_argument(
-        "-in", "--insar", action="store_true",
-        help="create JSON for InSar data")
-    parser.add_argument(
-        "-ina", "--insar_asc", help="Ascending InSar data")
-    parser.add_argument(
-        "-ind", "--insar_desc", help="Descending InSar data")
-    parser.add_argument(
-        "-inar", "--insar_asc_ramp",
-        default=None, help="Ramp of ascending InSar data")
-    parser.add_argument(
-        "-indr", "--insar_desc_ramp",
-        default=None, help="Ramp of descending InSar data")
+    parser = mp.parser_add_tensor(parser)
+    parser = mp.parser_data_dict(parser)
     args = parser.parse_args()
     data_folder = os.path.abspath(args.data_folder)
     if not os.path.isfile('sampling_filter.json'):
@@ -909,16 +897,8 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     else:
         tensor_info = tensor.get_tensor()
-    data_type = []
-    data_type = data_type + ['gps'] if args.gps else data_type
-    data_type = data_type + ['strong_motion'] if args.strong else data_type
-    data_type = data_type + ['cgps'] if args.cgps else data_type
-    data_type = data_type + ['tele_body'] if args.tele else data_type
-    data_type = data_type + ['surf_tele'] if args.surface else data_type
-    filling_data_dicts(tensor_info, data_type, data_prop, data_folder)
-    if args.insar:
-        insar_data(
-            insar_asc=args.insar_asc,
-            insar_desc=args.insar_desc,
-            ramp_asc=args.insar_asc_ramp,
-            ramp_desc=args.insar_desc_ramp)
+    data_type = mp.get_used_data(args)
+    filling_data_dicts(
+        tensor_info, data_type, data_prop, data_folder,
+        insar_asc=args.insar_asc, insar_desc=args.insar_desc,
+        ramp_asc=args.insar_asc_ramp, ramp_desc=args.insar_desc_ramp)

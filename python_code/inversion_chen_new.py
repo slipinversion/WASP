@@ -59,6 +59,10 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     time0 = time.time()
     if 'gps' in data_type:
         copy2(os.path.join('data', 'gps_data'), sol_folder)
+    if 'insar' in data_type:
+        for file in ['insar_asc.txt', 'insar_desc.txt']:
+            if os.path.isfile(os.path.join('data', file)):
+                copy2(os.path.join('data', file), sol_folder)
     data_prop = tp.properties_json(tensor_info, dt_cgps=dt_cgps)
     os.chdir(os.path.join(sol_folder, 'data'))
     time2 = time.time()
@@ -68,7 +72,11 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     logger.info('Time spent processing traces: {}'.format(time2))
     os.chdir(sol_folder)
     data_folder = os.path.join(sol_folder, 'data')
-    dm.filling_data_dicts(tensor_info, data_type, data_prop, data_folder)
+    insar_asc = None if not os.path.isfile('insar_asc.txt') else 'insar_asc.txt'
+    insar_desc = None if not os.path.isfile('insar_desc.txt') else 'insar_desc.txt'
+    dm.filling_data_dicts(
+        tensor_info, data_type, data_prop, data_folder,
+        insar_asc=insar_asc, insar_desc=insar_desc)
     writing_inputs0(tensor_info, data_type)
     logger.info('Compute GF bank')
     if not velmodel:
@@ -109,7 +117,9 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     files6 = glob.glob('static*')
     files7 = glob.glob('filtro*')
     files8 = ['instrumental_response.txt', 'body_wave_weight.txt']
-    files = files + files2 + files3 + files4 + files5 + files6 + files7 + files8
+    files9 = glob.glob('insar*')
+    files = files + files2 + files3 + files4 + files5\
+        + files6 + files7 + files8 + files9
     folders = ['NP1', 'NP2']
     for folder in folders:
         for file in files:
@@ -170,7 +180,11 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
         velmodel = mv.select_velmodel(tensor_info, default_dirs)
     np_plane_info = plane_data['plane_info']
     data_folder = os.path.join('..', 'data')
-    dm.filling_data_dicts(tensor_info, data_type, data_prop, data_folder)
+    insar_asc = None if not os.path.isfile('insar_asc.txt') else 'insar_asc.txt'
+    insar_desc = None if not os.path.isfile('insar_desc.txt') else 'insar_desc.txt'
+    dm.filling_data_dicts(
+        tensor_info, data_type, data_prop, data_folder,
+        insar_asc=insar_asc, insar_desc=insar_desc)
     segments_data = pf.create_finite_fault(tensor_info, np_plane_info, data_type)
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
@@ -257,25 +271,27 @@ def modelling_new_data(tensor_info, data_type, default_dirs,
         data_type2 = data_type2 + ['cgps']
     if os.path.isfile('static_data.json'):
         data_type2 = data_type2 + ['gps']
-    manual_modelling(tensor_info, data_type2, default_dirs)
+    manual_modelling(tensor_info, data_type2, default_dirs, segments_data)
     return
 
 
-def manual_modelling(tensor_info, data_type, default_dirs):
+def manual_modelling(tensor_info, data_type, default_dirs, segments_data):
     """Routine for manual finite fault modelling.
     
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: list with data types to be used in modelling
     :param default_dirs: dictionary with default directories to be used
+    :param segments_data: properties of fault segments and rise time
     :type default_dirs: dict
     :type tensor_info: dict
     :type data_type: list
+    :type segments_data: dict
     """
     if not os.path.isdir('logs'):
         os.mkdir('logs')
     if not os.path.isdir('plots'):
         os.mkdir('plots')
-    segments_data = json.load(open('segments_data.json'))
+    # segments_data = json.load(open('segments_data.json'))
     min_vel, max_vel = __ask_velrange()
     logger = ml.create_log(
         'manual_ffm', os.path.join('logs', 'manual_ffm.log'))
@@ -289,7 +305,7 @@ def manual_modelling(tensor_info, data_type, default_dirs):
     ml.close_log(logger)
 
 
-def forward_modelling(tensor_info, data_type, default_dirs, 
+def forward_modelling(tensor_info, data_type, default_dirs, segments_data,
                       option='Solucion.txt', max_slip=200):
     """Routine for forward modelling.
     
@@ -299,11 +315,13 @@ def forward_modelling(tensor_info, data_type, default_dirs,
      use
     :param max_slip: maximum slip in case of checkerboard test
     :param default_dirs: dictionary with default directories to be used
+    :param segments_data: properties of fault segments and rise time
     :type default_dirs: dict
     :type tensor_info: dict
     :type data_type: set, optional
     :type option: string, optional
     :type max_slip: float, optional
+    :type segments_data: dict
     """
     tensor.write_tensor(tensor_info)
     if not os.path.isdir('logs'):
@@ -312,7 +330,7 @@ def forward_modelling(tensor_info, data_type, default_dirs,
         os.mkdir('plots')
     len_stk = 5 if not option == 'point_source' else 8
     len_dip = 5 if not option == 'point_source' else 1
-    segments_data = json.load(open('segments_data.json'))
+    # segments_data = json.load(open('segments_data.json'))
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
     point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
@@ -352,8 +370,8 @@ def forward_modelling(tensor_info, data_type, default_dirs,
     ml.close_log(logger)
 
 
-def checkerboard(tensor_info, data_type, default_dirs, max_slip=200,
-                 add_error=False, option='Checkerboard',
+def checkerboard(tensor_info, data_type, default_dirs, segments_data,
+                 max_slip=200, add_error=False, option='Checkerboard',
                  option2='FFM modelling'):
     """Routine for running checkerboard tests.
     
@@ -365,6 +383,7 @@ def checkerboard(tensor_info, data_type, default_dirs, max_slip=200,
     :param add_error: whether we add noise to synthetic waveforms
     :param option2: whether we invert the checkerboard model or not
     :param default_dirs: dictionary with default directories to be used
+    :param segments_data: properties of fault segments and rise time
     :type default_dirs: dict
     :type tensor_info: dict
     :type data_type: set
@@ -372,6 +391,7 @@ def checkerboard(tensor_info, data_type, default_dirs, max_slip=200,
     :type max_slip: float, optional
     :type add_error: bool, optional
     :type option2: string, optional
+    :type segments_data: dict
     """
     if max_slip > 0:
         folder_name = 'checkerboard_resolution'
@@ -389,7 +409,7 @@ def checkerboard(tensor_info, data_type, default_dirs, max_slip=200,
         if os.path.isfile(file):
             copy2(file, folder_name)
     os.chdir(folder_name)
-    segments_data = json.load(open('segments_data.json'))
+    # segments_data = json.load(open('segments_data.json'))
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
     point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
@@ -519,8 +539,8 @@ def writing_inputs0(tensor_info, data_type):
         input_files.input_chen_cgps(tensor_info, data_prop)
     if 'gps' in data_type:
         input_files.input_chen_static(tensor_info)
-    if 'dart' in data_type:
-        input_files.input_chen_dart(tensor_info, data_prop)
+    if 'insar' in data_type:
+        input_files.input_chen_insar()
 
 
 def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
@@ -552,22 +572,6 @@ def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
     if forward_model:
         input_files.forward_model(
             tensor_info, segments_data, forward_model, min_vel, max_vel)
-    # if not os.path.isfile('sampling_filter.json'):
-    #     raise FileNotFoundError(
-    #             errno.ENOENT, os.strerror(errno.ENOENT), 'sampling_filter.json')
-    # data_prop = json.load(open('sampling_filter.json'))
-    # if 'tele_body' in data_type:            
-    #     input_files.input_chen_tele_body(tensor_info, data_prop)
-    # if 'surf_tele' in data_type:
-    #     input_files.input_chen_tele_surf(tensor_info, data_prop)
-    # if 'strong_motion' in data_type:
-    #     input_files.input_chen_strong_motion(tensor_info, data_prop)
-    # if 'cgps' in data_type:
-    #     input_files.input_chen_cgps(tensor_info, data_prop)
-    # if 'gps' in data_type:
-    #     input_files.input_chen_static(tensor_info)
-    # if 'dart' in data_type:
-    #     input_files.input_chen_dart(tensor_info, data_prop)
     if not os.path.isfile('annealing_prop.json'):
         raise FileNotFoundError(
             errno.ENOENT, os.strerror(errno.ENOENT), 'annealing_prop.json')
@@ -626,6 +630,7 @@ def inversion(tensor_info, data_type, default_dirs, logger, forward=False):
     args = args + ['surf'] if 'surf_tele' in data_type else args
     args = args + ['gps'] if 'gps' in data_type else args
     args = args + ['dart'] if 'dart' in data_type else args
+    args = args + ['insar'] if 'insar' in data_type else args
     if not forward:
         # print('Perform kinematic modelling')
         logger.info('Inversion at folder {}'.format(os.getcwd()))
@@ -638,7 +643,7 @@ def inversion(tensor_info, data_type, default_dirs, logger, forward=False):
 #
 # need to wait until FFM modelling is finished.
 #
-    outs, errs = p1.communicate(timeout=20*60)
+    outs, errs = p1.communicate(timeout=40*60)
     if errs:
         logger.error(errs.decode('utf-8'))
     # p1.wait()
@@ -690,6 +695,18 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs,
         plot._PlotMap(
             tensor_info, segments, point_sources, solution,
             default_dirs, files_str=traces_info, stations_gps=stations_gps)
+    if 'insar' in data_type:
+        insar_data = get_outputs.get_insar()
+        if 'ascending' in insar_data:
+            insar_points = insar_data['ascending']['points']
+            plot._PlotInsar(
+                tensor_info, segments, point_sources,
+                default_dirs, insar_points, los='ascending')
+        if 'descending' in insar_data:
+            insar_points = insar_data['descending']['points']
+            plot._PlotInsar(
+                tensor_info, segments, point_sources,
+                default_dirs, insar_points, los='descending')
     if plot_input:
         input_model = load_ffm_model(
             segments_data, point_sources, option='fault&rise_time.txt')
@@ -725,17 +742,14 @@ def __ask_velrange():
             
 if __name__ == '__main__':
     import argparse
+    import manage_parser as mpar
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-f", "--folder", default=os.getcwd(),
         help="folder where there are input files")
-    parser.add_argument(
-        "-gcmt", "--gcmt_tensor",
-        help="location of GCMT moment tensor file")
-    parser.add_argument(
-        "-qcmt", "--qcmt_tensor",
-        help="location of QuakeML moment tensor file")
+    parser = mpar.parser_add_tensor(parser)
+    parser = mpar.parser_ffm_data(parser)
     parser.add_argument(
         "-o", "--option",
         choices=[
@@ -755,19 +769,6 @@ if __name__ == '__main__':
     parser.add_argument(
         "-v", "--velmodel", help="direction of velocity model file")
     parser.add_argument(
-        "-t", "--tele", action="store_true",
-        help="use teleseismic data in modelling")
-    parser.add_argument(
-        "-su", "--surface", action="store_true",
-        help="use surface waves data in modelling")
-    parser.add_argument(
-        "-st", "--strong", action="store_true",
-        help="use strong motion data in modelling")
-    parser.add_argument(
-        "--cgps", action="store_true", help="use cGPS data in modelling")
-    parser.add_argument(
-        "--gps", action="store_true", help="use GPS data in modelling")
-    parser.add_argument(
         "-rst", "--st_response", action="store_false",
         help="whether to remove response of strong_motion or not")
     args = parser.parse_args()
@@ -781,14 +782,12 @@ if __name__ == '__main__':
     if velmodel:
         velmodel = mv.model2dict(velmodel)
     os.chdir(args.folder)
-    data_type = []
-    data_type = data_type + ['gps'] if args.gps else data_type
-    data_type = data_type + ['strong_motion'] if args.strong else data_type
-    data_type = data_type + ['cgps'] if args.cgps else data_type
-    data_type = data_type + ['tele_body'] if args.tele else data_type
-    data_type = data_type + ['surf_tele'] if args.surface else data_type
+    data_type = mpar.get_used_data(args)
+    data_type = data_type + ['insar'] if args.insar else data_type
   
     default_dirs = mng.default_dirs()
+    if args.option not in ['auto']:
+        segments_data = json.load(open('segments_data.json'))
     if args.option == 'auto':
         if not args.gcmt_tensor and not args.qcmt_tensor:
             raise RuntimeError('You must select direction of input GCMT file')
@@ -829,7 +828,7 @@ if __name__ == '__main__':
         if len(data_type) == 0:
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
-        manual_modelling(tensor_info, data_type, default_dirs)
+        manual_modelling(tensor_info, data_type, default_dirs, segments_data)
     if args.option == 'forward':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -840,7 +839,8 @@ if __name__ == '__main__':
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
         forward_modelling(
-            tensor_info, data_type, default_dirs, option='Solucion.txt')
+            tensor_info, data_type, default_dirs, segments_data,
+            option='Solucion.txt')
     if args.option == 'forward_patch':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -851,7 +851,7 @@ if __name__ == '__main__':
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
         checkerboard(
-            tensor_info, data_type, default_dirs, max_slip=400,
+            tensor_info, data_type, default_dirs, segments_data, max_slip=400,
             option='Patches', option2='forward')
     if args.option == 'checker_mod':
         if args.gcmt_tensor:
@@ -862,7 +862,8 @@ if __name__ == '__main__':
         if len(data_type) == 0:
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
-        checkerboard(tensor_info, data_type, default_dirs, add_error=True)
+        checkerboard(
+            tensor_info, data_type, default_dirs, segments_data, add_error=True)
     if args.option == 'checker_noise':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -873,7 +874,8 @@ if __name__ == '__main__':
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
         checkerboard(
-            tensor_info, data_type, default_dirs, max_slip=0, add_error=True)
+            tensor_info, data_type, default_dirs, segments_data, max_slip=0,
+            add_error=True)
     if args.option == 'point_source':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -884,7 +886,8 @@ if __name__ == '__main__':
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
         checkerboard(
-            tensor_info, data_type, default_dirs, max_slip=500, option='Patches')
+            tensor_info, data_type, default_dirs, segments_data, max_slip=500,
+            option='Patches')
     if args.option == 'point_source_err':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
@@ -895,5 +898,5 @@ if __name__ == '__main__':
             raise RuntimeError('You must input at least one data type')
         data_folder = args.data if args.data else None
         checkerboard(
-            tensor_info, data_type, default_dirs, max_slip=300,
+            tensor_info, data_type, default_dirs, segments_data, max_slip=300,
             option='Patches', add_error=True)

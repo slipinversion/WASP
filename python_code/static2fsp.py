@@ -277,32 +277,16 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
 if __name__ == '__main__':
     import argparse
     import errno
+    import manage_parser as mp
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--folder", default=os.getcwd(),
                         help="folder where there are input files")
-    parser.add_argument("-gcmt", "--gcmt_tensor",
-                        help="location of GCMT moment tensor file")
-    parser.add_argument("-v", "--velmodel",
-                        help="direction of velocity model file")
-    parser.add_argument("-t", "--tele", action="store_true",
-                        help="use teleseismic data in modelling")
-    parser.add_argument("-su", "--surface", action="store_true",
-                        help="use surface waves data in modelling")
-    parser.add_argument("-st", "--strong", action="store_true",
-                        help="use strong motion data in modelling")
-    parser.add_argument("--cgps", action="store_true",
-                        help="use cGPS data in modelling")
-    parser.add_argument("--gps", action="store_true",
-                        help="use GPS data in modelling")
+    parser = mp.parser_add_tensor(parser)
+    parser = mp.parser_ffm_data(parser)
     args = parser.parse_args()
     os.chdir(args.folder)
-    used_data = []
-    used_data = used_data + ['gps'] if args.gps else used_data
-    used_data = used_data + ['strong_motion'] if args.strong else used_data
-    used_data = used_data + ['cgps'] if args.cgps else used_data
-    used_data = used_data + ['tele_body'] if args.tele else used_data
-    used_data = used_data + ['surf_tele'] if args.surface else used_data
+    used_data = mp.get_used_data(args)
     if args.gcmt_tensor:
         cmt_file = args.gcmt_tensor
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)

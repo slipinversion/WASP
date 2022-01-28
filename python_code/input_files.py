@@ -757,6 +757,7 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
     for file in traces_info:
         name = file['name']
         channel = file['component']
+        ffm_duration = file['duration']
         error_norm = '3 ' * (n_end - n_begin) + '3\n'
         derivative = False if not 'derivative' in file\
             else file['derivative']
@@ -764,26 +765,50 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
             error_norm = '3 ' * (5 - n_begin) + '4 ' * (n_end - 5) + '4\n'
         wavelet_file.write(string(name, channel, error_norm, file['wavelet_weight']))
         if file['file']:
-            # print(file['file'], os.getcwd())
             start = file['start_signal']
-            try:
-                stream = read(file['file'], format='SAC')
-                waveform = stream[0].data[start:]
-                if zero_start:
-                    stream[0].data = stream[0].data - waveform[0]
-                    stream.write(file['file'], format='SAC', byteorder=0)
-                    waveform = waveform - waveform[0]
-                waveform = np.gradient(waveform, dt) if derivative\
-                else waveform
-                del stream
-            except IndexError:
-                print('Obspy bug when reading the file {}. '\
-                      'Waveform set to zero'.format(file['file']))
-                waveform = [0 for i in range(ffm_duration)]
+            stream = __get_stream(file)
+            waveform = stream[0].data[start:]
+            if zero_start:
+                stream[0].data = stream[0].data - waveform[0]
+                stream.write(file['file'], format='SAC', byteorder=0)
+                waveform = waveform - waveform[0]
+            waveform = np.gradient(waveform, dt) if derivative\
+            else waveform
+            del stream
+            # try:
+            #     stream = read(file['file'], format='SAC')
+            #     waveform = stream[0].data[start:]
+            #     if zero_start:
+            #         stream[0].data = stream[0].data - waveform[0]
+            #         stream.write(file['file'], format='SAC', byteorder=0)
+            #         waveform = waveform - waveform[0]
+            #     waveform = np.gradient(waveform, dt) if derivative\
+            #     else waveform
+            #     del stream
+            # except IndexError:
+            #     print('Obspy bug when reading the file {}. '\
+            #           'Waveform set to random'.format(file['file']))
+            #     waveform = [5000*np.random.randn() for i in range(ffm_duration)]
         else:
-            waveform = [0 for i in range(ffm_duration)]
+            waveform = [5000*np.random.randn() for i in range(ffm_duration)]
         write_observed_file(file, dt, obse_file, waveform, dart=dart)
     return
+
+
+def __get_stream(file):
+    """
+    """
+    stream = None
+    for i in range(10):
+        try:
+            stream = read(file['file'], format='SAC')
+            break
+        except IndexError:
+            print(i)
+            print('Obspy bug when reading the file {}. '\
+                    'Waveform set to random'.format(file['file']))
+            continue
+    return stream
 
 
 def write_observed_file(file, dt, data_file, waveform, dart=False):
@@ -1070,34 +1095,20 @@ def write_green_file(green_dict, cgps=False):
 
 if __name__ == '__main__':
     import argparse
+    import manage_parser as mp
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-f", "--folder", default=os.getcwd(),
         help="folder where there are input files")
-    parser.add_argument(
-        "-gcmt", "--gcmt_tensor", help="location of GCMT moment tensor file")
+    parser = mp.parser_add_tensor(parser)
+    parser = mp.parser_fill_data_files(parser)
     parser.add_argument(
         "-p", "--plane", action="store_true",
         help="compute Fault.pos, Fault.time, Niu_model")
     parser.add_argument(
-        "-t", "--tele", action="store_true",
-        help="compute files with teleseismic data")
-    parser.add_argument(
-        "-su", "--surface", action="store_true",
-        help="compute files with surface waves data")
-    parser.add_argument(
-        "-st", "--strong", action="store_true",
-        help="compute files with strong motion data")
-    parser.add_argument(
-        '-l','--list', nargs='+', help='list of strong motion stations')
-    parser.add_argument(
-        "--cgps", action="store_true", help="compute files with cGPS data")
-    parser.add_argument(
-        "--gps", action="store_true", help="compute files with static GPS data")
-    parser.add_argument(
-        "-in", "--insar", action="store_true",
-        help="compute files with InSar data")
+        '-l','--list', nargs='+',
+        help='list of strong motion stations')
     parser.add_argument(
         "-a", "--annealing", action="store_true",
         help="compute files for annealing")

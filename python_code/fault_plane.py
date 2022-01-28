@@ -718,16 +718,27 @@ def event_mult_in_to_json():
     return
 
 
+def is_fault_correct(tensor_info, segment):
+    """Check if fault will not touch surface
+    """
+    depth = tensor_info['depth']
+    dip = segment['dip']
+    delta_dip = segment['delta_dip']
+    hyp_dip = segment['hyp_dip']
+    length = (hyp_dip - 0.2) * delta_dip
+    height = np.sin(dip*np.pi/180) * length
+    return depth > height
+
+
 if __name__ == '__main__':
     import argparse
+    import manage_parser as mp
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-f", "--folder", default=os.getcwd(),
         help="folder where there are input files")
-    parser.add_argument(
-        "-gcmt", "--gcmt_tensor",
-        help="location of GCMT moment tensor file")
+    parser = mp.parser_add_tensor(parser)
     parser.add_argument(
         "-v", "--rupt_vel", default=2.5, type=float,
         help="Rupture velocity to use")
