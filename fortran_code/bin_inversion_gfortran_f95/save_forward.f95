@@ -67,7 +67,7 @@ contains
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys
    real slip(:, :), rake(:, :), rupt_time(:, :), &
    &  tr(:, :), tl(:, :), integral, &
-   &  cr(wave_pts2), cz(wave_pts2), r, time, a, b, ww, dt, rake2
+   &  cr(wave_pts2), cz(wave_pts2), r, time, dt
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
@@ -138,31 +138,8 @@ contains
    do channel = 1, n_chan
    
       ll_g = channel+ll_in
+      call create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
       comp = component1(channel)
-      do i = 1, wave_pts
-         forward(i) = z0
-      end do
-      ll = 0
-      do segment = 1, segments
-         do iys = 1, nys_sub(segment)
-            do ixs = 1, nxs_sub(segment)
-               ll = ll+1  
-               segment_subfault = (iys-1)*nxs_sub(segment)+ixs             
-               isl = int((tl(segment_subfault, segment)-ta0)/dta+0.5)+1
-               isr = int((tr(segment_subfault, segment)-ta0)/dta+0.5)+1
-               rake2 = rake(segment_subfault, segment)*dpi
-               a = sin(rake2)*slip(segment_subfault, segment)
-               b = cos(rake2)*slip(segment_subfault, segment)
-               do i = 1, nlen 
-                  ww = -(i-1)*twopi*df*rupt_time(segment_subfault, segment)
-                  z = cmplx(cos(ww), sin(ww))
-                  forward(i) = forward(i) &
-               &  +(a*green_dip(i, ll_g, ll)+b*green_stk(i, ll_g, ll)) &
-               &  *source2(i, isl, isr)*z
-               end do
-            end do
-         end do
-      end do
 
       do i = 1, jf
          if (i .le. max_freq) then
@@ -193,8 +170,7 @@ contains
    integer ll_in, ll_out, ll_g, isl, isr, ll,  &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys, channel_max
    real slip(:, :), rake(:, :), rupt_time(:, :), &
-   &  tr(:, :), tl(:, :), cr(wave_pts2), cz(wave_pts2), a, &
-   &  b, ww, dt, rake2
+   &  tr(:, :), tl(:, :), cr(wave_pts2), cz(wave_pts2), dt
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
@@ -244,33 +220,7 @@ contains
    do channel = 1, n_chan
       ll_g = channel+ll_in
       comp = component2(channel)
-   
-      do i = 1, wave_pts
-         cr(i) = 0.0
-         cz(i) = 0.0
-         forward(i) = z0
-      end do
-      ll = 0
-      do segment = 1, segments
-         do iys = 1, nys_sub(segment)
-            do ixs = 1, nxs_sub(segment)
-               ll = ll+1  
-               segment_subfault = (iys-1)*nxs_sub(segment)+ixs             
-               isl = int((tl(segment_subfault, segment)-ta0)/dta+0.5)+1
-               isr = int((tr(segment_subfault, segment)-ta0)/dta+0.5)+1
-               rake2 = rake(segment_subfault, segment)*dpi
-               a = sin(rake2)*slip(segment_subfault, segment)
-               b = cos(rake2)*slip(segment_subfault, segment)
-               do i = 1, nlen 
-                  ww = -(i-1)*twopi*df*rupt_time(segment_subfault, segment)
-                  z = cmplx(cos(ww), sin(ww))
-                  forward(i) = forward(i) &
-               &  +(a*green_dip(i, ll_g, ll)+b*green_stk(i, ll_g, ll)) &
-               &  *source2(i, isl, isr)*z
-               end do
-            end do
-         end do
-      end do
+      call create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
    
       do i = 1, jf
          cr(i) = real(forward(i))
@@ -338,34 +288,7 @@ contains
    npxy = nx_p*ny_p
    do channel = 1, nstaon
       ll_g = ll_in+channel
-
-      do i = 1, wave_pts
-         forward(i) = z0
-      end do
-      LL = 0
-      do segment = 1, segments
-         segment_subfault = 0
-         do iys = 1, nys_sub(segment)
-            do ixs = 1, nxs_sub(segment)
-               segment_subfault = segment_subfault+1
-               LL = LL+1
- 
-               azim = rake(segment_subfault, segment)*dpi
-               sinal = sin(azim)*slip(segment_subfault, segment)
-               cosal = cos(azim)*slip(segment_subfault, segment)
-!               segment_subfault = (iys-1)*nxs_sub(segment)+ixs             
-               isl = int((tl(segment_subfault, segment)-ta0)/dta+0.5)+1
-               isr = int((tr(segment_subfault, segment)-ta0)/dta+0.5)+1
-               do i = 1, 2*max_freq      
-                  w = -(i-1)*twopi*df*rupt_time(segment_subfault, segment)
-                  z = cmplx(cos(w), sin(w))
-                  forward(i) = forward(i)&
-               & +(sinal*green_dip(i, ll_g, ll)+cosal*green_stk(i, ll_g, ll)) &
-               & *source2(i, Isl, isr)*z
-               end do
-            end do
-         end do
-      end do
+      call create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
       do i = 1, jf
          if (i .le. max_freq) then
             cr(i) = real(forward(i))
@@ -401,7 +324,7 @@ contains
 
    real slip(:, :), rake(:, :), rupt_time(:, :), &
    &  tr(:, :), tl(:, :), &
-   &  cr(wave_pts2), cz(wave_pts2), a, b, ww, dt, rake2
+   &  cr(wave_pts2), cz(wave_pts2), dt
    real*8 t1, t2, df
 
    complex z0, forward(wave_pts2), z
@@ -449,36 +372,15 @@ contains
 !
    do channel = 1, n_chan
       ll_g = channel+ll_in
-   
-      do i = 1, wave_pts
-         cr(i) = 0.0
-         cz(i) = 0.0
-         forward(i) = z0
-      end do
-      ll = 0
-      do segment = 1, segments
-         do iys = 1, nys_sub(segment)
-            do ixs = 1, nxs_sub(segment)
-               ll = ll+1  
-               segment_subfault = (iys-1)*nxs_sub(segment)+ixs             
-               isl = int((tl(segment_subfault, segment)-ta0)/dta+0.5)+1
-               isr = int((tr(segment_subfault, segment)-ta0)/dta+0.5)+1
-               rake2 = rake(segment_subfault, segment)*dpi
-               a = sin(rake2)*slip(segment_subfault, segment)
-               b = cos(rake2)*slip(segment_subfault, segment)
-               do i = 1, max_freq
-                  ww = -(i-1)*twopi*df*rupt_time(segment_subfault, segment)
-                  z = cmplx(cos(ww), sin(ww))
-                  forward(i) = forward(i) &
-               & +(a*green_dip(i, ll_g, ll)+b*green_stk(i, ll_g, ll)) &
-               & *source2(i, isl, isr)*z
-               end do
-            end do
-         end do
-      end do
-      do i = 1, max_freq
-         cr(i) = real(forward(i))
-         cz(i) = aimag(forward(i))
+      call create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
+      do i = 1, jf
+         if (i .le. max_freq) then
+            cr(i) = real(forward(i))
+            cz(i) = aimag(forward(i))
+         else
+            cr(i) = 0.0
+            cz(i) = 0.0
+         end if
       end do
      
       call realtr(cr, cz, lnpt)
@@ -504,8 +406,7 @@ contains
    integer ll_in, ll_out, ll_g, isl, isr, ll, &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys, channel_max
    real slip(:, :), rake(:, :), rupt_time(:, :), &
-   &  tr(:, :), tl(:, :), cr(wave_pts2), cz(wave_pts2), a, &
-   &  b, ww, dt, rake2
+   &  tr(:, :), tl(:, :), cr(wave_pts2), cz(wave_pts2), dt
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
@@ -528,7 +429,7 @@ contains
 !       make the rise time function
 !     
    dt = dt_channel(ll_in + 1)
-   jf = 2**(lnpt-2)+1
+   jf = 2**(lnpt-1)+1
    df = 1.d0/(2**lnpt)/dt
    do isl = 1, msou
       do isr = 1, msou
@@ -553,32 +454,7 @@ contains
    do channel = 1, n_chan
       comp = component5(channel)
       ll_g = channel+ll_in
-   
-      do i = 1, wave_pts
-         cr(i) = 0.0
-         cz(i) = 0.0
-         forward(i) = z0
-      end do
-      ll = 0
-      do segment = 1, segments
-         do iys = 1, nys_sub(segment)
-            do ixs = 1, nxs_sub(segment)
-               ll = ll+1  
-               segment_subfault = (iys-1)*nxs_sub(segment)+ixs             
-               isl = int((tl(segment_subfault, segment)-ta0)/dta+0.5)+1
-               isr = int((tr(segment_subfault, segment)-ta0)/dta+0.5)+1
-               rake2 = rake(segment_subfault, segment)*dpi
-               a = sin(rake2)*slip(segment_subfault, segment)
-               b = cos(rake2)*slip(segment_subfault, segment)
-               do i = 1, nlen 
-                  ww = -(i-1)*twopi*df*rupt_time(segment_subfault, segment)
-                  z = cmplx(cos(ww), sin(ww))
-                  forward(i) = forward(i) &
-               &  +(a*green_dip(i, ll_g, ll)+b*green_stk(i, ll_g, ll))*source2(i, isl, isr)*z
-               end do
-            end do
-         end do
-      end do
+      call create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
    
       do i = 1, jf
          cr(i) = real(forward(i))
@@ -596,6 +472,48 @@ contains
    close(18)
    ll_out = ll_in+n_chan
    end subroutine write_dart_forward
+
+
+   subroutine create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
+   implicit none
+   integer ll_g, isl, isr, ll, jf, &
+   &  i, k, segment_subfault, segment, ixs, iys
+   real slip(:, :), rake(:, :), rupt_time(:, :), &
+   &  tr(:, :), tl(:, :), a, b, ww, dt, rake2
+   real*8 df
+   complex :: forward(:), source2(:, :, :)
+   complex :: z0, z
+  
+   z0 = cmplx(0.0, 0.0)
+   dt = dt_channel(ll_g)
+   jf = 2**(lnpt-1)+1
+   df = 1.d0/(2**lnpt)/dt
+   
+   do i = 1, wave_pts
+      forward(i) = z0
+   end do
+   ll = 0
+   do segment = 1, segments
+      do iys = 1, nys_sub(segment)
+         do ixs = 1, nxs_sub(segment)
+            ll = ll+1  
+            segment_subfault = (iys-1)*nxs_sub(segment)+ixs             
+            isl = int((tl(segment_subfault, segment)-ta0)/dta+0.5)+1
+            isr = int((tr(segment_subfault, segment)-ta0)/dta+0.5)+1
+            rake2 = rake(segment_subfault, segment)*dpi
+            a = sin(rake2)*slip(segment_subfault, segment)
+            b = cos(rake2)*slip(segment_subfault, segment)
+            do i = 1, max_freq
+               ww = -(i-1)*twopi*df*rupt_time(segment_subfault, segment)
+               z = cmplx(cos(ww), sin(ww))
+               forward(i) = forward(i) &
+            & +(a*green_dip(i, ll_g, ll)+b*green_stk(i, ll_g, ll)) &
+            & *source2(i, isl, isr)*z
+            end do
+         end do
+      end do
+   end do
+   end subroutine create_waveform
 
 
 end module save_forward

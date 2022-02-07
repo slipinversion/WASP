@@ -578,12 +578,12 @@ contains
    integer :: k, j, ll_in, ir, ir_max, ll_g, n_begin, n_delt, length
    do ir = 1, ir_max
       ll_g = ir+ll_in
-      if (weight(ll_g) .gt. (10**-3)) then
+      if (weight(ll_g) .gt. (1e-3)) then
          do j = jmin, jmax
             n_begin = 2**(j-1)
             n_delt = nlen/n_begin
             length = int(t_max(ll_g)/n_delt+0.5)-1
-            if (wavelet_weight(j, ll_g) .gt. (10**-3)) then
+            if (wavelet_weight(j, ll_g) .gt. (1e-3)) then
                used_data = used_data + length
             endif
          end do
