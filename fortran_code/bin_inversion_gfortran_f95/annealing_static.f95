@@ -387,7 +387,7 @@ contains
             rand = ran1()
             aux = exp(-de/t)
             if (aux .gt. rand) then
-               current_value = current_value + coef_insar*(insar_misfit - insar_misfit0)
+               current_value = current_value + (insar_misfit - insar_misfit0)
                insar_misfit0 = insar_misfit
                ramp(:) = ramp1(:)
                n_accept = n_accept+1
