@@ -75,6 +75,10 @@ def forward_model(tensor_info, segments_data, model, vel0, vel1):
 
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+
     hyp_stk = segments[0]['hyp_stk']
     hyp_dip = segments[0]['hyp_dip']
     delta_strike = segments[0]['delta_strike']
@@ -94,7 +98,8 @@ def forward_model(tensor_info, segments_data, model, vel0, vel1):
     disp_or_vel = 0
     string = '{} {} {} {} {}\n'
 
-    point_sources0 = pf.point_sources_param(segments, tensor_info, rise_time)
+    point_sources0 = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     ny = int(dip_ps / 2)
     nx = int(strike_ps / 2)
     times = [point_sources[:, :, ny, nx, 4] for point_sources in point_sources0]
@@ -145,6 +150,9 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
     """
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
     delta_strike = segments[0]['delta_strike']
     delta_dip = segments[0]['delta_dip']
     rupture_vel = segments[0]['rupture_vel']
@@ -162,7 +170,8 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
     delta_dip = segments[0]['delta_dip']
 
     depth = tensor_info['depth']
-    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     shear = pf.shear_modulous(point_sources, velmodel=velmodel)
 
     disp_or_vel = 0
@@ -184,8 +193,11 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
             rake = segment['rake']
             n_stk = segment['stk_subfaults']
             n_dip = segment['dip_subfaults']
+            delay = segment['delay_segment']
+            hyp_stk = segment['hyp_stk']
+            hyp_dip = segment['hyp_dip']
             outfile.write('{} {} {}\n'.format(i_segment + 1, dip, strike))
-            outfile.write('{} {} 0\n'.format(n_stk, n_dip))
+            outfile.write('{} {} {}\n'.format(n_stk, n_dip, delay))
             for i in range(n_dip):
                 for j in range(n_stk):
                     slip = 300 if j == hyp_stk - 1 and i == hyp_dip - 1 else 0
@@ -1050,8 +1062,51 @@ def model_space(segments):
             filewrite.write('2.6 2.4 3\n')
             filewrite.write('5 8\n')
 
-    with open('regularization_borders.txt', 'w') as file:
-        file.write('1\n' + '0 0\n' * 4)
+    with open('regularization_borders.txt', 'w') as filewrite:
+        for i, segment in enumerate(segments):
+            filewrite.write('{}\n'.format(i + 1))
+
+            if 'regularization' not in segment:
+                filewrite.write('0 0\n' * 4)
+            else:
+                reg_borders = segment['regularization']
+                neighbour_up = reg_borders['neighbour_up']
+                if neighbour_up:
+                    up_segment = neighbour_up['segment']
+                    subfault_up_segment = neighbour_up['subfault']
+                    filewrite.write(
+                        '{} {}\n'.format(up_segment, subfault_up_segment))
+                else:
+                    filewrite.write('0 0\n')
+
+                neighbour_down = reg_borders['neighbour_down']
+                if neighbour_down:
+                    down_segment = neighbour_down['segment']
+                    subfault_down_segment = neighbour_down['subfault']
+                    filewrite.write(
+                        '{} {}\n'.format(down_segment, subfault_down_segment))
+                else:
+                    filewrite.write('0 0\n')
+
+                neighbour_left = reg_borders['neighbour_left']
+                if neighbour_left:
+                    left_segment = neighbour_left['segment']
+                    subfault_left_segment = neighbour_left['subfault']
+                    filewrite.write(
+                        '{} {}\n'.format(left_segment, subfault_left_segment))
+                else:
+                    filewrite.write('0 0\n')
+
+                neighbour_right = reg_borders['neighbour_right']
+                if neighbour_right:
+                    right_segment = neighbour_right['segment']
+                    subfault_right_segment = neighbour_right['subfault']
+                    filewrite.write(
+                        '{} {}\n'.format(right_segment, subfault_right_segment))
+                else:
+                    filewrite.write('0 0\n')
+    # with open('regularization_borders.txt', 'w') as file:
+    #     file.write('1\n' + '0 0\n' * 4)
     with open('special_model_space.txt', 'w') as filewrite:
         filewrite.write('0\n')
     with open('special_regularization_borders.txt', 'w') as file:
@@ -1115,6 +1170,9 @@ if __name__ == '__main__':
     parser.add_argument(
         "-m", "--model_space", action="store_true",
         help="compute files for model space")
+    parser.add_argument(
+        "-reg", "--regularization", action="store_true",
+        help="compute files for regularization")
     args = parser.parse_args()
     os.chdir(args.folder)
     if args.gcmt_tensor:

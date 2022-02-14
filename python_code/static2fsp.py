@@ -31,7 +31,11 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     locator = flinnengdahl.FlinnEngdahl()
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
-    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     delta_strike = segments[0]['delta_strike']
     delta_dip = segments[0]['delta_dip']
     rupture_vel = segments[0]['rupture_vel']

@@ -75,9 +75,173 @@ def create_finite_fault(tensor_info, np_plane_info, data_type, water_level=0,
     segments_data = __save_plane_data(
         plane_info, subfaults, hyp_location, rise_time)
     return segments_data
+#
+#
+# def point_sources_param_old(segments, tensor_info, rise_time):
+#     """We define the point sources of the fault segments, given properties of
+#     the fault segments, and hypocenter location given by the moment tensor.
+#
+#     :param tensor_info: dictionary with hypocenter, centroid and moment tensor
+#      information.
+#     :param segments: dictionary with info about the fault segments
+#     :param rise_time: dictionary with info about the frise time function
+#     :type tensor_info: dict
+#     :type np_plane_info: dict
+#     :type rise_time: dict
+#     :returns: array with data for all point sources for all fault segments.
+#
+#     .. rubric:: Example:
+#
+#     >>> import json
+#     >>> tensor_info = {
+#             'time_shift': 40.0,
+#             'depth': 25.0,
+#             'moment_mag': 10 ** 28,
+#             'lat': -19.5,
+#             'lon': -70.5,
+#             'centroid_lat': -20,
+#             'centroid_lon': -70
+#         }
+#     >>> segments_data = json.load(open('segments_data.json'))
+#     >>> segments = segments_data['segments']
+#     >>> rise_time = segments_data['rise_time']
+#     >>> point_sources = point_sources_param(segments, tensor_info, rise_time)
+#
+#     .. note::
+#         If we detect a point source above ground level (negative depth),
+#         we throw error.
+#
+#     """
+#     event_lat = tensor_info['lat']
+#     event_lon = tensor_info['lon']
+#     depth = tensor_info['depth']
+#     delta_strike = segments[0]['delta_strike']
+#     delta_dip = segments[0]['delta_dip']
+#     rupture_vel = segments[0]['rupture_vel']
+#     subfaults = {'delta_strike': delta_strike, 'delta_dip': delta_dip}
+#     subfaults2 = _point_sources_def(rise_time, rupture_vel, subfaults)
+#     strike_ps = subfaults2['strike_ps']
+#     dip_ps = subfaults2['dip_ps']
+#     dx = subfaults2['dx']
+#     dy = subfaults2['dy']
+#     nx = int(strike_ps / 2.0 + 0.51)
+#     ny = int(dip_ps / 2.0 + 0.51)
+#     deg2rad = np.pi / 180.0
+#
+#     point_sources = [[]] * len(segments)
+#     ref_coords = [[]] * len(segments)
+# #
+# # first we define reference coordinates!
+# #
+#     for i, segment in enumerate(segments):
+#         strike = segment["strike"]
+#         dip = segment['dip']
+#         hyp_stk = segment['hyp_stk']
+#         hyp_dip = segment['hyp_dip']
+#         stk_subfaults = segment['stk_subfaults']
+#         dip_subfaults = segment['dip_subfaults']
+#         if i == 0:
+#             ref_coords[0] = [event_lat, event_lon, depth]
+#             lat0 = event_lat
+#             lon0 = event_lon
+#             x_center = hyp_stk * delta_strike + nx * dx
+#             y_center = hyp_dip * delta_dip + ny * dy
+#             for j, segment2 in enumerate(segments):
+#                 neighbours = segment2['neighbours']
+#                 segment1 = [neighbour for neighbour in neighbours\
+#                             if neighbour['neighbour'] == i]
+#                 if len(segment1) == 0:
+#                     continue
+#                 neighbour = segment1[0]
+#                 n_stk, n_dip = neighbour['neighbour_connect_subfault']
+#                 x = n_stk * delta_strike - x_center + dx * 0
+#                 y = n_dip * delta_dip - y_center + dy * 0
+#                 dep_ref = y * np.sin(dip * deg2rad) + depth
+#                 lat_ref, lon_ref = __lat_lon(strike, dip, x, y, lat0, lon0)
+#                 ref_coords[j] = [lat_ref, lon_ref, dep_ref]
+#         else:
+#             for j, segment2 in enumerate(segments):
+#                 neighbours = segment2['neighbours']
+#                 segment1 = [neighbour for neighbour in neighbours\
+#                             if neighbour['neighbour'] == i]
+#                 if len(segment1) == 0:
+#                     continue
+#                 neighbour = segment1[0]
+#                 n1_stk, n1_dip = neighbour['connect_subfault']
+#                 n2_stk, n2_dip = neighbour['neighbour_connect_subfault']
+#                 i0 = neighbour['neighbour']
+#                 prev_segment = segments[i0]
+#                 prev_neighbour = prev_segment['neighbours'][0]
+#                 n01_stk, n01_dip = prev_neighbour['connect_subfault']
+#                 n02_stk, n02_dip = prev_neighbour['neighbour_connect_subfault']
+#
+#                 x = (n2_stk - n01_stk) * delta_strike + 0 * dx
+#                 y = (n2_dip - n01_dip) * delta_dip + 0 * dy
+#                 lat0, lon0, depth_0 = ref_coords[i]
+#                 dip2 = segments[j]['dip']
+#                 dep_ref = depth_0 + y * np.sin(dip * deg2rad)
+#                 lat_ref, lon_ref = __lat_lon(strike, dip, x, y, lat0, lon0)
+#                 ref_coords[j] = [lat_ref, lon_ref, dep_ref]
+# #
+# # now we define the point sources for the segments
+# #
+#     point_sources = [[]] * len(segments)
+#     for i, (segment, ref_coord) in enumerate(zip(segments, ref_coords)):
+#         strike = segment["strike"]
+#         dip = segment['dip']
+#         delay_segment = 0
+#         if 'delay_segment' in segment:
+#             delay_segment = segment['delay_segment']
+#         stk_subfaults = segment['stk_subfaults']
+#         dip_subfaults = segment['dip_subfaults']
+#         hyp_stk = segment['hyp_stk']
+#         hyp_dip = segment['hyp_dip']
+#         matrix = np.zeros((dip_subfaults, stk_subfaults, dip_ps, strike_ps, 7))
+# #
+# # we give location of hypocenter relative to the fault segment
+# #
+#         x_center = hyp_stk * delta_strike + nx * dx
+#         y_center = hyp_dip * delta_dip + ny * dy
+#         lat0, lon0, depth0 = ref_coord
+#         for k2 in range(dip_subfaults):
+#             for j2 in range(stk_subfaults):
+#                 for k1 in range(dip_ps):
+#                     for j1 in range(strike_ps):
+# #
+# # distance from the point source to the hypocenter over rupture surface
+# #
+#                         x = (j2 + 1) * delta_strike + (j1 + 1) * dx - x_center
+#                         y = (k2 + 1) * delta_dip + (k1 + 1) * dy - y_center
+#                         distance = np.sqrt(x ** 2 + y ** 2)
+#                         t1 = distance / rupture_vel
+#                         t1 = t1 + delay_segment
+# #
+# # depth of point source
+# #
+#                         if i > 0:
+#                             neighbours = segment['neighbours']
+#                             neighbour = neighbours[0]
+#                             n_stk, n_dip = neighbour['connect_subfault']
+#                             x_center2 = n_stk * delta_strike
+#                             y_center2 = n_dip * delta_dip
+#                             x = (j2 + 1) * delta_strike + (j1 + 1) * dx - x_center2
+#                             y = (k2 + 1) * delta_dip + (k1 + 1) * dy - y_center2
+#                         dep = y * np.sin(dip * deg2rad) + depth0
+#                         if dep < 0.1:
+#                             raise Exception('Point source is above the ground!')
+#                         lat, lon = __lat_lon(strike, dip, x, y, lat0, lon0)
+# #
+# # distance over earth surface
+# #
+#                         dist, az, baz = mng._distazbaz(
+#                             lat, lon, event_lat, event_lon)
+#                         matrix[k2, j2, k1, j1, :] =\
+#                             lat, lon, dep, distance, t1, dist, az
+#         point_sources[i] = matrix
+#     return point_sources
 
 
-def point_sources_param(segments, tensor_info, rise_time):
+def point_sources_param(segments, tensor_info, rise_time, connections=None):
     """We define the point sources of the fault segments, given properties of
     the fault segments, and hypocenter location given by the moment tensor.
 
@@ -130,63 +294,58 @@ def point_sources_param(segments, tensor_info, rise_time):
 
     point_sources = [[]] * len(segments)
     ref_coords = [[]] * len(segments)
+    hypocenters = [[]] * len(segments)
 #
 # first we define reference coordinates!
 #
+    segment = segments[0]
+    strike = segment["strike"]
+    dip = segment['dip']
+    hyp_stk = segment['hyp_stk']
+    hyp_dip = segment['hyp_dip']
+    x_ref = hyp_stk * delta_strike + nx * dx
+    y_ref = hyp_dip * delta_dip + ny * dy
+    ref_coords[0] = [event_lat, event_lon, depth, x_ref, y_ref]
     for i, segment in enumerate(segments):
-        strike = segment["strike"]
-        dip = segment['dip']
-        hyp_stk = segment['hyp_stk']
-        hyp_dip = segment['hyp_dip']
-        stk_subfaults = segment['stk_subfaults']
-        dip_subfaults = segment['dip_subfaults']
-        if i == 0:
-            ref_coords[0] = [event_lat, event_lon, depth]
-            lat0 = event_lat
-            lon0 = event_lon
-            x_center = hyp_stk * delta_strike + nx * dx
-            y_center = hyp_dip * delta_dip + ny * dy
-            for j, segment2 in enumerate(segments):
-                neighbours = segment2['neighbours']
-                segment1 = [neighbour for neighbour in neighbours\
-                            if neighbour['neighbour'] == i]
-                if len(segment1) == 0:
-                    continue
-                neighbour = segment1[0]
-                n_stk, n_dip = neighbour['neighbour_connect_subfault']
-                x = n_stk * delta_strike - x_center + dx * 0
-                y = n_dip * delta_dip - y_center + dy * 0
-                dep_ref = y * np.sin(dip * deg2rad) + depth
-                lat_ref, lon_ref = __lat_lon(strike, dip, x, y, lat0, lon0)
-                ref_coords[j] = [lat_ref, lon_ref, dep_ref]
+        if not 'hypocenter' in segment:
+            hypocenters[i] = [event_lat, event_lon, depth]
         else:
-            for j, segment2 in enumerate(segments):
-                neighbours = segment2['neighbours']
-                segment1 = [neighbour for neighbour in neighbours\
-                            if neighbour['neighbour'] == i]
-                if len(segment1) == 0:
-                    continue
-                neighbour = segment1[0]
-                n1_stk, n1_dip = neighbour['connect_subfault']
-                n2_stk, n2_dip = neighbour['neighbour_connect_subfault']
-                i0 = neighbour['neighbour']
-                prev_segment = segments[i0]
-                prev_neighbour = prev_segment['neighbours'][0]
-                n01_stk, n01_dip = prev_neighbour['connect_subfault']
-                n02_stk, n02_dip = prev_neighbour['neighbour_connect_subfault']
-
-                x = (n2_stk - n01_stk) * delta_strike + 0 * dx
-                y = (n2_dip - n01_dip) * delta_dip + 0 * dy
-                lat0, lon0, depth_0 = ref_coords[i]
-                dip2 = segments[j]['dip']
-                dep_ref = depth_0 + y * np.sin(dip * deg2rad)
-                lat_ref, lon_ref = __lat_lon(strike, dip, x, y, lat0, lon0)
-                ref_coords[j] = [lat_ref, lon_ref, dep_ref]
+            new_hypocenter = segment['hypocenter']
+            hyp_stk = segment['hyp_stk']
+            hyp_dip = segment['hyp_dip']
+            x1_ref = hyp_stk * delta_strike + nx * dx
+            y1_ref = hyp_dip * delta_dip + ny * dy
+            new_lat = new_hypocenter['lat']
+            new_lon = new_hypocenter['lon']
+            new_depth = new_hypocenter['depth']
+            ref_coords[i] = [new_lat, new_lon, new_depth, x1_ref, y1_ref]
+            hypocenters[i] = [new_lat, new_lon, new_depth]
+    if connections:
+        for connection in connections:
+            segment1 = connection['segment1']
+            segment2 = connection['segment2']
+            subfault1 = connection['segment1_subfault']
+            subfault2 = connection['segment2_subfault']
+            lat0, lon0, depth0, x_ref0, y_ref0 = ref_coords[segment1 - 1]
+            first_segment = segments[segment1 - 1]
+            strike = first_segment["strike"]
+            dip = first_segment['dip']
+            n1_stk, n1_dip = subfault1
+            x = n1_stk * delta_strike - x_ref0 + dx * 0
+            y = n1_dip * delta_dip - y_ref0 + dy * 0
+            dep_ref = y * np.sin(dip * deg2rad) + depth0
+            lat_ref, lon_ref = __lat_lon(strike, dip, x, y, lat0, lon0)
+            second_segment = segments[segment2 - 1]
+            n2_stk, n2_dip = subfault2
+            x2_ref = n2_stk * delta_strike
+            y2_ref = n2_dip * delta_dip
+            ref_coords[segment2 - 1] = [lat_ref, lon_ref, dep_ref, x2_ref, y2_ref]
 #
 # now we define the point sources for the segments
 #
     point_sources = [[]] * len(segments)
-    for i, (segment, ref_coord) in enumerate(zip(segments, ref_coords)):
+    zipped = zip(segments, ref_coords, hypocenters)
+    for i, (segment, ref_coord, hypocenter) in enumerate(zipped):
         strike = segment["strike"]
         dip = segment['dip']
         delay_segment = 0
@@ -196,13 +355,14 @@ def point_sources_param(segments, tensor_info, rise_time):
         dip_subfaults = segment['dip_subfaults']
         hyp_stk = segment['hyp_stk']
         hyp_dip = segment['hyp_dip']
+        hypo_lat, hypo_lon, hypo_depth = hypocenter
         matrix = np.zeros((dip_subfaults, stk_subfaults, dip_ps, strike_ps, 7))
 #
 # we give location of hypocenter relative to the fault segment
 #
         x_center = hyp_stk * delta_strike + nx * dx
         y_center = hyp_dip * delta_dip + ny * dy
-        lat0, lon0, depth0 = ref_coord
+        lat0, lon0, depth0, x0_ref, y0_ref = ref_coord
         for k2 in range(dip_subfaults):
             for j2 in range(stk_subfaults):
                 for k1 in range(dip_ps):
@@ -214,18 +374,11 @@ def point_sources_param(segments, tensor_info, rise_time):
                         y = (k2 + 1) * delta_dip + (k1 + 1) * dy - y_center
                         distance = np.sqrt(x ** 2 + y ** 2)
                         t1 = distance / rupture_vel
-                        t1 = t1 + delay_segment
 #
 # depth of point source
 #
-                        if i > 0:
-                            neighbours = segment['neighbours']
-                            neighbour = neighbours[0]
-                            n_stk, n_dip = neighbour['connect_subfault']
-                            x_center2 = n_stk * delta_strike
-                            y_center2 = n_dip * delta_dip
-                            x = (j2 + 1) * delta_strike + (j1 + 1) * dx - x_center2
-                            y = (k2 + 1) * delta_dip + (k1 + 1) * dy - y_center2
+                        x = (j2 + 1) * delta_strike + (j1 + 1) * dx - x0_ref
+                        y = (k2 + 1) * delta_dip + (k1 + 1) * dy - y0_ref
                         dep = y * np.sin(dip * deg2rad) + depth0
                         if dep < 0.1:
                             raise Exception('Point source is above the ground!')
@@ -234,11 +387,12 @@ def point_sources_param(segments, tensor_info, rise_time):
 # distance over earth surface
 #
                         dist, az, baz = mng._distazbaz(
-                            lat, lon, event_lat, event_lon)
+                            lat, lon, hypo_lat, hypo_lon)
                         matrix[k2, j2, k1, j1, :] =\
                             lat, lon, dep, distance, t1, dist, az
         point_sources[i] = matrix
     return point_sources
+
 
 
 def __lat_lon(strike, dip, x, y, lat0, lon0):
@@ -248,7 +402,6 @@ def __lat_lon(strike, dip, x, y, lat0, lon0):
     cos_stk = np.cos(strike * deg2rad)
     sin_stk = np.sin(strike * deg2rad)
     cos_dip = np.cos(dip * deg2rad)
-    deg2rad = np.pi / 180.0
     degree = 111.12
     lat_ref = lat0 + (x * cos_stk - y * cos_dip * sin_stk) / degree
     lon_ref = lon0 + (x * sin_stk + y * cos_dip * cos_stk)\

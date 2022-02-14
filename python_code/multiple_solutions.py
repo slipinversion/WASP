@@ -34,9 +34,10 @@ def multiple_solutions(tensor_info, data_type, default_dirs, folders,
     this_folder = os.path.abspath(os.getcwd())
     event_folder = os.path.dirname(this_folder)
     segments_data = json.load(open('segments_data.json'))
-    strike = strike if len(strike)>0 else [segments_data[0]['strike']]
-    dip = dip if len(dip)>0 else [segments_data[0]['dip']]
-    rupt_vel = rupt_vel if len(rupt_vel)>0 else [segments_data[0]['rupture_vel']]
+    segments = segments_data['segments']
+    strike = strike if len(strike)>0 else [segments[0]['strike']]
+    dip = dip if len(dip)>0 else [segments[0]['dip']]
+    rupt_vel = rupt_vel if len(rupt_vel)>0 else [segments[0]['rupture_vel']]
     os.chdir(event_folder)
 
     new_iter = product(strike, dip, rupt_vel)
@@ -49,9 +50,9 @@ def multiple_solutions(tensor_info, data_type, default_dirs, folders,
         new_segments_data['segments'][0]['strike'] = strike1
         new_segments_data['segments'][0]['dip'] = dip1
         new_segments_data['segments'][0]['rupture_vel'] = rupt_vel1
-        segments = new_segments_data['segments']
+        segments2 = new_segments_data['segments']
         rise_time = new_segments_data['rise_time']
-        force_plane_above_ground(tensor_info, segments)
+        force_plane_above_ground(tensor_info, segments2)
         with open('segments_data.json', 'w') as f:
             json.dump(
                 new_segments_data, f, sort_keys=True, indent=4,

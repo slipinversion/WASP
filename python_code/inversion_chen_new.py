@@ -333,7 +333,11 @@ def forward_modelling(tensor_info, data_type, default_dirs, segments_data,
     # segments_data = json.load(open('segments_data.json'))
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
-    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
 #
 # Get input model
 #
@@ -409,10 +413,13 @@ def checkerboard(tensor_info, data_type, default_dirs, segments_data,
         if os.path.isfile(file):
             copy2(file, folder_name)
     os.chdir(folder_name)
-    # segments_data = json.load(open('segments_data.json'))
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
-    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     forward_modelling(
         tensor_info, data_type, default_dirs, option=option, max_slip=max_slip)
     data_prop = json.load(open('sampling_filter.json'))
@@ -675,10 +682,14 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs,
     print('Plot results')
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
     solution = get_outputs.read_solution_static_format(segments)
     if not velmodel:
         velmodel = mv.select_velmodel(tensor_info, default_dirs)
-    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     shear = pf.shear_modulous(point_sources, velmodel=velmodel)
     plot.plot_ffm_sol(
         tensor_info, segments_data, point_sources, shear,

@@ -654,7 +654,7 @@ def _PlotCumulativeSlip(segments, point_sources, solution, tensor_info, evID=Non
         ax1.plot(x, along_strike/100,'r', lw=2)
         ax1.scatter(x, along_strike/100, c='0.5', s=25, edgecolor='k', lw=1, zorder=5)
         ax1.set_xlabel('Distance Along Strike (km)', fontsize=11)
-        ax1.set_ylabel('Cumulative Slip (m)', fontsize=11) 
+        ax1.set_ylabel('Cumulative Slip (m)', fontsize=11)
         ax1.invert_yaxis()
         ax1.yaxis.tick_right()
         ax1.yaxis.set_label_position('right')
@@ -704,7 +704,7 @@ def _PlotCumulativeSlip(segments, point_sources, solution, tensor_info, evID=Non
         hyp_lon = tensor_info['lon']
         hyp_lat = tensor_info['lat']
         hyp_dep = tensor_info['depth']
-        corner_1, corner_2, corner_3, corner_4 = shakemap.translate_xy_to_latlondep(segment, hyp_lon, hyp_lat, hyp_dep, 
+        corner_1, corner_2, corner_3, corner_4 = shakemap.translate_xy_to_latlondep(segment, hyp_lon, hyp_lat, hyp_dep,
                                               eq_len_AS, eq_len_AD, left_edge_AS, left_edge_AD)
     return corner_1, corner_2, corner_3, corner_4
 
@@ -948,7 +948,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
 #
 # plot slip map
 #
-    ax, cs = plot_map(ax, segments_lats, segments_lons, slip, max_val=max_slip, 
+    ax, cs = plot_map(ax, segments_lats, segments_lons, slip, max_val=max_slip,
                       transform=dictn['projection'])
     sm = plt.cm.ScalarMappable(cmap=slipcpt,norm=plt.Normalize(vmin=0.,vmax=max_slip/100.))
 
@@ -1217,14 +1217,14 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
         seismic_moment = seismic_moment\
             + np.sum((slip_seg / 100) * (shear_seg / 10)\
                      * (delta_strike * 1000) * (delta_dip * 1000))
-#    
+#
 # find moment rate function
 #
         for i in range(nmax):
             time = i * dt
             mr[i] = mr[i]\
                 + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
-    time = np.arange(nmax) * dt 
+    time = np.arange(nmax) * dt
     with open('STF.txt', 'w') as outf:
         outf.write('dt: {}\n'.format(dt))
         outf.write('Time[s]     Moment_Rate [Nm]\n')
@@ -1298,11 +1298,11 @@ def _PlotSnapshotSlip(tensor_info, segments, point_sources, solution):
     srmax = slip / (tr + tl) * 2.
 #
 # Define the vector field of the slip and plotting parameters.
-#   
+#
     x = np.arange(stk_subfaults) * delta_strike - hyp_stk * delta_strike
     y = np.arange(dip_subfaults) * delta_dip - hyp_dip * delta_dip
     ratio = max(1,
-        (9 / 16) * ((stk_subfaults * delta_strike) / (dip_subfaults * delta_dip))) 
+        (9 / 16) * ((stk_subfaults * delta_strike) / (dip_subfaults * delta_dip)))
     vmax = np.amax(slip)
     tmax = np.amax(trup)
     step = int((tmax/dt + 1) / 9.)
@@ -1778,7 +1778,11 @@ if __name__ == '__main__':
     segments_data = json.load(open('segments_data.json'))
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
-    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     solution = get_outputs.read_solution_static_format(segments)
     if args.ffm_solution:
         if not os.path.isfile('velmodel_data.json'):
@@ -1800,7 +1804,7 @@ if __name__ == '__main__':
             evID = None
         plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                      vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID)
-        static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)        
+        static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)
 
     if args.shakemappolygon:
         if args.EventID:

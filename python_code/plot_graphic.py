@@ -1124,7 +1124,11 @@ if __name__ == '__main__':
     segments_data = json.load(open('segments_data.json'))
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
-    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     if args.ffm_solution:
         solution = get_outputs.read_solution_static_format(segments)
         if not os.path.isfile('velmodel_data.json'):
