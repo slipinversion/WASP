@@ -193,7 +193,9 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
             rake = segment['rake']
             n_stk = segment['stk_subfaults']
             n_dip = segment['dip_subfaults']
-            delay = segment['delay_segment']
+            delay = 0
+            if 'delay_segment' in segment:
+                delay = segment['delay_segment']
             hyp_stk = segment['hyp_stk']
             hyp_dip = segment['hyp_dip']
             outfile.write('{} {} {}\n'.format(i_segment + 1, dip, strike))
