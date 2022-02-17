@@ -355,7 +355,7 @@ contains
                kahan_t(1, 1) = 0.0
                kahan_c(1, 1) = 0.0
                do j=2,nfft
-                  kahan_y(1, 1) = (tdata(j) + tdata(j-1))*dt/2.0 - kahan_t(1, 1)
+                  kahan_y(1, 1) = (tdata(j) + tdata(j-1))*dt/2.0 - kahan_c(1, 1)
                   kahan_t(1, 1) = green(j-1,l,ix)+kahan_y(1, 1)
                   kahan_c(1, 1) = (kahan_t(1, 1)-green(j-1,l,ix))-kahan_y(1, 1)
                   green(j,l,ix) = kahan_t(1, 1)

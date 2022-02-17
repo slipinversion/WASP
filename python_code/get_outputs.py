@@ -385,8 +385,12 @@ def get_insar():
         lines_syn = [line.split() for line in syn_file]
 
     lines_ramp = []
-    ramp1 = insar_data['ascending']['ramp']
-    ramp2 = insar_data['descending']['ramp']
+    ramp1 = None
+    ramp2 = None
+    if 'ascending' in insar_data:
+        ramp1 = insar_data['ascending']['ramp']
+    if 'descending' in insar_data:
+        ramp2 = insar_data['descending']['ramp']
     if ramp1 is None and ramp2 is None:
         if 'ascending' in insar_data:
             insar_points = []

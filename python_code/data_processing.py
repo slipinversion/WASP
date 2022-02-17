@@ -1158,20 +1158,13 @@ def select_strong_stations(tensor_info, files):
 
 if __name__ == '__main__':
     import argparse
+    import manage_parser as mp
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--folder", default=os.getcwd(),
                         help="folder where there are input files")
-    parser.add_argument("-gcmt", "--gcmt_tensor",
-                        help="location of GCMT moment tensor file")
-    parser.add_argument("-t", "--tele", action="store_true",
-                        help="process teleseismic data")
-    parser.add_argument("-su", "--surface", action="store_true",
-                        help="process surface waves data")
-    parser.add_argument("-st", "--strong", action="store_true",
-                        help="process strong motion data")
-    parser.add_argument("--cgps", action="store_true",
-                        help="process cGPS data")
+    parser = mp.parser_add_tensor(parser)
+    parser = mp.parser_data_process(parser)
     parser.add_argument("-dt", "--sampling_delta",
                         help="process cGPS data")
     parser.add_argument("--pick", action="store_true",

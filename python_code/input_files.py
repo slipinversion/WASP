@@ -75,6 +75,10 @@ def forward_model(tensor_info, segments_data, model, vel0, vel1):
 
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+
     hyp_stk = segments[0]['hyp_stk']
     hyp_dip = segments[0]['hyp_dip']
     delta_strike = segments[0]['delta_strike']
@@ -94,7 +98,8 @@ def forward_model(tensor_info, segments_data, model, vel0, vel1):
     disp_or_vel = 0
     string = '{} {} {} {} {}\n'
 
-    point_sources0 = pf.point_sources_param(segments, tensor_info, rise_time)
+    point_sources0 = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     ny = int(dip_ps / 2)
     nx = int(strike_ps / 2)
     times = [point_sources[:, :, ny, nx, 4] for point_sources in point_sources0]
@@ -145,6 +150,9 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
     """
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
     delta_strike = segments[0]['delta_strike']
     delta_dip = segments[0]['delta_dip']
     rupture_vel = segments[0]['rupture_vel']
@@ -162,7 +170,8 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
     delta_dip = segments[0]['delta_dip']
 
     depth = tensor_info['depth']
-    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     shear = pf.shear_modulous(point_sources, velmodel=velmodel)
 
     disp_or_vel = 0
@@ -184,8 +193,13 @@ def plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel):
             rake = segment['rake']
             n_stk = segment['stk_subfaults']
             n_dip = segment['dip_subfaults']
+            delay = 0
+            if 'delay_segment' in segment:
+                delay = segment['delay_segment']
+            hyp_stk = segment['hyp_stk']
+            hyp_dip = segment['hyp_dip']
             outfile.write('{} {} {}\n'.format(i_segment + 1, dip, strike))
-            outfile.write('{} {} 0\n'.format(n_stk, n_dip))
+            outfile.write('{} {} {}\n'.format(n_stk, n_dip, delay))
             for i in range(n_dip):
                 for j in range(n_stk):
                     slip = 300 if j == hyp_stk - 1 and i == hyp_dip - 1 else 0
@@ -757,6 +771,7 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
     for file in traces_info:
         name = file['name']
         channel = file['component']
+        ffm_duration = file['duration']
         error_norm = '3 ' * (n_end - n_begin) + '3\n'
         derivative = False if not 'derivative' in file\
             else file['derivative']
@@ -764,26 +779,50 @@ def write_files_wavelet_observed(wavelet_file, obse_file, dt, data_prop,
             error_norm = '3 ' * (5 - n_begin) + '4 ' * (n_end - 5) + '4\n'
         wavelet_file.write(string(name, channel, error_norm, file['wavelet_weight']))
         if file['file']:
-            # print(file['file'], os.getcwd())
             start = file['start_signal']
-            try:
-                stream = read(file['file'], format='SAC')
-                waveform = stream[0].data[start:]
-                if zero_start:
-                    stream[0].data = stream[0].data - waveform[0]
-                    stream.write(file['file'], format='SAC', byteorder=0)
-                    waveform = waveform - waveform[0]
-                waveform = np.gradient(waveform, dt) if derivative\
-                else waveform
-                del stream
-            except IndexError:
-                print('Obspy bug when reading the file {}. '\
-                      'Waveform set to zero'.format(file['file']))
-                waveform = [0 for i in range(ffm_duration)]
+            stream = __get_stream(file)
+            waveform = stream[0].data[start:]
+            if zero_start:
+                stream[0].data = stream[0].data - waveform[0]
+                stream.write(file['file'], format='SAC', byteorder=0)
+                waveform = waveform - waveform[0]
+            waveform = np.gradient(waveform, dt) if derivative\
+            else waveform
+            del stream
+            # try:
+            #     stream = read(file['file'], format='SAC')
+            #     waveform = stream[0].data[start:]
+            #     if zero_start:
+            #         stream[0].data = stream[0].data - waveform[0]
+            #         stream.write(file['file'], format='SAC', byteorder=0)
+            #         waveform = waveform - waveform[0]
+            #     waveform = np.gradient(waveform, dt) if derivative\
+            #     else waveform
+            #     del stream
+            # except IndexError:
+            #     print('Obspy bug when reading the file {}. '\
+            #           'Waveform set to random'.format(file['file']))
+            #     waveform = [5000*np.random.randn() for i in range(ffm_duration)]
         else:
-            waveform = [0 for i in range(ffm_duration)]
+            waveform = [5000*np.random.randn() for i in range(ffm_duration)]
         write_observed_file(file, dt, obse_file, waveform, dart=dart)
     return
+
+
+def __get_stream(file):
+    """
+    """
+    stream = None
+    for i in range(10):
+        try:
+            stream = read(file['file'], format='SAC')
+            break
+        except IndexError:
+            print(i)
+            print('Obspy bug when reading the file {}. '\
+                    'Waveform set to random'.format(file['file']))
+            continue
+    return stream
 
 
 def write_observed_file(file, dt, data_file, waveform, dart=False):
@@ -1025,8 +1064,51 @@ def model_space(segments):
             filewrite.write('2.6 2.4 3\n')
             filewrite.write('5 8\n')
 
-    with open('regularization_borders.txt', 'w') as file:
-        file.write('1\n' + '0 0\n' * 4)
+    with open('regularization_borders.txt', 'w') as filewrite:
+        for i, segment in enumerate(segments):
+            filewrite.write('{}\n'.format(i + 1))
+
+            if 'regularization' not in segment:
+                filewrite.write('0 0\n' * 4)
+            else:
+                reg_borders = segment['regularization']
+                neighbour_up = reg_borders['neighbour_up']
+                if neighbour_up:
+                    up_segment = neighbour_up['segment']
+                    subfault_up_segment = neighbour_up['subfault']
+                    filewrite.write(
+                        '{} {}\n'.format(up_segment, subfault_up_segment))
+                else:
+                    filewrite.write('0 0\n')
+
+                neighbour_down = reg_borders['neighbour_down']
+                if neighbour_down:
+                    down_segment = neighbour_down['segment']
+                    subfault_down_segment = neighbour_down['subfault']
+                    filewrite.write(
+                        '{} {}\n'.format(down_segment, subfault_down_segment))
+                else:
+                    filewrite.write('0 0\n')
+
+                neighbour_left = reg_borders['neighbour_left']
+                if neighbour_left:
+                    left_segment = neighbour_left['segment']
+                    subfault_left_segment = neighbour_left['subfault']
+                    filewrite.write(
+                        '{} {}\n'.format(left_segment, subfault_left_segment))
+                else:
+                    filewrite.write('0 0\n')
+
+                neighbour_right = reg_borders['neighbour_right']
+                if neighbour_right:
+                    right_segment = neighbour_right['segment']
+                    subfault_right_segment = neighbour_right['subfault']
+                    filewrite.write(
+                        '{} {}\n'.format(right_segment, subfault_right_segment))
+                else:
+                    filewrite.write('0 0\n')
+    # with open('regularization_borders.txt', 'w') as file:
+    #     file.write('1\n' + '0 0\n' * 4)
     with open('special_model_space.txt', 'w') as filewrite:
         filewrite.write('0\n')
     with open('special_regularization_borders.txt', 'w') as file:
@@ -1070,40 +1152,29 @@ def write_green_file(green_dict, cgps=False):
 
 if __name__ == '__main__':
     import argparse
+    import manage_parser as mp
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-f", "--folder", default=os.getcwd(),
         help="folder where there are input files")
-    parser.add_argument(
-        "-gcmt", "--gcmt_tensor", help="location of GCMT moment tensor file")
+    parser = mp.parser_add_tensor(parser)
+    parser = mp.parser_fill_data_files(parser)
     parser.add_argument(
         "-p", "--plane", action="store_true",
         help="compute Fault.pos, Fault.time, Niu_model")
     parser.add_argument(
-        "-t", "--tele", action="store_true",
-        help="compute files with teleseismic data")
-    parser.add_argument(
-        "-su", "--surface", action="store_true",
-        help="compute files with surface waves data")
-    parser.add_argument(
-        "-st", "--strong", action="store_true",
-        help="compute files with strong motion data")
-    parser.add_argument(
-        '-l','--list', nargs='+', help='list of strong motion stations')
-    parser.add_argument(
-        "--cgps", action="store_true", help="compute files with cGPS data")
-    parser.add_argument(
-        "--gps", action="store_true", help="compute files with static GPS data")
-    parser.add_argument(
-        "-in", "--insar", action="store_true",
-        help="compute files with InSar data")
+        '-l','--list', nargs='+',
+        help='list of strong motion stations')
     parser.add_argument(
         "-a", "--annealing", action="store_true",
         help="compute files for annealing")
     parser.add_argument(
         "-m", "--model_space", action="store_true",
         help="compute files for model space")
+    parser.add_argument(
+        "-reg", "--regularization", action="store_true",
+        help="compute files for regularization")
     args = parser.parse_args()
     os.chdir(args.folder)
     if args.gcmt_tensor:

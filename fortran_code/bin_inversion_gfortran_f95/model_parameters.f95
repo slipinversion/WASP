@@ -203,7 +203,8 @@ contains
             write(13, 133) point_sources(1, 1, 1, ixs, iys, segment), &
          &  point_sources(2, 1, 1, ixs, iys, segment), point_sources(3, 1, 1, ixs, iys, segment), &
          &  slip(kp, segment), rake(kp, segment), strike(segment), dip(segment), &
-         &  tt(kp, segment) + t_ref, tl(kp, segment), tr(kp, segment), moment_sol
+         &  tt(kp, segment) + t_ref + delay_seg(segment), tl(kp, segment), &
+         &  tr(kp, segment), moment_sol
 133  format(f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, e14.6)
          end do
       end do

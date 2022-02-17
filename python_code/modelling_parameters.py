@@ -35,7 +35,7 @@ def modelling_prop(tensor_info, segments_data, data_type=None, moment_mag=None):
     data_type2 = set(data_type) - {'gps'}
 
     syn_len = int(2.5 * time_shift)
-    factor = 1 / len(data_type2)
+#    factor = 1 / len(data_type2)
     moment_weight = 0.1# * factor
     slip_weight = 0.15# * factor
     time_weight = 0.15# * factor
@@ -81,6 +81,14 @@ def modelling_prop(tensor_info, segments_data, data_type=None, moment_mag=None):
         'max_slip_delta': peak_slip,
         'slip_step': nstep
     }
+    regularization = {
+        'regularization':{
+            'neighbour_up': None,
+            'neighbour_down': None,
+            'neighbour_left': None,
+            'neighbour_right': None
+        }
+    }
 
     segments2 = []
     for segment in segments:
@@ -97,6 +105,7 @@ def modelling_prop(tensor_info, segments_data, data_type=None, moment_mag=None):
             'rake_step': rstep
         }
         dictionary3.update(dictionary2)
+        dictionary3.update(regularization)
         segments2 = segments2 + [dictionary3]
 
     with open('model_space.json','w') as f:

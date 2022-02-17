@@ -220,10 +220,10 @@ def load_ffm_model(segments_data, point_sources, option='Solucion.txt',
             tfall = tfall + [tfall_fault]
 
     model = {
-            'slip': slip,
-            'rake': rake,
-            'trup': trup,
-            'trise': trise,
-            'tfall': tfall
+        'slip': slip,
+        'rake': rake,
+        'trup': trup,
+        'trise': trise,
+        'tfall': tfall
     }
     return model

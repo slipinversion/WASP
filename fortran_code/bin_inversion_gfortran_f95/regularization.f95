@@ -72,8 +72,8 @@ contains
    integer n_sub
    integer n_is, ll
    integer nxx, nyy, jj, nx, ny
-   real d1, d2, d3, d4, error!, kahan_y, kahan_t, kahan_c
-   real(8) :: err2
+   real d1, d2, d3, d4!, error
+   real*8 :: err2, error
    integer segment
    
    err2 = 0.d0
@@ -157,8 +157,8 @@ contains
    integer n_sub
    integer n_is
    integer nxx, nyy, nx, ny
-   real d1, d2, d3, d4, error!, kahan_y, kahan_t, kahan_c
-   real*8 :: err2
+   real d1, d2, d3, d4!, error
+   real*8 :: err2, error
    integer segment, ll
 
    err2 = 0.d0

@@ -628,7 +628,7 @@ def _PlotInsar(tensor_info, segments, point_sources, default_dirs,
     plane_info = segments[0]
     stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
         = pl_mng.__unpack_plane_data(plane_info)
-    slip = solution['slip']
+    # slip = solution['slip']
 #
 # accurate plot coordinates
 #
@@ -1098,40 +1098,23 @@ if __name__ == '__main__':
     """
     """
     import management as mng
+    import manage_parser as mp
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-f", "--folder", default=os.getcwd(),
         help="folder where there are input files")
-    parser.add_argument(
-        "-gcmt", "--gcmt_tensor", help="location of GCMT moment tensor file")
+    parser = mp.parser_add_tensor(parser)
+    parser = mp.parser_data_plot(parser)
     parser.add_argument(
         "-ffms", "--ffm_solution", action="store_true",
         help="plot FFM solution slip maps, rise time")
-    parser.add_argument(
-        "-t", "--tele", action="store_true",
-        help="plot misfit of teleseismic data")
-    parser.add_argument(
-        "-su", "--surface", action="store_true",
-        help="plot misfit of surface waves data")
-    parser.add_argument(
-        "-st", "--strong", action="store_true",
-        help="plot strong motion stations and strong motion misfit")
-    parser.add_argument(
-        "--cgps", action="store_true", help="plot misfit of cGPS data")
-    parser.add_argument("--gps", action="store_true", help="plot GPS data")
-    parser.add_argument(
-        "-in", "--insar", action="store_true", help="plot InSar data")
     parser.add_argument(
         "-bb", "--beachballs", action="store_true", help="plot beachballs")
     args = parser.parse_args()
     os.chdir(args.folder)
     if args.gcmt_tensor:
         args.gcmt_tensor = os.path.abspath(args.gcmt_tensor)
-    used_data = []
-    used_data = used_data + ['strong_motion'] if args.strong else used_data
-    used_data = used_data + ['cgps'] if args.cgps else used_data
-    used_data = used_data + ['tele_body'] if args.tele else used_data
-    used_data = used_data + ['surf_tele'] if args.surface else used_data
+    used_data = mp.get_used_data(args)
     default_dirs = mng.default_dirs()
     if args.gcmt_tensor:
         cmt_file = args.gcmt_tensor
@@ -1141,7 +1124,11 @@ if __name__ == '__main__':
     segments_data = json.load(open('segments_data.json'))
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
-    point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
     if args.ffm_solution:
         solution = get_outputs.read_solution_static_format(segments)
         if not os.path.isfile('velmodel_data.json'):

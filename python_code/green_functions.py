@@ -82,7 +82,7 @@ def gf_retrieve(used_data_type, default_dirs):
 
     # [p.wait() for p in processes]
     for p, log in zip(processes, loggers):
-        out, err = p.communicate(timeout=20 * 60)
+        out, err = p.communicate(timeout=50 * 60)
         log.info(out.decode('utf-8'))
         if err: log.error(err.decode('utf-8', 'ignore'))
         ml.close_log(log)
@@ -232,24 +232,14 @@ if __name__ == '__main__':
     import argparse
     import seismic_tensor as tensor
     import management as mng
+    import manage_parser as mp
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-f", "--folder", default=os.getcwd(),
         help="folder where there are input files")
-    parser.add_argument(
-        "-gcmt", "--gcmt_tensor",
-        help="location of GCMT moment tensor file")
-    parser.add_argument(
-        "-t", "--tele", action="store_true",
-        help="compute teleseismic body waves GF")
-    parser.add_argument(
-        "-st", "--strong", action="store_true",
-        help="compute strong motion GF")
-    parser.add_argument(
-        "--cgps", action="store_true", help="compute cGPS GF")
-    parser.add_argument(
-        "--gps", action="store_true", help="compute static GPS GF")
+    parser = mp.parser_add_tensor(parser)
+    parser = mp.parser_add_gf(parser)
     parser.add_argument(
         "-dt", type=float, default=0.2,
         help="sampling step of strong motion data")
@@ -261,11 +251,7 @@ if __name__ == '__main__':
     else:
         tensor_info = tensor.get_tensor()
     tensor_info['timedelta'] = 81 * 90
-    used_data = []
-    used_data = ['tele_body'] + used_data if args.tele else used_data
-    used_data = ['strong_motion'] + used_data if args.strong else used_data
-    used_data = ['cgps'] + used_data if args.cgps else used_data
-    used_data = ['gps'] + used_data if args.gps else used_data
+    used_data = mp.get_used_data(args)
     default_dirs = mng.default_dirs()
     if 'strong_motion' in used_data and not os.path.isfile('strong_motion_gf.json'):
         green_dict = fk_green_fun0(args.dt, tensor_info, default_dirs)
