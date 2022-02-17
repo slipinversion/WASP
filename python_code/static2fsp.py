@@ -28,6 +28,7 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     :type solution: dict
     :type vel_model: dict
     """
+    print('Writing FSP file output')
     locator = flinnengdahl.FlinnEngdahl()
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
@@ -181,7 +182,7 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
             '{}\n'.format(dep, pv, sv, den, qpp, qss))
         outfile.write('%\n%{}{}\n'.format(string, string))
         outfile.write('% {}/{}/{} created by degoldberg@usgs.gov'\
-        'cl\n'.format(now.day, now.month, now.year))
+        '\n'.format(now.day, now.month, now.year))
         outfile.write('%\n% SOURCE MODEL PARAMETERS\n')
         if len(segments) == 1:
             outfile.write('% Nsbfs = {} subfaults\n'.format(stk_subfaults, dip_subfaults))

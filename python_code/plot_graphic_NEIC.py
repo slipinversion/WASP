@@ -80,7 +80,8 @@ slipcpt = ListedColormap(slip_cpt)
 #slipcpt = matplotlib.colors.LinearSegmentedColormap('slipcpt',cD)
 
 def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
-                 vel_model, default_dirs, autosize=False, mr_time=False, evID=None):
+                 vel_model, default_dirs, autosize=False, mr_time=False, evID=None,
+                 files_str=None, stations_gps=None, stations_cgps=None, max_val=None):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
 
@@ -152,8 +153,8 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=mr_time)
     #_PlotRiseTime(segments, point_sources, solution)
     #_PlotRuptTime(segments, point_sources, solution)
-    _PlotSlipDistribution(segments, point_sources, solution, autosize=autosize)
-    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs)
+    _PlotSlipDistribution(segments, point_sources, solution, autosize=autosize, max_val=max_val)
+    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, files_str=files_str, stations_gps=stations_gps, stations_cgps=stations_cgps, max_slip=max_val)
     _PlotSlipTimes(segments, point_sources, solution)
 
 def plot_misfit(used_data_type, forward=False):
@@ -340,7 +341,7 @@ def _PlotRiseTime(segments, point_sources, solution):
     return
 
 
-def _PlotSlipDistribution(segments, point_sources, solution, autosize=False):
+def _PlotSlipDistribution(segments, point_sources, solution, autosize=False, max_val=None):
     """We plot slip distribution based on the FFM solution model
     """
     print('Creating Slip Distribution Plot...')
@@ -350,13 +351,13 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False):
     max_slip = [np.max(slip_seg.flatten()) for slip_seg in slip]
     max_slip = np.max(max_slip)
     print('Max Slip: ' + str(max_slip))
-    #max_slip = 561.484314
+    if max_val != None:
+        max_slip = max_val
     x_label = 'Distance Along Strike (km)'
     y_label = 'Distance Along Dip (km)'
     for i_segment, (segment, slip_seg, rake_seg, rupttime_seg, ps_seg)\
     in enumerate(zip(segments, slip, rake, rupt_time, point_sources)):
         max_slip_seg = np.max(slip_seg.flatten())
-        #max_slip_seg = 268.936584
         max_slip_seg = max_slip
         u = slip_seg * np.cos(rake_seg * np.pi / 180.0) / max_slip_seg
         v = slip_seg * np.sin(rake_seg * np.pi / 180.0) / max_slip_seg
@@ -709,9 +710,10 @@ def _PlotCumulativeSlip(segments, point_sources, solution, tensor_info, evID=Non
     return corner_1, corner_2, corner_3, corner_4
 
 def _PlotSlipDist_Compare(segments, point_sources, input_model,
-                          solution):
+                          solution, max_val=None):
     """We plot slip distribution based on the FFM solution model
     """
+    print("Creating Checkerboard Comparison Plot")
     slip = solution['slip']
     rake = solution['rake']
     slip2 = input_model['slip']
@@ -721,6 +723,8 @@ def _PlotSlipDist_Compare(segments, point_sources, input_model,
     max_slip2 = [np.max(slip_seg2.flatten()) for slip_seg2 in slip2]
     max_slip2 = np.max(max_slip2)
     max_slip = np.maximum(max_slip, max_slip2)
+    if max_val == None:
+        max_val=max_slip
     x_label = 'Distance along strike $(km)$'
     y_label = 'Distance along dip $(km)$'
     zipped = zip(segments, slip, rake, slip2, rake2, point_sources)
@@ -752,15 +756,15 @@ def _PlotSlipDist_Compare(segments, point_sources, input_model,
             ax0.plot(0, 0, 'w*', ms=20)
             ax1.plot(0, 0, 'w*', ms=20)
         ax0, im = __several_axes(slip_seg, segment, ps_seg, ax0,
-                                 max_val=max_slip, autosize=False)
+                                 max_val=max_val, autosize=False)
         ax1, im = __several_axes(slip_seg2, segment, ps_seg, ax1,
-                                 max_val=max_slip, autosize=False)
+                                 max_val=max_val, autosize=False)
         ax0.set_title('Inverted model', fontsize=20)
         ax1.set_title('Original model', fontsize=20)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         cb = fig.colorbar(im, cax=cbar_ax)
         cb.set_label('Slip (cm)')
-        plt.savefig('SlipDist_Compare_plane{}.png'.format(i_segment),
+        plt.savefig('Checkerboard_SlipDist_plane{}.png'.format(i_segment),
                     bbox_inches='tight')
         plt.close()
     return
@@ -890,12 +894,12 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         for name, sta_lat, sta_lon, obs, syn, error in stations_gps2:
             #plt.plot(sta_lon, sta_lat, 'ks', transform=ccrs.PlateCarree(),
             #         markersize=14)
-            scale = 4
+            scale = 1
             gps_z, gps_n, gps_e = syn
             east_west = float(gps_e) / max_obs / scale
             north_south = float(gps_n) / max_obs / scale
             plt.arrow(sta_lon, sta_lat, east_west, north_south, color='r',
-                      zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
+                      zorder=3, linewidth=3.5, head_width=0.05, head_length=0.05,
                       transform=ccrs.PlateCarree())
             up_down = float(gps_z) / max_obs#/ 100
             #plt.arrow(sta_lon, sta_lat, 0.0, up_down, color='r', zorder=3,
@@ -1073,9 +1077,10 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
 
 
 def _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
-                       solution):
+                       solution,max_val=None):
     """We plot slip map.
     """
+    print("Plotting Comparison Map")
     input_slip = input_model['slip']
     plane_info = segments[0]
     stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
@@ -1113,15 +1118,17 @@ def _PlotComparisonMap(tensor_info, segments, point_sources, input_model,
 #
 # plot slip map
 #
-    ax1, cs1 = plot_map(ax1, segments_lats, segments_lons, slip, max_val=max_slip,
-                       transform=dictn['projection'])
+    if max_val==None:
+        max_val=max_slip
+    ax1, cs1 = plot_map(ax1, segments_lats, segments_lons, slip, max_val=max_val,
+                       transform=dictn['projection'], cmap=slipcpt)#'binary')
     ax2, cs2 = plot_map(ax2, segments_lats, segments_lons, input_slip,
-                        max_val=max_slip, transform=dictn['projection'])
+                        max_val=max_val, transform=dictn['projection'], cmap=slipcpt)#'binary')
     fig.subplots_adjust(bottom=0.15)
     cbar_ax = fig.add_axes([0.1, 0.05, 0.8, 0.05])
     cb = fig.colorbar(cs2, cax=cbar_ax, orientation='horizontal')
     cb.set_label('Slip (cm)')
-    plt.savefig('Comparison.png', bbox_inches='tight')
+    plt.savefig('Checkerboard_Map_Comparison.png', bbox_inches='tight')
     plt.close()
     return
 
@@ -1762,6 +1769,10 @@ if __name__ == '__main__':
                         help="create event page download files")
     parser.add_argument("-pub","--publish",action="store_true",
                         help="rename files for use with sendproduct")
+    parser.add_argument("-check","--checkerboard",action="store_true",
+                        help="plot comparison for checkerboard test")
+    parser.add_argument("-max","--maxvalue",default=None, type=float,
+                        help="Choose maximum slip value for plot")
     args = parser.parse_args()
     os.chdir(args.folder)
     used_data = []
@@ -1780,6 +1791,20 @@ if __name__ == '__main__':
     rise_time = segments_data['rise_time']
     point_sources = pf.point_sources_param(segments, tensor_info, rise_time)
     solution = get_outputs.read_solution_static_format(segments)
+
+    traces_info, traces_info_cgps, stations_gps = [None, None, None]
+    if args.gps:
+        names, lats, lons, observed, synthetic, error\
+                = get_outputs.retrieve_gps()
+        stations_gps = zip(names, lats, lons, observed, synthetic, error)
+    if args.cgps:
+        traces_info_cgps = json.load(open('cgps_waves.json'))
+    if args.strong:
+        traces_info = json.load(open('strong_motion_waves.json'))
+    if args.maxvalue != None:
+        maxval=args.maxvalue
+    else:
+        maxval=None
     if args.ffm_solution:
         if not os.path.isfile('velmodel_data.json'):
             vel_model = mv.select_velmodel(tensor_info, default_dirs)
@@ -1799,7 +1824,8 @@ if __name__ == '__main__':
         else:
             evID = None
         plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
-                     vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID)
+                     vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID,
+                     files_str=traces_info,stations_gps=stations_gps, stations_cgps=traces_info_cgps)
         static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)        
 
     if args.shakemappolygon:
@@ -1809,25 +1835,19 @@ if __name__ == '__main__':
             evID = None
         shakemap_polygon(segments, point_sources, solution, tensor_info, evID=evID)
 
-    traces_info, traces_info_cgps, stations_gps = [None, None, None]
-    if args.gps:
-        names, lats, lons, observed, synthetic, error\
-                = get_outputs.retrieve_gps()
-        stations_gps = zip(names, lats, lons, observed, synthetic, error)
-    if args.cgps:
-        traces_info_cgps = json.load(open('cgps_waves.json'))
-    if args.strong:
-        traces_info = json.load(open('strong_motion_waves.json'))
-    #if args.strong or args.gps:
-    if args.gps or args.strong or args.cgps:
-        solution = get_outputs.read_solution_static_format(segments)
-        _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
-                 files_str=traces_info, stations_gps=stations_gps, stations_cgps=traces_info_cgps)
         #input_model = load_ffm_model.load_ffm_model(
         #        segments_data, point_sources, option='Fault.time')
         #_PlotSlipDist_Compare(segments, point_sources, input_model, solution)
-        #_PlotComparisonMap(tensor_info, segments, point_sources, input_model,
-        #                   solution)
+    if args.checkerboard:
+        input_model = load_ffm_model.load_ffm_model(
+            segments_data, point_sources, option='fault&rise_time.txt')
+        _PlotComparisonMap(tensor_info, segments, point_sources, input_model, solution, max_val=maxval)
+        _PlotSlipDist_Compare(segments, point_sources, input_model, solution, max_val=maxval)
+        if not os.path.isfile('velmodel_data.json'):
+            vel_model = mv.select_velmodel(tensor_info, default_dirs)
+        else:
+            vel_model = json.load(open('velmodel_data.json'))
+        static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)
     if args.insar:
         solution = get_outputs.read_solution_static_format(segments)
         insar_data = get_outputs.get_insar()

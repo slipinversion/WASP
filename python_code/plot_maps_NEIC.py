@@ -98,7 +98,7 @@ def set_map_cartopy(ax, margins, tectonic=None, countries=None, bathymetry=None,
 
 
 def plot_map(ax, latitudes, longitudes, values, min_val=None, max_val=None,
-             transform=None):
+             transform=None, cmap=slipcpt):
     """
     """
     min_val = min([np.amin(value) for value in values]) if not min_val else min_val
@@ -107,7 +107,7 @@ def plot_map(ax, latitudes, longitudes, values, min_val=None, max_val=None,
     for longitude, latitude, value in zipped:
         if np.prod(longitude.shape) > 1:
             cs = ax.pcolormesh(
-                longitude, latitude, value, zorder=3, vmin=min_val, cmap=slipcpt,
+                longitude, latitude, value, zorder=3, vmin=min_val, cmap=cmap,
                 vmax=max_val, edgecolor='0.5', lw=0.5, transform=transform)
     return ax, cs
 
