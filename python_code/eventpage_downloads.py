@@ -145,15 +145,17 @@ def temporary_file_reorganization_for_publishing(evID,directory=None):
     resampled_insar_data_asc = glob(directory + '/*ascending.txt')
     resampled_insar_data_desc = glob(directory + '/*descending.txt')
     interferograms_pub_directory = os.path.join(pub_directory, 'resampled_interferograms')
-    if not os.path.exists(interferograms_pub_directory):
-        os.makedirs(interferograms_pub_directory)
+    if len(resampled_insar_data_asc) > 0 or len(resampled_insar_data_desc) > 0:
+        if not os.path.exists(interferograms_pub_directory):
+            os.makedirs(interferograms_pub_directory)
     for asc in range(len(resampled_insar_data_asc)):
         orig_asc = resampled_insar_data_asc[asc]
         shutil.copy(orig_asc, interferograms_pub_directory)
     for desc in range(len(resampled_insar_data_desc)):
         orig_desc = resampled_insar_data_desc[desc]
         shutil.copy(orig_desc, interferograms_pub_directory)
-    shutil.make_archive(os.path.join(pub_directory, 'resampled_interferograms'), 'zip', os.path.join(pub_directory, interferograms_pub_directory))
+    if os.path.exists(interferograms_pub_directory):
+        shutil.make_archive(os.path.join(pub_directory, 'resampled_interferograms'), 'zip', os.path.join(pub_directory, interferograms_pub_directory))
 
 def make_waveproperties_json(directory=None):
     print('Counting Observations for Waveform Properties JSON')

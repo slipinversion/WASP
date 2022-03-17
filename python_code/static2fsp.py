@@ -277,7 +277,9 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
                                    slip, rake, t_rup, t_ris + t_fal, moment))
                     start_line = start_line + 1
                 start_line = start_line + 9
-
+                total_moment_segment = sum(moment_fault)
+                total_magnitude_segment = (2./3) * (np.log10(total_moment_segment) - 16.1)
+                print(f"Segment {i_segment}: Mw{total_magnitude_segment}")
 
 if __name__ == '__main__':
     import argparse

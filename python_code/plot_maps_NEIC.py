@@ -108,7 +108,8 @@ def plot_map(ax, latitudes, longitudes, values, min_val=None, max_val=None,
         if np.prod(longitude.shape) > 1:
             cs = ax.pcolormesh(
                 longitude, latitude, value, zorder=3, vmin=min_val, cmap=cmap,
-                vmax=max_val, edgecolor='0.5', lw=0.5, transform=transform)
+                vmax=max_val, edgecolor=None, transform=transform)
+                #vmax=max_val, edgecolor='0.5', lw=0.5, transform=transform)
     return ax, cs
 
 def plot_borders(ax, latitudes, longitudes, transform=None):
