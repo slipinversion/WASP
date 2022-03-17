@@ -102,7 +102,8 @@ def forward_model(tensor_info, segments_data, model, vel0, vel1):
         segments, tensor_info, rise_time, connections=connections)
     ny = int(dip_ps / 2)
     nx = int(strike_ps / 2)
-    times = [point_sources[:, :, ny, nx, 4] for point_sources in point_sources0]
+    times = [point_sources[:, :, ny, nx, 4]
+             for point_sources in point_sources0]
     trup_segs2 = [rupt_seg - time for time, rupt_seg in zip(times, trup_segs)]
 
     zipped = zip(segments, slip_segs, rake_segs, trup_segs2, tris_segs, tfall_segs)
@@ -501,7 +502,6 @@ def input_chen_cgps(tensor_info, data_prop):
     dt_cgps = round(dt_cgps, 2)
     low_freq = filtro['low_freq']
     high_freq = filtro['high_freq']
-
 
     nsta = len(traces_info)
 
@@ -1021,9 +1021,9 @@ def inputs_simmulated_annealing(dictionary, data_type):
 
     with open('annealing.txt', 'w') as filewrite:
         filewrite.write('{} -7 {} {} 90\n'.format(
-                iters, type_of_inversion, moment_mag))
+            iters, type_of_inversion, moment_mag))
         filewrite.write('{} {} {} 0.1 {} {} {}\n'.format(initial_temp,
-                cooling_rate, 4 * 10**-6, weight0, weight1, weight2))
+            cooling_rate, 4 * 10**-6, weight0, weight1, weight2))
         filewrite.write('0 {} 0 {}\n'.format(10 ** - 4, source_dur))
         filewrite.write('1\n')
     return
@@ -1055,11 +1055,11 @@ def model_space(segments):
             filewrite.write('{}\n'.format(i + 1))
             filewrite.write('{} {}\n'.format(peak_slip_delta, peak_slip_delta))
             filewrite.write('1 1 1 1\n')
-            filewrite.write('{} 0.0 {}\n'.format(peak_upper_slip, nstep))
-            filewrite.write('{} 0.0 {}\n'.format(peak_lower_slip, nstep))
+            filewrite.write('{} 0.0 {}\n'.format(peak_slip, nstep))
             filewrite.write('{} 0.0 {}\n'.format(peak_left_slip, nstep))
             filewrite.write('{} 0.0 {}\n'.format(peak_right_slip, nstep))
-            filewrite.write('{} 0.0 {}\n'.format(peak_slip, nstep))
+            filewrite.write('{} 0.0 {}\n'.format(peak_upper_slip, nstep))
+            filewrite.write('{} 0.0 {}\n'.format(peak_lower_slip, nstep))
             filewrite.write('{} {} {}\n'.format(rake_max, rake_min, rstep))
             filewrite.write('2.6 2.4 3\n')
             filewrite.write('5 8\n')
@@ -1182,6 +1182,8 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     else:
         tensor_info = tensor.get_tensor()
+    # green_dict = json.load(open('cgps_gf.json'))
+    # write_green_file(green_dict, cgps=True)
     if args.plane:
         velmodel = json.load(open('velmodel_data.json'))
 #        write_velmodel(velmodel)

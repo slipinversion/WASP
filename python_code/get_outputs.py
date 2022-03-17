@@ -48,12 +48,12 @@ def read_solution_static_format(segments):
     headers = headers[1:] + [len(jk)]
     if not len(headers) == len(segments):
         raise RuntimeError(
-        'Inconsistency between Fault.time and Solucion.txt.'\
-        ' Different amount of fault segments')
+            'Inconsistency between Fault.time and Solucion.txt.'
+            ' Different amount of fault segments')
     for segment, start, end in zip(segments, faults_data, headers):
-#
-# load FFM solution model and coordinates
-#
+        #
+        # load FFM solution model and coordinates
+        #
         lat_fault = np.array([float(line[0]) for line in jk[start:end]])
         lon_fault = np.array([float(line[1]) for line in jk[start:end]])
         depth_fault = np.array([float(line[2]) for line in jk[start:end]])
@@ -217,6 +217,7 @@ def get_data_dict(traces_info, syn_file=None, observed=True, checker=False,
     :type observed: bool, optional
     :type margin: float, optional
     """
+    used_channels = []
     if syn_file:
         with open(syn_file, 'r') as infile:
             lines = [line.split() for line in infile]
@@ -227,11 +228,16 @@ def get_data_dict(traces_info, syn_file=None, observed=True, checker=False,
             channel = file['component']
             channel = __get_channel(channel)
             indexes = [i for i in lines0 if lines[i][2]==name\
-                 and lines[i][3] in channel]
-            for index in indexes:
-                npts = int(lines[index][0])
-                synthetic = [float(real) for real, imag in lines[index + 1:index + npts]]
-                file['synthetic'] = np.array(synthetic)
+                and lines[i][3] in channel]
+            this_channel = [name, channel]
+            if not this_channel in used_channels:
+                used_channels = used_channels + [this_channel]
+                index = indexes[0]
+            else:
+                index = indexes[1]
+            npts = int(lines[index][0])
+            synthetic = [float(real) for real, imag in lines[index + 1:index + npts]]
+            file['synthetic'] = np.array(synthetic)
     if observed:
         if obs_file:
             for file in traces_info:
@@ -280,12 +286,10 @@ def _get_observed_from_chen(file, obse_file):
     with open(obse_file, 'r') as infile:
         lines = [line.split() for line in infile]
 
-    lines0 = [
-        i for i, line in enumerate(lines) if not __is_number(line[0])
-    ]
-    indexes = [
-        i for i in lines0 if (len(lines[i]) > 1 and lines[i][1] == name)
-    ]
+    lines0 = [i for i, line in enumerate(lines)
+              if not __is_number(line[0])]
+    indexes = [i for i in lines0
+               if (len(lines[i]) > 1 and lines[i][1] == name)]
     index = next(i for i in indexes if lines[i + 1][1] in channel)
     npts = int(lines[index + 3][1])
     npts = min(file['duration'], npts)
@@ -337,16 +341,24 @@ def _old_get_observed_from_chen(file, obse_file):
 def __get_channel(channel):
     """Auxiliary routine
     """
-    if channel in ['P', 'BHZ']: channel = ['P', 'BHZ']
+    if channel in ['P', 'BHZ']:
+        channel = ['P', 'BHZ']
     if channel in ['SH', None, 'BH1', 'BH2', 'BHE', 'BHN']:
         channel = ['SH']
-    if channel in ['HNZ', 'HLZ', 'BNZ']: channel = ['HNZ', 'HLZ', 'BNZ']
-    if channel in ['HNE', 'HLE', 'BNE']: channel = ['HNE', 'HLE', 'BNE']
-    if channel in ['HNN', 'HLN', 'BNN']: channel = ['HNN', 'HLN', 'BNN']
-    if channel in ['LXZ', 'LHZ', 'LYZ']: channel = ['LXZ', 'LHZ', 'LYZ']
-    if channel in ['LXE', 'LHE', 'LYE']: channel = ['LXE', 'LHE', 'LYE']
-    if channel in ['LXN', 'LHN', 'LYN']: channel = ['LXN', 'LHN', 'LYN']
-    if channel in ['dart']: channel = ['dart']
+    if channel in ['HNZ', 'HLZ', 'BNZ']:
+        channel = ['HNZ', 'HLZ', 'BNZ']
+    if channel in ['HNE', 'HLE', 'BNE']:
+        channel = ['HNE', 'HLE', 'BNE']
+    if channel in ['HNN', 'HLN', 'BNN']:
+        channel = ['HNN', 'HLN', 'BNN']
+    if channel in ['LXZ', 'LHZ', 'LYZ']:
+        channel = ['LXZ', 'LHZ', 'LYZ']
+    if channel in ['LXE', 'LHE', 'LYE']:
+        channel = ['LXE', 'LHE', 'LYE']
+    if channel in ['LXN', 'LHN', 'LYN']:
+        channel = ['LXN', 'LHN', 'LYN']
+    if channel in ['dart']:
+        channel = ['dart']
     return channel
 
 

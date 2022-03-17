@@ -108,6 +108,144 @@ def shift_match(data_type, plot=False, method='full', zero_start=True):
     return
 
 
+def shift_match2(data_type, plot=False, method='full', zero_start=True):
+    """We shift regional synthetic data which satisfies pareto-optimal
+    cross-correlation with observed data, for a given station.
+
+    :param data_type: list of data types to be used in modelling.
+    :param plot: whether to plot results of waveform shift
+    :param method: method for cross-correlation
+    :type data_type: list
+    :type tensor_info: bool, optional
+    :type method: string, optional
+    """
+    if data_type == 'tele':
+        json_file = 'tele_waves.json'
+    if data_type == 'strong':
+        json_file = 'strong_motion_waves.json'
+    if data_type == 'cgps':
+        json_file = 'cgps_waves.json'
+    if data_type == 'surf':
+        json_file = 'surf_waves.json'
+    files = json.load(open(json_file))
+    plot_folder = 'tele_shift' if data_type == 'tele' else 'strong_shift'\
+        if data_type == 'strong' else 'surf_shift' if data_type == 'surf'\
+        else 'cgps_shift'
+    if not os.path.isdir(plot_folder):
+        os.mkdir(plot_folder)
+    synthetics_file = 'synthetics_body.txt' if data_type == 'tele' else 'synthetics_strong.txt'\
+        if data_type == 'strong' else 'synthetics_surf.txt' if data_type == 'surf'\
+        else 'synm.cgps'
+
+    dt = float(files[0]['dt'])
+    files = get_outputs.get_data_dict(files, syn_file=synthetics_file)
+    used_channels = []
+    for file in files:
+        name = file['name']
+        channel = file['component']
+        this_channel = [name, channel]
+        if not this_channel in used_channels:
+            used_channels = used_channels + [this_channel]
+    for station, channel in used_channels:
+        files2 = [file for file in files if file['name'] == station]
+        files2 = [file for file in files2 if file['component'] == channel]
+        synthetics = [file['synthetic'] for file in files2]
+        derivatives = [False if not file['derivative'] else file['derivative']\
+                       for file in files2]
+        titles = ['Disp' if not derivative else 'Vel' for derivative in derivatives]
+        streams = [read(file['file']) for file in files2]
+        streams = [stream.differentiate() if derivative else stream\
+                   for stream, derivative in zip(streams, derivatives)]
+        waveforms = [stream[0].data for stream in streams]
+        nshift = int(5 / dt) if data_type == 'tele' else int(5 / dt)\
+            if data_type == 'strong' else int(12 / dt) if data_type == 'surf'\
+            else int(4 / dt)
+        lengths = [int(float(file['duration'])) for file in files2]
+        length = np.min(np.array(lengths))
+        start = int(files2[0]['start_signal'])
+        tr_shift = _shift2(waveforms, synthetics, nshift, length, start)
+        for file in files2:
+            file['start_signal'] = start + tr_shift
+
+        for file in files2:
+            file['synthetic'] = []
+            file['observed'] = []
+        if plot:
+            length2 = int(10 / dt)
+            start0 = 0
+            start00 = 0
+            synthetics = [synthetic[:length] for synthetic in synthetics]
+            fig, axes = plt.subplots(2, len(synthetics), figsize=(10, 5))
+            fig.text(0.04, 0.6, 'Before Shift', va='center', rotation='vertical')
+            fig.text(0.04, 0.3, 'After Shift', va='center', rotation='vertical')
+            fig.suptitle('{} {}'.format(station, channel))
+            obs_times = []
+            syn_times = []
+            obs_waveforms = []
+            syn_waveforms = []
+            if len(files2) > 1:
+                zipped = zip(files2, synthetics, axes[0, :], titles)
+                for file, synthetic, ax, title in zipped:
+                    time1, observed0 = get_observed(
+                        file, start, length, margin=10)
+                    time0 = np.arange(len(synthetic)) * dt
+                    obs_times = obs_times + [time1]
+                    syn_times = syn_times + [time0]
+                    obs_waveforms = obs_waveforms + [observed0]
+                    syn_waveforms = syn_waveforms + [synthetic]
+                    ax.axvline(0)
+                    ax.set_title(title)
+                zipped = zip(files2, synthetics, axes[1, :])
+                for file, synthetic, ax in zipped:
+                    start4 = start + tr_shift
+                    time2, observed1 = get_observed(
+                        file, start4, length, margin=10, zero_start=zero_start)
+                    time0 = np.arange(len(synthetic)) * dt
+                    obs_times = obs_times + [time2]
+                    syn_times = syn_times + [time0]
+                    obs_waveforms = obs_waveforms + [observed1]
+                    syn_waveforms = syn_waveforms + [synthetic]
+                    ax.axvline(0)
+            else:
+                file = files2[0]
+                synthetic = synthetics[0]
+                time1, observed0 = get_observed(file, start, length, margin=10)
+                time0 = np.arange(len(synthetic)) * dt
+                min_val = np.minimum(np.min(observed0), np.min(synthetic))
+                max_val = np.maximum(np.max(observed0), np.max(synthetic))
+                axes[0].set_title(file['component'])
+                start4 = start + tr_shift
+                time2, observed1 = get_observed(
+                    file, start4, length, margin=10, zero_start=zero_start)
+                time0 = np.arange(len(synthetic)) * dt
+                obs_times = [time1, time2]
+                syn_times = [time0, time0]
+                obs_waveforms = [observed0, observed1]
+                syn_waveforms = [synthetic, synthetic]
+                axes[1].axvline(0)
+                axes[1].set_title(file['component'])
+            axes2 = axes.ravel()
+            axes2 = plot_waveforms(axes2, obs_times, obs_waveforms, color='black')
+            axes2 = plot_waveforms(axes2, syn_times, syn_waveforms, color='red',
+                                   custom='fill')
+            name_file = os.path.join(
+                plot_folder, '{}_{}.png'.format(station, channel))
+            plt.savefig(name_file)
+            plt.close(fig)
+
+        if zero_start:
+            stream = read(files2[0]['file'])
+            new_baseline = stream[0].data[start + tr_shift]
+            stream[0].data = stream[0].data - new_baseline
+            stream.write(file['file'], format='SAC', byteorder=0)
+
+    with open(json_file,'w') as f:
+         json.dump(
+             files, f, sort_keys=True, indent=4,
+             separators=(',', ': '), ensure_ascii=False)
+    return
+
+
 def shift_match_regional(data_type, plot=False, method='full', zero_start=True):
     """We shift regional synthetic data which satisfies pareto-optimal
     cross-correlation with observed data, for a given station.
@@ -235,6 +373,9 @@ def get_observed(file_dict, start, length, margin=10, zero_start=False):
     time = np.arange(-start3, len(waveform1) - start3) * dt
     if zero_start:
         waveform1 = waveform1 - new_baseline
+    derivative = False if not 'derivative' in file_dict else file_dict['derivative']
+    if derivative:
+        waveform1 = np.gradient(waveform1, dt)
     return time, waveform1
 
 
@@ -284,7 +425,7 @@ def _shift2(waveforms, synthetics, nshift, length, start_pos):
                     [val for i, val in enumerate(observed[start_pos + j:])\
                     if i < length])
                 synthetic2 = synthetic[:len(observed2)]
-                err = err + np.sum(observed2 * synthetic2) ** 3
+                err = err + 2*np.sum(observed2 * synthetic2)
 
         if err_max <= err:
             err_max = err
@@ -398,7 +539,7 @@ if __name__ == '__main__':
     if args.option == 'match':
         plot = False if not args.plot else True
         if args.type in ['tele', 'surf']:
-            shift_match(args.type, plot=plot)
+            shift_match2(args.type, plot=plot)
         else:
             shift_match_regional(args.type, plot=plot)
     else:
