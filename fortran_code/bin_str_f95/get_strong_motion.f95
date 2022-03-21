@@ -16,7 +16,7 @@ program get_strong_motion
    implicit none
    character(len=100) :: vel_model, gf_file, gf_bank, wave_file, stat_file
    character(len=70) :: string1, input
-   character(len=6) :: sta_name(200)
+   character(len=10) :: sta_name(200)
    character(len=12) :: filename
    character(len=3) :: comp
    character(len=1) :: channel2
