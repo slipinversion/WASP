@@ -10,7 +10,7 @@ module get_stations_data
    integer :: misfit_type(12, max_stations), t_max_val(max_stations)
    integer :: t_min(max_stations), t_max(max_stations)
    real :: wavelet_weight(12, max_stations)
-   character(len=6) :: sta_name1(max_stations), sta_name2(max_stations), sta_name3(max_stations), &
+   character(len=10) :: sta_name1(max_stations), sta_name2(max_stations), sta_name3(max_stations), &
          &     sta_name4(max_stations), sta_name5(max_stations)
    character(len=3) :: component1(max_stations), component2(max_stations), component3(max_stations), &
          &     component4(max_stations), component5(max_stations)
