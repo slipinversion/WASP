@@ -54,6 +54,8 @@ contains
    real :: t_rise(:, :), t_fall(:, :)
    logical :: strong, cgps, dart, body, surf
    logical :: get_coeff, static, insar
+   logical :: use_waveforms
+   use_waveforms = .True.
    get_coeff = .True.
    static = .False.
    insar = .False.
@@ -79,7 +81,7 @@ contains
    call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, &
            &  insar, get_coeff)
    call write_forward(slip, rake, rupt_time, t_rise, t_fall, strong, cgps, body, surf)
-   call write_model(slip, rake, rupt_time, t_rise, t_fall)
+   call write_model(slip, rake, rupt_time, t_rise, t_fall, use_waveforms)
    call deallocate_source()
    call deallocate_gf()
    end subroutine waveform_ffm
@@ -92,6 +94,9 @@ contains
    real :: t_rise(:, :), t_fall(:, :)
    logical :: static, strong, cgps, dart, body, surf
    logical :: get_coeff, insar, ramp_gf_file
+   logical :: use_waveforms
+   use_waveforms = .True.
+   ramp_gf_file = .False.
    get_coeff = .True.
    call get_data(strong, cgps, body, surf, dart)
    call get_source_fun()
@@ -145,7 +150,7 @@ contains
    end if
    call write_forward(slip, rake, rupt_time, t_rise, t_fall, strong, cgps, body, surf)
    if (static) call initial_gps(slip, rake)
-   call write_model(slip, rake, rupt_time, t_rise, t_fall)
+   call write_model(slip, rake, rupt_time, t_rise, t_fall, use_waveforms)
    call deallocate_source()
    call deallocate_gf()
    if (insar) call deallocate_insar_gf()
@@ -156,7 +161,10 @@ contains
    implicit none
    real :: slip(:, :), rake(:, :)
    logical :: static, get_coeff, insar, ramp_gf_file
+   logical :: use_waveforms
+   use_waveforms = .False.
    get_coeff = .True.
+   ramp_gf_file = .False.
    call initial_model(slip, rake, rupt_time0, t_rise0, t_fall0)
    t = t_mid
    if (io_re .eq. 0) t = t0
@@ -199,7 +207,7 @@ contains
       call initial_insar(slip, rake, ramp)
    end if
    if (static) call initial_gps(slip, rake)
-   call write_model(slip, rake, rupt_time0, t_rise0, t_fall0)
+   call write_model(slip, rake, rupt_time0, t_rise0, t_fall0, use_waveforms)
    if (insar) call deallocate_insar_gf()
    end subroutine static_ffm
 

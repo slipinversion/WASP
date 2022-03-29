@@ -13,6 +13,7 @@ program run_forward
    integer i
    character(len=10) :: input
    logical :: static, strong, cgps, body, surf, dart, insar
+   logical :: use_waveforms
 
    static = .False.
    insar = .False.
@@ -21,6 +22,7 @@ program run_forward
    body = .False.
    surf = .False.
    dart = .False.
+   use_waveforms = .True.
    do i = 1, iargc()
       call getarg(i, input)
       input = trim(input)
@@ -40,7 +42,7 @@ program run_forward
    if (static) call initial_gps(slip0, rake0)
    if (insar) call get_insar_gf()
    if (insar) call initial_insar(slip0, rake0)
-   call write_model(slip0, rake0, rupt_time0, t_rise0, t_fall0)
+   call write_model(slip0, rake0, rupt_time0, t_rise0, t_fall0, use_waveforms)
    call deallocate_gf()
    call deallocate_ps()
    if (insar) call deallocate_insar_gf()

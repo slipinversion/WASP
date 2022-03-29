@@ -138,11 +138,12 @@ contains
    end subroutine get_faults_data
 
 
-   subroutine write_model(slip, rake, tt, tl, tr)
+   subroutine write_model(slip, rake, tt, tl, tr, use_waveforms)
    real :: slip(:, :), rake(:, :), tt(:, :)
    real :: tl(:, :), tr(:, :)
    real :: latitude_ep, longitude_ep, t_ref, moment_sol
    integer :: segment, iys, ixs, iy, ix, kp
+   logical :: use_waveforms
    latitude_ep = 0.0
    longitude_ep = 0.0
    do segment = 1, segments
@@ -194,20 +195,35 @@ contains
       kp = 0
       ix = int(nx_p / 2) + 1
       iy = int(ny_p / 2) + 1
-      do iys = 1, nys_sub(segment)
-         do ixs = 1, nxs_sub(segment)
-            kp = kp + 1
-            t_ref = point_sources(5, ix, iy, ixs, iys, segment)
-            t_ref = min(t_ref, t_latest)
-            moment_sol = slip(kp, segment) * shear(kp, segment) * dxs * dys * (10.0 ** 10.0)
-            write(13, 133) point_sources(1, 1, 1, ixs, iys, segment), &
-         &  point_sources(2, 1, 1, ixs, iys, segment), point_sources(3, 1, 1, ixs, iys, segment), &
-         &  slip(kp, segment), rake(kp, segment), strike(segment), dip(segment), &
-         &  tt(kp, segment) + t_ref + delay_seg(segment), tl(kp, segment), &
-         &  tr(kp, segment), moment_sol
+      if (use_waveforms) then
+         do iys = 1, nys_sub(segment)
+            do ixs = 1, nxs_sub(segment)
+               kp = kp + 1
+               t_ref = point_sources(5, ix, iy, ixs, iys, segment)
+               t_ref = min(t_ref, t_latest)
+               moment_sol = slip(kp, segment) * shear(kp, segment) * dxs * dys * (10.0 ** 10.0)
+               write(13, 133) point_sources(1, 1, 1, ixs, iys, segment), &
+            &  point_sources(2, 1, 1, ixs, iys, segment), point_sources(3, 1, 1, ixs, iys, segment), &
+            &  slip(kp, segment), rake(kp, segment), strike(segment), dip(segment), &
+            &  tt(kp, segment) + t_ref + delay_seg(segment), tl(kp, segment), &
+            &  tr(kp, segment), moment_sol
 133  format(f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, f14.6, e14.6)
+            end do
          end do
-      end do
+      else
+         do iys = 1, nys_sub(segment)
+            do ixs = 1, nxs_sub(segment)
+               kp = kp + 1
+               t_ref = point_sources(5, ix, iy, ixs, iys, segment)
+               t_ref = min(t_ref, t_latest)
+               moment_sol = slip(kp, segment) * shear(kp, segment) * dxs * dys * (10.0 ** 10.0)
+               write(13, 133) point_sources(1, 1, 1, ixs, iys, segment), &
+            &  point_sources(2, 1, 1, ixs, iys, segment), point_sources(3, 1, 1, ixs, iys, segment), &
+            &  slip(kp, segment), rake(kp, segment), strike(segment), dip(segment), &
+            &  0.0, 0.0, 0.0, moment_sol
+            end do
+         end do
+      endif
    end do
    close(13)
    end subroutine write_model
