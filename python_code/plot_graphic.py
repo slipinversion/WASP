@@ -32,7 +32,7 @@ from plot_maps import plot_map, set_map_cartopy, plot_borders
 
 
 def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
-                 vel_model, default_dirs):
+                 vel_model, default_dirs, use_waveforms=True):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
 
@@ -98,9 +98,10 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     """
     segments = segments_data['segments']
     _plot_vel_model(vel_model, point_sources)
-    _plot_moment_rate_function(segments_data, shear, point_sources)
-    _PlotRiseTime(segments, point_sources, solution)
-    _PlotRuptTime(segments, point_sources, solution)
+    if use_waveforms:
+        _plot_moment_rate_function(segments_data, shear, point_sources)
+        _PlotRiseTime(segments, point_sources, solution)
+        _PlotRuptTime(segments, point_sources, solution)
     _PlotSlipDistribution(segments, point_sources, solution)
     _PlotMap(tensor_info, segments, point_sources, solution, default_dirs)
 

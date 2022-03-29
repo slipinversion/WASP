@@ -100,7 +100,7 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
         with open(os.path.join('logs', 'GF_strong_log'), "w") as out_gf_strong:
             p2 = subprocess.Popen([get_gf_bank, ], stdout=out_gf_strong)
         p2.wait()
-    
+
     files = [
         'Green_strong.txt',
         'Green_cgps.txt',
@@ -152,7 +152,7 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
 def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
                 logger, velmodel=None):
     """Routine for automatic FFM modelling for each nodal plane
-    
+
     :param tensor_info: dictionary with moment tensor properties
     :param plane_data: dictionary with fault plane mechanism
     :param data_type: list with data types to be used in modelling
@@ -277,7 +277,7 @@ def modelling_new_data(tensor_info, data_type, default_dirs,
 
 def manual_modelling(tensor_info, data_type, default_dirs, segments_data):
     """Routine for manual finite fault modelling.
-    
+
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: list with data types to be used in modelling
     :param default_dirs: dictionary with default directories to be used
@@ -308,7 +308,7 @@ def manual_modelling(tensor_info, data_type, default_dirs, segments_data):
 def forward_modelling(tensor_info, data_type, default_dirs, segments_data,
                       option='Solucion.txt', max_slip=200):
     """Routine for forward modelling.
-    
+
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: set with data types to be used in modelling
     :param option: string with location of input file with kinematic model to
@@ -378,7 +378,7 @@ def checkerboard(tensor_info, data_type, default_dirs, segments_data,
                  max_slip=200, add_error=False, option='Checkerboard',
                  option2='FFM modelling'):
     """Routine for running checkerboard tests.
-    
+
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: set with data types to be used in modelling
     :param option: string with location of input file with kinematic model to
@@ -421,7 +421,8 @@ def checkerboard(tensor_info, data_type, default_dirs, segments_data,
     point_sources = pf.point_sources_param(
         segments, tensor_info, rise_time, connections=connections)
     forward_modelling(
-        tensor_info, data_type, default_dirs, option=option, max_slip=max_slip)
+        tensor_info, data_type, default_dirs, segments_data,
+        option=option, max_slip=max_slip)
     data_prop = json.load(open('sampling_filter.json'))
     for data_type0 in data_type:
         if data_type0 == 'tele_body':
@@ -446,11 +447,11 @@ def checkerboard(tensor_info, data_type, default_dirs, segments_data,
         execute_plot(
             tensor_info, data_type, segments_data, default_dirs, plot_input=True)
     ml.close_log(logger)
-    
-    
+
+
 def set_directory_structure(tensor_info):
     """Create directory structure
-    
+
     :param tensor_info: dictionary with moment tensor properties
     :type tensor_info: dict
     """
@@ -510,7 +511,7 @@ def processing(tensor_info, data_type, data_prop, st_response=True):
     :type st_response: bool, optional
     """
     tele_files = glob.glob('*.BH*SAC') + glob.glob('*.BH*sac')\
-                 + glob.glob('*_BH*sac') + glob.glob('*_BH*sac')
+        + glob.glob('*_BH*sac') + glob.glob('*_BH*sac')
     strong_files = glob.glob('*.HN*SAC') + glob.glob('*.HL*SAC')\
                    + glob.glob('*.HN*sac') + glob.glob('*.HL*sac')\
                    + glob.glob('*.AH?.*')\
@@ -553,7 +554,7 @@ def writing_inputs0(tensor_info, data_type):
 def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
                    moment_mag=None, forward_model=None):
     """Write all required text files from the information found in the JSONs.
-    
+
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: set with data types to be used in modelling
     :param segments_data: properties of fault segments and rise time
@@ -609,7 +610,7 @@ def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
 def inversion(tensor_info, data_type, default_dirs, logger, forward=False):
     """We get the binaries with gf for each station, run the ffm code, and
     proceed to plot the results.
-    
+
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: set with data types to be used in modelling
     :param logger: name of logfile to write
@@ -664,7 +665,7 @@ def inversion(tensor_info, data_type, default_dirs, logger, forward=False):
 def execute_plot(tensor_info, data_type, segments_data, default_dirs,
                  velmodel=None, plot_input=False):
     """We plot modelling results
-    
+
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: set with data types to be used in modelling
     :param plot_input: choose whether to plot initial kinematic model as well
@@ -691,9 +692,10 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs,
     point_sources = pf.point_sources_param(
         segments, tensor_info, rise_time, connections=connections)
     shear = pf.shear_modulous(point_sources, velmodel=velmodel)
+    use_waveforms = mng.use_waveforms(data_type)
     plot.plot_ffm_sol(
         tensor_info, segments_data, point_sources, shear,
-        solution, velmodel, default_dirs)
+        solution, velmodel, default_dirs, use_waveforms=use_waveforms)
     plot.plot_misfit(data_type)
     # plot.plot_beachballs(tensor_info, data_type)
     traces_info, stations_gps = [None, None]
@@ -749,8 +751,8 @@ def __ask_velrange():
     min_vel = float(lines[1][5])
     max_vel = float(lines[1][6])
     return min_vel, max_vel
-            
-            
+
+
 if __name__ == '__main__':
     import argparse
     import manage_parser as mpar

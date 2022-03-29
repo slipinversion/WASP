@@ -270,6 +270,21 @@ def correct_response_file(tensor_info, pzfile):
             outfile.write('{}\n'.format(line2))
 
 
+def use_waveforms(data_type):
+    """
+    """
+    use_waveforms = False
+    if 'strong_motion' in data_type:
+        use_waveforms = True
+    if 'cgps' in data_type:
+        use_waveforms = True
+    if 'tele_body' in data_type:
+        use_waveforms = True
+    if 'surf_tele' in data_type:
+        use_waveforms = True
+    return use_waveforms
+
+
 # def run_sac(command):
 #     """Routine to execute sac with a given input command from python
 #     """
