@@ -43,7 +43,13 @@ contains
    call grid_properties()
    
    npt = 2 ** lnpt_gfs         ! careful!
-   
+  
+   if (z_max .gt. dep_max) then
+      write(*, *)"Error: maximum depth of GF bank is ", dep_max, " but max. depth of source is ", z_max
+      write(*, *)"May need to recompute GF bank"
+      stop
+   endif
+ 
    fault_bounds(1, 1) = dist_min
    fault_bounds(2, 1) = dist_max
    fault_bounds(1, 2) = z_min
