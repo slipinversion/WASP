@@ -161,10 +161,16 @@ def get_used_data(args):
     """
     """
     used_data = []
-    used_data = used_data + ['gps'] if args.gps else used_data
-    used_data = used_data + ['strong_motion'] if args.strong else used_data
-    used_data = used_data + ['cgps'] if args.cgps else used_data
-    used_data = used_data + ['tele_body'] if args.tele else used_data
-    used_data = used_data + ['surf_tele'] if args.surface else used_data
-    used_data = used_data + ['insar'] if args.insar else used_data
+    if 'gps' in args:
+        used_data = used_data + ['gps'] if args.gps else used_data
+    if 'strong_motion' in args:
+        used_data = used_data + ['strong_motion'] if args.strong else used_data
+    if 'cgps' in args:
+        used_data = used_data + ['cgps'] if args.cgps else used_data
+    if 'tele' in args:
+        used_data = used_data + ['tele_body'] if args.tele else used_data
+    if 'surface' in args:
+        used_data = used_data + ['surf_tele'] if args.surface else used_data
+    if 'insar' in args:
+        used_data = used_data + ['insar'] if args.insar else used_data
     return used_data
