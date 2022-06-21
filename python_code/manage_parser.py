@@ -163,7 +163,7 @@ def get_used_data(args):
     used_data = []
     if 'gps' in args:
         used_data = used_data + ['gps'] if args.gps else used_data
-    if 'strong_motion' in args:
+    if 'strong' in args:
         used_data = used_data + ['strong_motion'] if args.strong else used_data
     if 'cgps' in args:
         used_data = used_data + ['cgps'] if args.cgps else used_data
