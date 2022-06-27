@@ -12,8 +12,8 @@ program run_modelling
                      &  mixed_ffm, static_ffm 
    implicit none
    integer :: i
-   real :: slip(max_subf, max_seg), rake(max_subf, max_seg), rupt_time(max_subf, max_seg)
-   real :: t_rise(max_subf, max_seg), t_fall(max_subf, max_seg)
+   real :: slip(max_subfaults2), rake(max_subfaults2), rupt_time(max_subfaults2)
+   real :: t_rise(max_subfaults2), t_fall(max_subfaults2)
    real :: t
    real*8 :: ramp(18)
    logical :: static, strong, cgps, dart, body, surf, auto

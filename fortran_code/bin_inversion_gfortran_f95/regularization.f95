@@ -1,11 +1,11 @@
 module regularization
    
 
-   use constants, only : max_seg, max_subf, dpi
-   use model_parameters, only : nxs_sub, nys_sub, nleft, nright, nup, ndown, rake_min, segments 
+   use constants, only : max_seg, max_subf, max_subfaults2, dpi
+   use model_parameters, only : nxs_sub, nys_sub, nleft, nright, nup, ndown, &
+             &  rake_min, segments, subfaults, cum_subfaults
    implicit none
-   real :: slip_field(max_subf, max_seg, 2)
-   integer :: subfaults, subfaults_segment(max_seg)
+   real :: slip_field(2, max_subfaults2)
 
 
 contains
@@ -16,21 +16,16 @@ contains
 !   Laplacian regularization of slip vector field
 !
    implicit none
-   real, intent(in) :: slip(max_subf, max_seg), rake(max_subf, max_seg)
+   real, intent(in) :: slip(max_subfaults2), rake(max_subfaults2)
    real angle
-   integer segment, i
+   integer subfault
 !  
 !  we define the slip vector field
 !  
-   subfaults = 0
-   do segment = 1, segments
-      subfaults_segment(segment) = nxs_sub(segment)*nys_sub(segment)
-      do i = 1, subfaults_segment(segment)
-         angle = (rake(i, segment)-rake_min)*dpi
-         slip_field(i, segment, 1) = slip(i, segment)*cos(angle)
-         slip_field(i, segment, 2) = slip(i, segment)*sin(angle)
-      end do
-      subfaults = subfaults+subfaults_segment(segment)
+   do subfault = 1, subfaults
+      angle = (rake(subfault)-rake_min)*dpi
+      slip_field(1, subfault) = slip(subfault)*cos(angle)
+      slip_field(2, subfault) = slip(subfault)*sin(angle)
    end do
    end subroutine define_slip_field
 
@@ -42,24 +37,10 @@ contains
    implicit none
    integer, intent(in) :: subfault
    real, intent(in) :: slip_subf, rake_subf
-   integer n_total, subfault_seg
    real angle
-   integer segment, i
-   n_total = 0
-   do i = 1, segments
-      n_total = subfaults_segment(i)+n_total
-      if (subfault .le. n_total) then
-         segment = i
-         subfault_seg = subfault
-         exit
-      end if
-   end do
-   do i = 1, segment-1
-      subfault_seg = subfault_seg-subfaults_segment(i)
-   end do
    angle = (rake_subf-rake_min)*dpi
-   slip_field(subfault_seg, segment, 1) = slip_subf*cos(angle)
-   slip_field(subfault_seg, segment, 2) = slip_subf*sin(angle)
+   slip_field(1, subfault) = slip_subf*cos(angle)
+   slip_field(2, subfault) = slip_subf*sin(angle)
    end subroutine modify_slip_field
 
 
@@ -69,78 +50,74 @@ contains
 !
    implicit none
    real, intent(out) :: err
-   integer n_sub
-   integer n_is, ll
-   integer nxx, nyy, jj, nx, ny
-   real d1, d2, d3, d4!, error
-   real*8 :: err2, error
-   integer segment
+   integer subfault, subfault2
+   integer n_is, nxx, nyy
+   real d11, d21, d31, d41!, error
+   real d12, d22, d32, d42!, error
+   real*8 :: err2, error, err3, err4
    
    err2 = 0.d0
-   do jj = 1, 2
-      do segment = 1, segments
-         do n_sub = 1, subfaults_segment(segment)
-            ny = int(n_sub/nxs_sub(segment))+1
-            nx = n_sub-(ny-1)*nxs_sub(segment)
-            if (nx .eq. 0) then
-               nx = nxs_sub(segment)
-               ny = ny-1
-            end if
+   do subfault = 1, subfaults
 !                 write(*,*)"segment", segment, nx, ny, n_sub, jj
 !       left
-            n_is = nleft(1, ny, nx, segment)
-            nxx = nleft(2, ny, nx, segment)
-            nyy = nleft(3, ny, nx, segment)
-            if (n_is .eq. 0) then
-               d1 = 0.0
-            else
-               ll = nxx+(nyy-1)*nxs_sub(n_is)
-               d1 = slip_field(ll, n_is, jj)
-            end if
+      d11 = 0.0
+      d12 = 0.0
+      d21 = 0.0
+      d22 = 0.0
+      d31 = 0.0
+      d32 = 0.0
+      d41 = 0.0
+      d42 = 0.0
+      n_is = nleft(1, subfault)
+      nxx = nleft(2, subfault)
+      nyy = nleft(3, subfault)
+      subfault2 = cum_subfaults(n_is)
+      subfault2 = subfault2 + nxx+(nyy-1)*nxs_sub(n_is)
+      if (n_is .gt. 0) then
+         d11 = slip_field(1, subfault2)
+         d12 = slip_field(2, subfault2)
+      end if
 !        write(*,*) n_is, nxx, nyy, ll,"left"
 !       right   
-            n_is = nright(1, ny, nx, segment)
-            nxx = nright(2, ny, nx, segment)
-            nyy = nright(3, ny, nx, segment)
-            if (n_is .eq. 0) then
-               d3 = 0.0
-            else
-               ll = nxx+(nyy-1)*nxs_sub(n_is)
-               d3 = slip_field(ll, n_is, jj)
-            end if
+      n_is = nright(1, subfault)
+      nxx = nright(2, subfault)
+      nyy = nright(3, subfault)
+      subfault2 = cum_subfaults(n_is)
+      subfault2 = subfault2 + nxx+(nyy-1)*nxs_sub(n_is)
+      if (n_is .gt. 0) then
+         d31 = slip_field(1, subfault2)
+         d32 = slip_field(2, subfault2)
+      end if
 !        write(*,*) n_is, nxx, nyy, ll,"right"
 !       up    
-            n_is = nup(1, ny, nx, segment)
-            nxx = nup(2, ny, nx, segment)
-            nyy = nup(3, ny, nx, segment)
-            if (n_is .eq. 0) then
-               d2 = 0.0
-            else
-               ll = nxx+(nyy-1)*nxs_sub(n_is)
-               d2 = slip_field(ll, n_is, jj)
-            end if
+      n_is = nup(1, subfault)
+      nxx = nup(2, subfault)
+      nyy = nup(3, subfault)
+      subfault2 = cum_subfaults(n_is)
+      subfault2 = subfault2 + nxx+(nyy-1)*nxs_sub(n_is)
+      if (n_is .gt. 0) then
+         d21 = slip_field(1, subfault2)
+         d22 = slip_field(2, subfault2)
+      end if
 !                    write(*,*) n_is, nxx, nyy, ll,"up"
 !       down
-            n_is = ndown(1, ny, nx, segment)
-            nxx = ndown(2, ny, nx, segment)
-            nyy = ndown(3, ny, nx, segment)
-            if (n_is .eq. 0) then
-               d4 = 0.0
-            else
-               ll = nxx+(nyy-1)*nxs_sub(n_is)
-               d4 = slip_field(ll, n_is, jj)
-            end if
+      n_is = ndown(1, subfault)
+      nxx = ndown(2, subfault)
+      nyy = ndown(3, subfault)
+      subfault2 = cum_subfaults(n_is)
+      subfault2 = subfault2 + nxx+(nyy-1)*nxs_sub(n_is)
+      if (n_is .gt. 0) then
+         d41 = slip_field(1, subfault2)
+         d42 = slip_field(2, subfault2)
+      end if
 !                   write(*,*) n_is, nxx, nyy, ll,"down"
 !
-            error = slip_field(n_sub, segment, jj)-0.25*(d1+d2+d3+d4)
-            error = error*error
-            err2 = err2+error
-!            kahan_y = error-kahan_c
-!            kahan_t = err+kahan_y
-!            kahan_c = (kahan_t-err)-kahan_y
-!            err = kahan_t
-         end do
-      end do
+      error = slip_field(1, subfault)-0.25*(d11+d21+d31+d41)
+      error = error*error
+      err2 = err2+error
+      error = slip_field(2, subfault)-0.25*(d12+d22+d32+d42)
+      error = error*error
+      err2 = err2+error
    end do
    err2 = sqrt(err2/subfaults)
    err = real(err2)
@@ -152,77 +129,60 @@ contains
 !   Laplacian regularization of rupture initiation time
 !
    implicit none
-   real, intent(in) :: tt(max_subf, max_seg) 
+   real, intent(in) :: tt(max_subfaults2) 
    real, intent(out) :: err
-   integer n_sub
    integer n_is
-   integer nxx, nyy, nx, ny
+   integer nxx, nyy
    real d1, d2, d3, d4!, error
    real*8 :: err2, error
-   integer segment, ll
+   integer subfault, subfault2, j
 
    err2 = 0.d0
-!   kahan_y = 0.0
-!   kahan_c = 0.0
-!   kahan_t = 0.0
-!   err = 0.0
-   do segment = 1, segments
-      do n_sub = 1, subfaults_segment(segment)
-         ny = int(n_sub/nxs_sub(segment))+1
-         nx = n_sub-(ny-1)*nxs_sub(segment)       
-         if (nx .eq. 0) then
-            nx = nxs_sub(segment)
-            ny = ny-1
-         end if
+   do subfault = 1, subfaults
+      d1 = tt(subfault)
+      d2 = tt(subfault)
+      d3 = tt(subfault)
+      d4 = tt(subfault)
 
 !       left
-         n_is = nleft(1, ny, nx, segment)
-         nxx = nleft(2, ny, nx, segment)
-         nyy = nleft(3, ny, nx, segment)
-         if (n_is .eq. 0) then
-            d1 = tt(n_sub, segment)
-         else
-            ll = nxx+(nyy-1)*nxs_sub(n_is)
-            d1 = tt(ll, n_is)
-         end if
+      n_is = nleft(1, subfault)
+      nxx = nleft(2, subfault)
+      nyy = nleft(3, subfault)
+      subfault2 = cum_subfaults(n_is)
+      subfault2 = subfault2 + nxx+(nyy-1)*nxs_sub(n_is)
+      if (n_is .gt. 0) then
+         d1 = tt(subfault2)
+      end if
 !       right   
-         n_is = nright(1, ny, nx, segment)
-         nxx = nright(2, ny, nx, segment)
-         nyy = nright(3, ny, nx, segment)
-         if (n_is .eq. 0) then
-            d3 = tt(n_sub, segment)
-         else
-            ll = nxx+(nyy-1)*nxs_sub(n_is)
-            d3 = tt(ll, n_is)
-         end if
+      n_is = nright(1, subfault)
+      nxx = nright(2, subfault)
+      nyy = nright(3, subfault)
+      subfault2 = cum_subfaults(n_is)
+      subfault2 = subfault2 + nxx+(nyy-1)*nxs_sub(n_is)
+      if (n_is .gt. 0) then
+         d3 = tt(subfault2)
+      end if
 !       up    
-         n_is = nup(1, ny, nx, segment)
-         nxx = nup(2, ny, nx, segment)
-         nyy = nup(3, ny, nx, segment)
-         if (n_is .eq. 0) then
-            d2 = tt(n_sub, segment)
-         else
-            ll = nxx+(nyy-1)*nxs_sub(n_is)
-            d2 = tt(ll, n_is)
-         end if
+      n_is = nup(1, subfault)
+      nxx = nup(2, subfault)
+      nyy = nup(3, subfault)
+      subfault2 = cum_subfaults(n_is)
+      subfault2 = subfault2 + nxx+(nyy-1)*nxs_sub(n_is)
+      if (n_is .gt. 0) then
+         d2 = tt(subfault2)
+      end if
 !       down
-         n_is = ndown(1, ny, nx, segment)
-         nxx = ndown(2, ny, nx, segment)
-         nyy = ndown(3, ny, nx, segment)
-         if (n_is .eq. 0) then
-            d4 = tt(n_sub, segment)
-         else
-            ll = nxx+(nyy-1)*nxs_sub(n_is)
-            d4 = tt(ll, n_is)
-         end if
-         error = tt(n_sub, segment)-0.25*(d1+d2+d3+d4)
-         error = error*error
-         err2 = err2+error
-!         kahan_y = error-kahan_c
-!         kahan_t = err+kahan_y
-!         kahan_c = (kahan_t-err)-kahan_y
-!         err = kahan_t
-      end do
+      n_is = ndown(1, subfault)
+      nxx = ndown(2, subfault)
+      nyy = ndown(3, subfault)
+      subfault2 = cum_subfaults(n_is)
+      subfault2 = subfault2 + nxx+(nyy-1)*nxs_sub(n_is)
+      if (n_is .gt. 0) then
+         d4 = tt(subfault2)
+      end if
+      error = tt(subfault)-0.25*(d1+d2+d3+d4)
+      error = error*error
+      err2 = err2+error
    end do
    err2 = sqrt(err2/subfaults)
    err = real(err2)

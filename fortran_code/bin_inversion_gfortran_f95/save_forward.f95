@@ -2,9 +2,9 @@ module save_forward
 
 
    use constants, only : max_seg, max_subf, wave_pts2, wave_pts, max_stations, n_data, twopi, &
-           &      pi, max_rise_time_range, dpi 
+           &      pi, max_rise_time_range, max_subfaults2,  dpi
    use model_parameters, only : nxs_sub, nys_sub, ta0, dta, msou, segments, dxs, dys, &
-           &      nx_p, ny_p
+           &      nx_p, ny_p, subfaults
    use wavelet_param, only : lnpt, max_freq, nlen 
    use get_stations_data, only : dt_channel, sta_name1, sta_name2, sta_name3, sta_name4, &
            &      sta_name5, component1, component2, component3, component4, &
@@ -27,8 +27,8 @@ contains
    implicit none
    integer ll_in, ll_out
    logical :: strong, cgps, body, surf
-   real slip(:, :), rake(:, :), rupt_time(:, :), &
-   &  tr(:, :), tl(:, :), erm, ermin
+   real slip(:), rake(:), rupt_time(:), &
+   &  tr(:), tl(:), erm, ermin
    complex z0
 !
    write(*,*)'Return synthetics from input kinematic model...'
@@ -63,11 +63,11 @@ contains
    
    subroutine write_strong_motion_forward(slip, rake, rupt_time, tl, tr, ll_in, ll_out)
    implicit none
-   integer ll_in, ll_out, ll_g, isl, isr, ll, channel_max, &
+   integer ll_in, ll_out, ll_g, isl, isr, channel_max, subfault, &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys
-   real slip(:, :), rake(:, :), rupt_time(:, :), &
-   &  tr(:, :), tl(:, :), integral, &
-   &  cr(wave_pts2), cz(wave_pts2), r, time, dt
+   real slip(:), rake(:), rupt_time(:), &
+   &  tr(:), tl(:), integral, &
+   &  cr(wave_pts2), cz(wave_pts2), r, time, a, b, ww, dt, rake2
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
@@ -167,10 +167,11 @@ contains
    
    subroutine write_cgps_forward(slip, rake, rupt_time, tl, tr, ll_in, ll_out)
    implicit none
-   integer ll_in, ll_out, ll_g, isl, isr, ll,  &
+   integer ll_in, ll_out, ll_g, isl, isr, subfault, &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys, channel_max
-   real slip(:, :), rake(:, :), rupt_time(:, :), &
-   &  tr(:, :), tl(:, :), cr(wave_pts2), cz(wave_pts2), dt
+   real slip(:), rake(:), rupt_time(:), &
+   &  tr(:), tl(:), cr(wave_pts2), cz(wave_pts2), a, &
+   &  b, ww, dt, rake2
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
@@ -242,11 +243,10 @@ contains
 
    subroutine write_body_waves_forward(slip, rake, rupt_time, tl, tr, ll_in, ll_out)
    implicit none
-   integer segmenteg, nstaon, channel, ll_g, k, &
-   &  ll, segment, iys, jf, i, npxy, segment_subfault, ixs, isl, isr, nl, &
+   integer n_chan, channel, ll_g, k, subfault, &
+   &  segment, iys, jf, i, npxy, segment_subfault, ixs, isl, isr, nl, &
    &  ll_in, ll_out
-   real slip(:, :), rake(:, :), rupt_time(:, :), &
-   &  tr(:, :), tl(:, :), &
+   real slip(:), rake(:), rupt_time(:), tr(:), tl(:), &
    &  dt, azim, w, cr(wave_pts2), cz(wave_pts2), sinal, cosal
    real*8 t1, t2, df
    complex ::  z, z0, forward(wave_pts)
@@ -255,9 +255,9 @@ contains
    write(*,*)'Return body wave synthetics from input kinematic model...'
    open(9,file='channels_body.txt',status='old')
    read(9,*)
-   read(9,*)
-   read(9,*)
-   read(9,*) nstaon
+   read(9,*) 
+   read(9,*) 
+   read(9,*) n_chan
    close(9)
 
    z0 = cmplx(0.0, 0.0)
@@ -286,7 +286,7 @@ contains
 !  Now, we compute the synthetic seismographs
 !
    npxy = nx_p*ny_p
-   do channel = 1, nstaon
+   do channel = 1, n_chan
       ll_g = ll_in+channel
       call create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
       do i = 1, jf
@@ -312,19 +312,18 @@ contains
    end do
 !
    close(18)
-   ll_out = ll_in+nstaon
+   ll_out = ll_in+n_chan!nstaon
    end subroutine write_body_waves_forward
 
 
    subroutine write_surface_waves_forward(slip, rake, rupt_time, tl, tr, ll_in, ll_out)
    implicit none
-   integer ll_in, ll_out, channel_max, &
-   &  ll_g, isl, isr, ll, jf, i, k, segment_subfault, segment, channel, n_chan, &
+   integer ll_in, ll_out, channel_max, subfault, &
+   &  ll_g, isl, isr, jf, i, k, segment_subfault, segment, channel, n_chan, &
    &  iys, ixs!, io_up(max_stations)
 
-   real slip(:, :), rake(:, :), rupt_time(:, :), &
-   &  tr(:, :), tl(:, :), &
-   &  cr(wave_pts2), cz(wave_pts2), dt
+   real slip(:), rake(:), rupt_time(:), tr(:), tl(:), &
+   &  cr(wave_pts2), cz(wave_pts2), a, b, ww, dt, rake2
    real*8 t1, t2, df
 
    complex z0, forward(wave_pts2), z
@@ -403,10 +402,11 @@ contains
 
    subroutine write_dart_forward(slip, rake, rupt_time, tl, tr, ll_in, ll_out)
    implicit none
-   integer ll_in, ll_out, ll_g, isl, isr, ll, &
+   integer ll_in, ll_out, ll_g, isl, isr, subfault, &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys, channel_max
-   real slip(:, :), rake(:, :), rupt_time(:, :), &
-   &  tr(:, :), tl(:, :), cr(wave_pts2), cz(wave_pts2), dt
+   real slip(:), rake(:), rupt_time(:), &
+   &  tr(:), tl(:), cr(wave_pts2), cz(wave_pts2), a, &
+   &  b, ww, dt, rake2
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
@@ -476,10 +476,10 @@ contains
 
    subroutine create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
    implicit none
-   integer ll_g, isl, isr, ll, jf, &
-   &  i, k, segment_subfault, segment, ixs, iys
-   real slip(:, :), rake(:, :), rupt_time(:, :), &
-   &  tr(:, :), tl(:, :), a, b, ww, dt, rake2
+   integer ll_g, isl, isr, jf, &
+   &  i, k, subfault
+   real slip(:), rake(:), rupt_time(:), &
+   &  tr(:), tl(:), a, b, ww, dt, rake2
    real*8 df
    complex :: forward(:), source2(:, :, :)
    complex :: z0, z
@@ -492,26 +492,19 @@ contains
    do i = 1, wave_pts
       forward(i) = z0
    end do
-   ll = 0
-   do segment = 1, segments
-      do iys = 1, nys_sub(segment)
-         do ixs = 1, nxs_sub(segment)
-            ll = ll+1  
-            segment_subfault = (iys-1)*nxs_sub(segment)+ixs             
-            isl = int((tl(segment_subfault, segment)-ta0)/dta+0.5)+1
-            isr = int((tr(segment_subfault, segment)-ta0)/dta+0.5)+1
-            rake2 = rake(segment_subfault, segment)*dpi
-            a = sin(rake2)*slip(segment_subfault, segment)
-            b = cos(rake2)*slip(segment_subfault, segment)
-            do i = 1, max_freq
-               ww = -(i-1)*twopi*df*rupt_time(segment_subfault, segment)
-               z = cmplx(cos(ww), sin(ww))
-               forward(i) = forward(i) &
-            & +(a*green_dip(i, ll_g, ll)+b*green_stk(i, ll_g, ll)) &
-            & *source2(i, isl, isr)*z
-            end do
-         end do
-      end do
+   do subfault = 1, subfaults
+      isl = int((tl(subfault)-ta0)/dta+0.5)+1
+      isr = int((tr(subfault)-ta0)/dta+0.5)+1
+      rake2 = rake(subfault)*dpi
+      a = sin(rake2)*slip(subfault)
+      b = cos(rake2)*slip(subfault)
+      do i = 1, max_freq
+         ww = -(i-1)*twopi*df*rupt_time(subfault)
+         z = cmplx(cos(ww), sin(ww))
+         forward(i) = forward(i) &
+      & +(a*green_dip(i, ll_g, subfault)+b*green_stk(i, ll_g, subfault)) &
+      & *source2(i, isl, isr)*z
+      enddo
    end do
    end subroutine create_waveform
 
