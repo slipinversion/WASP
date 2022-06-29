@@ -1,7 +1,7 @@
 program run_modelling
 
 
-   use constants, only : max_seg, max_subfaults2, max_subf
+   use constants, only : max_seg, max_subfaults, max_subf
    use model_parameters, only : get_faults_data, get_model_space, get_special_boundaries, &
          & subfault_positions, deallocate_ps
    use modelling_inputs, only : get_annealing_param, n_iter, io_re, cooling_rate, t_stop, t_mid, t0, idum
@@ -12,8 +12,8 @@ program run_modelling
                      &  mixed_ffm, static_ffm 
    implicit none
    integer :: i
-   real :: slip(max_subfaults2), rake(max_subfaults2), rupt_time(max_subfaults2)
-   real :: t_rise(max_subfaults2), t_fall(max_subfaults2)
+   real :: slip(max_subfaults), rake(max_subfaults), rupt_time(max_subfaults)
+   real :: t_rise(max_subfaults), t_fall(max_subfaults)
    real :: t
    real*8 :: ramp(18)
    logical :: static, strong, cgps, dart, body, surf, auto

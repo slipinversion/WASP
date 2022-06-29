@@ -1,11 +1,11 @@
 module regularization
    
 
-   use constants, only : max_seg, max_subf, max_subfaults2, dpi
+   use constants, only : max_seg, max_subf, max_subfaults, dpi
    use model_parameters, only : nxs_sub, nys_sub, nleft, nright, nup, ndown, &
              &  rake_min, segments, subfaults, cum_subfaults
    implicit none
-   real :: slip_field(2, max_subfaults2)
+   real :: slip_field(2, max_subfaults)
 
 
 contains
@@ -16,7 +16,7 @@ contains
 !   Laplacian regularization of slip vector field
 !
    implicit none
-   real, intent(in) :: slip(max_subfaults2), rake(max_subfaults2)
+   real, intent(in) :: slip(max_subfaults), rake(max_subfaults)
    real angle
    integer subfault
 !  
@@ -129,7 +129,7 @@ contains
 !   Laplacian regularization of rupture initiation time
 !
    implicit none
-   real, intent(in) :: tt(max_subfaults2) 
+   real, intent(in) :: tt(max_subfaults) 
    real, intent(out) :: err
    integer n_is
    integer nxx, nyy

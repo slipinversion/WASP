@@ -10,7 +10,7 @@
 module insar_data
 
 
-   use constants, only : max_subf, max_seg, max_subfaults2, dpi
+   use constants, only : max_subf, max_seg, max_subfaults, dpi
    use model_parameters, only : nxs_sub, nys_sub, nx_p, ny_p, segments, subfaults
    implicit none
    integer, parameter, private :: n_stations = 2500
@@ -30,7 +30,7 @@ contains
 
    subroutine get_insar_gf()
    implicit none
-   allocate(green(6, n_stations, max_subfaults2))
+   allocate(green(6, n_stations, max_subfaults))
    end subroutine get_insar_gf
    
 

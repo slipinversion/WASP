@@ -2,19 +2,19 @@ module model_parameters
 
 
    use constants, only : max_seg, max_stk_psources, max_dip_psources, max_stk_subfaults, &
-               &     max_dip_subfaults, max_subf, max_subfaults2, max_psources
+               &     max_dip_subfaults, max_subf, max_subfaults, max_subfaults2, max_psources
    use modelling_inputs, only : t_latest
    implicit none
-   real :: slip0(max_subfaults2), rake0(max_subfaults2), rupt_time0(max_subfaults2)
-   real :: t_rise0(max_subfaults2), t_fall0(max_subfaults2)
+   real :: slip0(max_subfaults), rake0(max_subfaults), rupt_time0(max_subfaults)
+   real :: t_rise0(max_subfaults), t_fall0(max_subfaults)
    integer :: segments, nxs_sub(max_seg), nys_sub(max_seg), nx_p, ny_p, nxs0, nys0
    real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
    real, allocatable :: point_sources(:, :, :)
-   real :: shear(max_subfaults2)
+   real :: shear(max_subfaults)
    real :: c_depth, dxs, dys, v_ref, v_min, v_max, tbl, tbr
    real :: ta0, dta
-   real :: time_min(max_subfaults2), time_max(max_subfaults2), rake_min
-   real :: time_ref(max_subfaults2)
+   real :: time_min(max_subfaults), time_max(max_subfaults), rake_min
+   real :: time_ref(max_subfaults)
    integer :: msou
    real :: beg(max_subfaults2), dp(max_subfaults2)
    integer :: np(max_subfaults2)
@@ -22,8 +22,8 @@ module model_parameters
 !
 ! for regularization
 !
-   integer :: nleft(3, max_subfaults2), nright(3, max_subfaults2), & 
-   & nup(3, max_subfaults2), ndown(3, max_subfaults2)
+   integer :: nleft(3, max_subfaults), nright(3, max_subfaults), & 
+   & nup(3, max_subfaults), ndown(3, max_subfaults)
 
 
 contains
@@ -35,7 +35,7 @@ contains
    &  segment, ix, iy, ll, io_seg, kxy, kpxy, nx_c, ny_c, subfault
    real dist, t_ref, t_max, t_min, delta, dip_s, stk_s
    real :: shear2(max_subf, max_seg)
-   allocate(point_sources(7, max_psources, max_subfaults2))
+   allocate(point_sources(7, max_psources, max_subfaults))
 !
 !     Input Fault position to memory
 !

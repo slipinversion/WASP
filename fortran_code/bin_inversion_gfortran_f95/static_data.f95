@@ -10,14 +10,14 @@
 module static_data
 
 
-   use constants, only : max_subf, max_seg, max_subfaults2, dpi
+   use constants, only : max_subf, max_seg, max_subfaults, dpi
    use model_parameters, only : nxs_sub, nys_sub, nx_p, ny_p, segments, subfaults
    implicit none
    integer, parameter, private :: n_stations = 500
    integer :: n_chan
    real*8 :: synm_whole(n_stations, 3), weight_sum
    real :: lat(n_stations), lon(n_stations), max_gps
-   real :: green(n_stations, 6, max_subfaults2), syn_disp(n_stations, 3)
+   real :: green(n_stations, 6, max_subfaults), syn_disp(n_stations, 3)
    real :: obse(n_stations, 3), weight(n_stations, 3)
    character(len=6) :: sta_name(n_stations)
   

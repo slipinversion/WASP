@@ -1,7 +1,7 @@
 module ffm_methods
 
 
-   use constants, only : max_seg, max_subfaults2, max_subf
+   use constants, only : max_seg, max_subfaults, max_subf
    use model_parameters, only : write_model, deallocate_ps
    use modelling_inputs, only : n_iter, io_re, cooling_rate, t_stop, t_mid, t0
    use get_stations_data, only : get_data
@@ -15,8 +15,8 @@ module ffm_methods
                      &   annealing_iter3, annealing_iter4, n_threads
    use annealing_static, only : print_static_summary, annealing_iter
    implicit none
-   real :: rupt_time0(max_subfaults2)
-   real :: t_rise0(max_subfaults2), t_fall0(max_subfaults2)
+   real :: rupt_time0(max_subfaults)
+   real :: t_rise0(max_subfaults), t_fall0(max_subfaults)
    real :: t
    real*8 :: ramp(18)
    integer :: i
