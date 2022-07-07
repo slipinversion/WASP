@@ -90,7 +90,7 @@ contains
    subroutine print_summary(slip, rake, rupt_time, t_rise, t_fall, static, insar, &
       &   get_coeff, ramp)
    implicit none
-   real*8, optional :: ramp(18)
+   real*8, optional :: ramp(:)
    real :: slip(:), rake(:), rupt_time(:)
    real :: t_rise(:), t_fall(:)
    real amp, moment, moment_reg, dt, value1, er0, slip_reg, gps_misfit, insar_misfit, &
@@ -588,7 +588,7 @@ contains
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, &
    & n_total, j
-   real*8, optional :: ramp(18)
+   real*8, optional :: ramp(:)
    real slip(:), rake(:), rupt_time(:), t_fall(:), t_rise(:), t, &
    & forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), duse, ause, vuse, &
    & de, rand, c, aux, dpb, amp, moment_reg, value1, gps_misfit, insar_misfit, &
@@ -598,7 +598,7 @@ contains
    & slip_beg, slip_max, slip_end, angle_beg, angle_end, angle_max, &
    & rupt_beg, rupt_end, rupt_max, rise_time_beg, rise_time_end, rise_time_max
    real ramp_beg, ramp_end, ramp_max, ramp_use
-   real*8 :: ramp0(18), ramp1(18)
+   real*8 :: ramp0(36), ramp1(36)
    real*8 :: forward_real2(wave_pts, max_stations), forward_imag2(wave_pts, max_stations)
    real*8 :: omega, misfit2, ex
    real :: delta_freq, delta_freq0, rake2!, ex

@@ -18,7 +18,7 @@ module ffm_methods
    real :: rupt_time0(max_subfaults)
    real :: t_rise0(max_subfaults), t_fall0(max_subfaults)
    real :: t
-   real*8 :: ramp(18)
+   real*8 :: ramp(36)
    integer :: i
    character(len=10) :: input
 

@@ -6,7 +6,7 @@ module retrieve_gf
 
    use constants, only : npuse, max_stations, max_subfaults, max_subf, nt, nny, ndis, &
    &  wave_pts2, max_seg, block_far, ltde, n_data, max_psources, max_dip_psources, &
-   &  max_dip_subfaults, block_stg, pi, twopi, wave_pts, max_subfaults2
+   &  max_dip_subfaults, block_stg, pi, twopi, wave_pts
    use model_parameters, only : point_sources, segments, v_ref, nxs_sub, nys_sub, delay_seg, &
    &  dxs, dys, nx_p, ny_p, dip, strike, shear, t_latest, cum_subfaults
    use wavelets, only : fourier_coefs, meyer_yamada

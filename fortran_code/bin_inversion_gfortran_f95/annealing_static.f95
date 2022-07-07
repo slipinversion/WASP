@@ -31,7 +31,7 @@ contains
 
    subroutine print_static_summary(slip, rake, static, insar, get_coeff, ramp)
    implicit none
-   real*8, optional :: ramp(18)
+   real*8, optional :: ramp(:)
    real :: slip(:), rake(:)
    real amp, moment, moment_reg, dt, value1, er0, slip_reg, gps_misfit, insar_misfit, &
       & a, b
@@ -145,14 +145,14 @@ contains
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, iys, &
    & ixs, n_total, j
-   real*8, optional :: ramp(18)
+   real*8, optional :: ramp(:)
    real slip(:), rake(:), t, duse, ause, &
    & de, rand, c, aux, dpb, amp, moment_reg, value1, gps_misfit, insar_misfit, &
    & moment, d_sub, a_sub, slip_reg, a, b, kahan_y, kahan_c, kahan_t, &
    & time_reg, d_save, a_save, x, moment0, &
    & slip_beg, slip_max, slip_end, angle_beg, angle_end, angle_max
    real ramp_beg, ramp_end, ramp_max, ramp_use
-   real*8 :: ramp0(18), ramp1(18)
+   real*8 :: ramp0(36), ramp1(36)
    real*8 :: omega, misfit2, ex
    real :: delta_freq, delta_freq0, rake2!, ex
    logical :: static, insar

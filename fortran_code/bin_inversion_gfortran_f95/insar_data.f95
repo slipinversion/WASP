@@ -13,16 +13,16 @@ module insar_data
    use constants, only : max_subf, max_seg, max_subfaults, dpi
    use model_parameters, only : nxs_sub, nys_sub, nx_p, ny_p, segments, subfaults
    implicit none
-   integer, parameter, private :: n_stations = 2500
-   integer, private :: n_chan, lines_asc, lines_desc
-   integer :: ramp_length1, ramp_length2, ramp_length
-   real*8 :: synm_whole(n_stations), weight_sum
-   real*8 :: ramp_gf(18, n_stations)
-   real :: lat(n_stations), lon(n_stations), max_los, syn_disp(n_stations)
+   integer, parameter, private :: max_points = 2500
+   integer, private :: tracks, points
+   integer :: ramp_length
+   real*8 :: synm_whole(max_points), weight_sum
+   real*8 :: ramp_gf(36, max_points)
+   real :: lat(max_points), lon(max_points), max_los, syn_disp(max_points)
    real, private, allocatable :: green(:, :, :)
-   real :: obse(n_stations), look(3, n_stations), weight(n_stations)
-   character(len=6) :: sta_name(n_stations)
-   character(len=10) :: ramp_type1, ramp_type2
+   real :: obse(max_points), look(3, max_points), weight(max_points)
+   character(len=6) :: sta_name(max_points)
+   character(len=10) :: ramp_types(6)
   
 
 contains
@@ -30,59 +30,65 @@ contains
 
    subroutine get_insar_gf()
    implicit none
-   allocate(green(6, n_stations, max_subfaults))
+   allocate(green(6, max_points, max_subfaults))
    end subroutine get_insar_gf
    
 
    subroutine get_insar_data()
    implicit none
-   integer i, no, k
-   real :: weight_asc, weight_desc
+   integer i, no, k, points2, track
+   integer point_tracks(6), cum_points(6)
+   real weight_tracks(6)
+
+   points2 = 0
+   weight_sum = 0.0
+   open(9, file='insar_weights.txt', status='old')
+   read(9,*) tracks
+   do track = 1, tracks
+      read(9,*) point_tracks(track), weight_tracks(track)
+      weight_sum = weight_sum + point_tracks(track)*weight_tracks(track)
+      points2 = points2 + point_tracks(track)
+      cum_points(track) = points2
+   enddo
+   
 !
    open(9, file='insar_data.txt', status='old')
-   read(9,*) n_chan
-   read(9,*) lines_asc, lines_desc, weight_asc, weight_desc
-   do i = 1, n_chan
+   read(9,*) points
+   read(9,*)
+   track = 1
+   do i = 1,points
       read(9,*) no, sta_name(i), lat(i), lon(i), obse(i), (look(k, i), k = 1, 3)
-      if (i .le. lines_asc) weight(i) = weight_asc 
-      if (i .gt. lines_asc) weight(i) = weight_desc 
+      if (i .gt. cum_points(track)) track = track + 1
+      weight(i) = weight_tracks(track)
    end do
-   weight_sum = lines_asc*weight_asc + lines_desc*weight_desc
-   max_los = maxval(abs(obse(:)))
    close(9) 
+   max_los = maxval(abs(obse(:)))
    end subroutine get_insar_data
 
 
    subroutine is_ramp(ramp_gf_file)
    implicit none
-   integer :: channel
+   integer :: point, i
    logical :: ramp_gf_file
+   character(len=10) :: ramp_type
    inquire( file = 'ramp_gf.txt', exist = ramp_gf_file )
    if (ramp_gf_file) then
       open(23, file='ramp_gf.txt', status='old')
-      read(23,*) ramp_type1, ramp_type2
-      ramp_length1 = 0
-      ramp_length2 = 0
-      select case (ramp_type1)
-      case ('linear')
-         if (lines_asc .gt. 0) ramp_length1 = ramp_length1 + 3
-      case ('bilinear')
-         if (lines_asc .gt. 0) ramp_length1 = ramp_length1 + 6
-      case ('quadratic')
-         if (lines_asc .gt. 0) ramp_length1 = ramp_length1 + 5
-      end select
-      select case (ramp_type2)
-      case ('linear')
-         if (lines_desc .gt. 0) ramp_length2 = ramp_length2 + 3
-      case ('bilinear')
-         if (lines_desc .gt. 0) ramp_length2 = ramp_length2 + 6
-      case ('quadratic')
-         if (lines_desc .gt. 0) ramp_length2 = ramp_length2 + 5
-      end select
-      ramp_length = ramp_length1 + ramp_length2
-      do channel = 1, n_chan
-         ramp_gf(:, channel) = 0.d0
-         read(23,*)ramp_gf(:ramp_length, channel)
+      read(23,*) ramp_types(:tracks)
+      do i = 1, tracks
+         ramp_type = ramp_types(i)   
+         select case (ramp_type)
+         case ('linear')
+            ramp_length = ramp_length + 3
+         case ('bilinear')
+            ramp_length = ramp_length + 6
+         case ('quadratic')
+            ramp_length = ramp_length + 5
+         end select
+      enddo
+      do point = 1, points
+         ramp_gf(:, point) = 0.d0
+         read(23,*)ramp_gf(:ramp_length, point)
       end do
       close(23)
    end if
@@ -91,7 +97,7 @@ contains
 
    subroutine initial_ramp(ramp)
    implicit none
-   real*8 :: ramp(18)
+   real*8 :: ramp(36)
    integer :: i
    ramp(:) = 0.d0
    do i=1, ramp_length, 2
@@ -105,8 +111,8 @@ contains
 
    subroutine initial_insar(slip, rake, ramp)
    implicit none
-   real*8, optional :: ramp(18)
-   integer k, j, segment, channel, subfault
+   real*8, optional :: ramp(36)
+   integer k, j, segment, point, subfault
    integer n_tt!, lines_asc, lines_desc
    real slip(:), rake(:)
    real :: cosal, sinal, angle
@@ -116,21 +122,21 @@ contains
 
    open(33, file='Insar_static_subfault.txt', status='old')
    read(33,*) n_tt
-   do channel = 1, n_chan
+   do point = 1, points
       read(33,*)
       subfault = 0
       do segment = 1, segments
          read(33,*)
          do j = 1, nys_sub(segment)*nxs_sub(segment)
             subfault = subfault + 1
-            read(33,*)(green(k, channel, subfault), k = 1, 6)
+            read(33,*)(green(k, point, subfault), k = 1, 6)
          enddo
       end do
    end do
    close(33)
 
-   do channel = 1, n_chan
-      syn_disp(channel) = 0.d0
+   do point = 1, points
+      syn_disp(point) = 0.d0
       do k = 1, 3
          j = 2 * k - 1
          disp = 0.d0
@@ -139,23 +145,23 @@ contains
             sinal = sin(angle)
             cosal = cos(angle)
             disp = disp + slip(subfault) &
-     &  *(sinal*green(j, channel, subfault)+cosal*green(j+1, channel, subfault))
+     &  *(sinal*green(j, point, subfault)+cosal*green(j+1, point, subfault))
          end do
-         disp = disp * look(k, channel)
-         syn_disp(channel) = syn_disp(channel) + disp
+         disp = disp * look(k, point)
+         syn_disp(point) = syn_disp(point) + disp
       end do
       if (present(ramp)) then
          ramp2 = 0.d0 
          do k = 1, ramp_length
-            ramp2 = ramp2 + ramp_gf(k, channel)*ramp(k)
+            ramp2 = ramp2 + ramp_gf(k, point)*ramp(k)
          end do 
-         syn_disp(channel) = syn_disp(channel) + ramp2
+         syn_disp(point) = syn_disp(point) + ramp2
       endif
    end do
    open(10,file='insar_synthetics.txt')
-   write(10,*) n_chan
-   do channel = 1, n_chan
-      write(10,*) channel, sta_name(channel), lat(channel), lon(channel), syn_disp(channel)
+   write(10,*) points
+   do point = 1, points
+      write(10,*) point, sta_name(point), lat(point), lon(point), syn_disp(point)
    end do
    close(10)
    
@@ -165,13 +171,14 @@ contains
       close(11)
    
       open(12,file='insar_ramp.txt')
-      write(12,*) n_chan, lines_asc, lines_desc
-      do channel = 1, n_chan
+      write(12,*) points
+      read(12,*)ramp_types(:tracks)
+      do point = 1, points
          ramp2 = 0.d0 
          do k = 1, ramp_length
-            ramp2 = ramp2 + ramp_gf(k, channel)*ramp(k)
+            ramp2 = ramp2 + ramp_gf(k, point)*ramp(k)
          end do 
-         write(12,*) channel, sta_name(channel), lat(channel), lon(channel), ramp2
+         write(12,*) point, sta_name(point), lat(point), lon(point), ramp2
       end do
       close(12)
    end if
@@ -183,15 +190,15 @@ contains
 !
    subroutine insar_synthetic(slip, rake, err, ramp)
    implicit none
-   real*8, optional :: ramp(18)
+   real*8, optional :: ramp(36)
    real slip(:), rake(:)!, err
-   integer k, j, segment, channel, subfault
+   integer k, j, segment, point, subfault
    real err, dif, angle, sinal, cosal
    real*8 :: disp, err2, ramp2
       
    err2 = 0.d0
    synm_whole(:) = 0.d0
-   do channel = 1, n_chan
+   do point = 1, points
       do k = 1, 3
          j = 2 * k - 1
          disp = 0.d0
@@ -200,20 +207,20 @@ contains
             sinal = sin(angle)
             cosal = cos(angle)
             disp = disp + slip(subfault) &
-       &  *(sinal*green(j, channel, subfault)+cosal*green(j+1, channel, subfault))
+       &  *(sinal*green(j, point, subfault)+cosal*green(j+1, point, subfault))
          end do
-         disp = disp * look(k, channel)
-         synm_whole(channel) = synm_whole(channel) + disp
+         disp = disp * look(k, point)
+         synm_whole(point) = synm_whole(point) + disp
       end do
       if (present(ramp)) then
          ramp2 = 0.d0 
          do k = 1, ramp_length
-            ramp2 = ramp2 + ramp_gf(k, channel)*ramp(k)
+            ramp2 = ramp2 + ramp_gf(k, point)*ramp(k)
          end do 
-         synm_whole(channel) = synm_whole(channel) + ramp2
+         synm_whole(point) = synm_whole(point) + ramp2
       endif
-      dif = synm_whole(channel) - obse(channel)
-      err2 = err2 + weight(channel) * dif * dif / max_los / max_los!100.0
+      dif = synm_whole(point) - obse(point)
+      err2 = err2 + weight(point) * dif * dif / max_los / max_los!100.0
    end do
    err2 = sqrt(err2/weight_sum)
    err = real(err2)
@@ -227,21 +234,21 @@ contains
    implicit none
    real, intent(in) :: slip, rake
    integer, intent(in) :: subfault
-   integer k, j, channel
+   integer k, j, point
    real disp, angle, sinal, cosal
 !
    angle = rake*dpi
    sinal = sin(angle)
    cosal = cos(angle)
 
-   do channel = 1, n_chan
+   do point = 1, points
       disp = 0.0
       do k = 1, 3
          j = 2*k-1
-         disp = disp + slip*look(k, channel) &
-     &   *(sinal*green(j, channel, subfault)+cosal*green(j+1, channel, subfault))
+         disp = disp + slip*look(k, point) &
+     &   *(sinal*green(j, point, subfault)+cosal*green(j+1, point, subfault))
       end do
-      synm_whole(channel) = synm_whole(channel)-disp
+      synm_whole(point) = synm_whole(point)-disp
    end do
 
    end subroutine insar_remove_subfault
@@ -256,7 +263,7 @@ contains
    real, intent(in) :: slip, rake
    real, intent(out) :: err
    integer, intent(in) :: subfault
-   integer k, j, channel
+   integer k, j, point
    real disp, angle, dif, sinal, cosal
    real*8 :: err2
 !
@@ -265,15 +272,15 @@ contains
    cosal = cos(angle)
 
    err2 = 0.d0
-   do channel = 1, n_chan
+   do point = 1, points
       disp = 0.0
       do k = 1, 3
          j = 2*k-1
-         disp = disp + slip*look(k, channel) &
-       & *(sinal*green(j, channel, subfault)+cosal*green(j+1, channel, subfault))
+         disp = disp + slip*look(k, point) &
+       & *(sinal*green(j, point, subfault)+cosal*green(j+1, point, subfault))
       end do
-      dif = (synm_whole(channel) + disp) - obse(channel)
-      err2 = err2 + weight(channel) * dif * dif / max_los / max_los!100.0
+      dif = (synm_whole(point) + disp) - obse(point)
+      err2 = err2 + weight(point) * dif * dif / max_los / max_los!100.0
    end do
    err2 = sqrt(err2/weight_sum)
    err = real(err2)
@@ -289,21 +296,21 @@ contains
    implicit none
    real, intent(in) :: slip, rake
    integer, intent(in) :: subfault
-   integer k, j, channel
+   integer k, j, point
    real disp, angle, dif, sinal, cosal
 
    angle = rake*dpi
    sinal = sin(angle)
    cosal = cos(angle)
 
-   do channel = 1, n_chan
+   do point = 1, points
       disp = 0.0
       do k = 1, 3
          j = 2*k-1
-         disp = disp + look(k, channel)*slip &
-       & *(sinal*green(j, channel, subfault)+cosal*green(j+1, channel, subfault))
+         disp = disp + look(k, point)*slip &
+       & *(sinal*green(j, point, subfault)+cosal*green(j+1, point, subfault))
       end do
-      synm_whole(channel) = synm_whole(channel)+disp
+      synm_whole(point) = synm_whole(point)+disp
    end do
 
    end subroutine insar_add_subfault
@@ -314,16 +321,16 @@ contains
 !  
    subroutine insar_remove_ramp(ramp)
    implicit none
-   real*8, intent(in) :: ramp(18)
-   integer k, j, channel
+   real*8, intent(in) :: ramp(36)
+   integer k, j, point
    real ramp2
 !
-   do channel = 1, n_chan
+   do point = 1, points
       ramp2 = 0.0
       do k = 1, ramp_length
-         ramp2 = ramp2 + ramp_gf(k, channel)*ramp(k)
+         ramp2 = ramp2 + ramp_gf(k, point)*ramp(k)
       end do
-      synm_whole(channel) = synm_whole(channel)-ramp2
+      synm_whole(point) = synm_whole(point)-ramp2
    end do
 
    end subroutine insar_remove_ramp
@@ -335,19 +342,19 @@ contains
 !
    pure subroutine insar_modify_ramp(ramp, err)
    implicit none
-   real*8, intent(in) :: ramp(18)
+   real*8, intent(in) :: ramp(36)
    real, intent(out) :: err
-   integer k, j, channel
+   integer k, j, point
    real*8 :: err2, ramp2, dif
 !
    err2 = 0.d0
-   do channel = 1, n_chan
+   do point = 1, points
       ramp2 = 0.0
       do k = 1, ramp_length
-         ramp2 = ramp2 + ramp_gf(k, channel)*ramp(k)
+         ramp2 = ramp2 + ramp_gf(k, point)*ramp(k)
       end do
-      dif = (synm_whole(channel) + ramp2) - obse(channel)
-      err2 = err2 + weight(channel) * dif * dif / max_los / max_los!100.0
+      dif = (synm_whole(point) + ramp2) - obse(point)
+      err2 = err2 + weight(point) * dif * dif / max_los / max_los!100.0
    end do
    err2 = sqrt(err2/weight_sum)
    err = real(err2)
@@ -361,16 +368,16 @@ contains
 !
    subroutine insar_add_ramp(ramp)
    implicit none
-   real*8, intent(in) :: ramp(18)
-   integer k, j, channel
+   real*8, intent(in) :: ramp(36)
+   integer k, j, point
    real*8 :: err2, ramp2, dif
    
-   do channel = 1, n_chan
+   do point = 1, points
       ramp2 = 0.d0
       do k = 1, ramp_length
-         ramp2 = ramp2 + ramp_gf(k, channel)*ramp(k)
+         ramp2 = ramp2 + ramp_gf(k, point)*ramp(k)
       end do
-      synm_whole(channel) = synm_whole(channel)+ramp2
+      synm_whole(point) = synm_whole(point)+ramp2
    end do
 
    end subroutine insar_add_ramp
