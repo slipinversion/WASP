@@ -11,34 +11,13 @@ import cartopy.feature as cf
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from glob import glob
+from cartopy.io.img_tiles import Stamen
 
 """
 Set colorbar for slip
 """
-#cD = {'red': [[0.0, 1.0, 1.0],
-#  [0.13278008298755187, 1.0, 1.0],
-#  [0.34024896265560167, 0.0, 0.0],
-#  [0.4979253112033195, 0.0, 0.0],
-#  [0.6597510373443983, 1.0, 1.0],
-#  [0.8381742738589212, 1.0, 1.0],
-#  [1.0, 1.0, 1.0]],
-# 'green': [[0.0, 1.0, 1.0],
-#  [0.13278008298755187, 1.0, 1.0],
-#  [0.34024896265560167, 1.0, 1.0],
-#  [0.4979253112033195, 1.0, 1.0],
-#  [0.6597510373443983, 1.0, 1.0],
-#  [0.8381742738589212, 0.6666666666666666, 0.6666666666666666],
-#  [1.0, 0.0, 0.0]],
-# 'blue': [[0.0, 1.0, 1.0],
-#  [0.13278008298755187, 1.0, 1.0],
-#  [0.34024896265560167, 1.0, 1.0],
-#  [0.4979253112033195, 0.0, 0.0],
-#  [0.6597510373443983, 0.0, 0.0],
-#  [0.8381742738589212, 0.0, 0.0],
-#  [1.0, 0.0, 0.0]]}
-#slipcpt = matplotlib.colors.LinearSegmentedColormap('slipcpt',cD)
 
-rm = 100 # amoount of lines to remove on black end of magma_r
+rm = 100 # amount of lines to remove on black end of magma_r
 magma_cpt = cm.get_cmap('magma_r', 512) #start with magma_r
 white_bit = np.array([255/256, 250/256, 250/256, 1]) #create array of white
 slip_cpt = magma_cpt(np.linspace(0,1,512)) #initialize slip_cpt
@@ -51,15 +30,17 @@ slip_cpt[:rm,:][:,1] = g_s
 slip_cpt[:rm,:][:,2] = b_s
 slipcpt = ListedColormap(slip_cpt)
 
-def set_map_cartopy(ax, margins, tectonic=None, countries=None, bathymetry=None, faults=True, aftershocks=True):
+def set_map_cartopy(ax, margins, tectonic=None, countries=None, bathymetry=None, faults=True, aftershocks=True, transform=None):
     """
     """
+    ax.set_extent(margins)
     ax.coastlines(resolution='10m', zorder=3)
     ax.spines["bottom"].set_linewidth(10)
     ax.spines["top"].set_linewidth(10)
     ax.spines["left"].set_linewidth(10)
     ax.spines["right"].set_linewidth(10)
-    #ax.stock_img()
+    tiler = Stamen('terrain-background')
+    ax.add_image(tiler, 10)
     gl = ax.gridlines(linewidth=1, color='black', alpha=0.3, draw_labels=True)
     gl.top_labels = False
     gl.right_labels = False
@@ -79,7 +60,7 @@ def set_map_cartopy(ax, margins, tectonic=None, countries=None, bathymetry=None,
             for kfault in range(len(faults)):
                 print('...Adding fault trace from: '+str(faults[kfault]))
                 fault_trace = np.genfromtxt(faults[kfault])
-                ax.plot(fault_trace[:,0],fault_trace[:,1],'k',zorder=100)
+                ax.plot(fault_trace[:,0],fault_trace[:,1],'k',zorder=100,transform=transform)
     if aftershocks==True:
         aftershocks = glob('*aftershock*')
         if len(aftershocks) > 0:
@@ -89,11 +70,9 @@ def set_map_cartopy(ax, margins, tectonic=None, countries=None, bathymetry=None,
                 aftershock_lat = aftershock[:,3]
                 aftershock_lon = aftershock[:,4]
                 aftershock_mag = aftershock[:,6]
-                ax.scatter(aftershock_lon, aftershock_lat, s=aftershock_mag*10, c='0.5', zorder = 200)
+                ax.scatter(aftershock_lon, aftershock_lat, s=aftershock_mag*10, c='0.5', zorder = 200,transform=transform)
 
     min_lon, max_lon, min_lat, max_lat = margins
-    ax.set_xlim(min_lon, max_lon)
-    ax.set_ylim(min_lat, max_lat)
     return ax
 
 

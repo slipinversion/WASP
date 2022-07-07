@@ -23,6 +23,7 @@ from datetime import datetime
 from shutil import copy2, move
 import glob
 from cartopy.io.img_tiles import Stamen
+from matplotlib.patches import Rectangle
 #from clawpack.geoclaw import dtopotools
 #
 # local modules
@@ -81,7 +82,8 @@ slipcpt = ListedColormap(slip_cpt)
 
 def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                  vel_model, default_dirs, autosize=False, mr_time=False, evID=None,
-                 files_str=None, stations_gps=None, stations_cgps=None, max_val=None):
+                 files_str=None, stations_gps=None, stations_cgps=None, max_val=None,
+                 legend_len=None, scale=None, limits=None):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
 
@@ -154,7 +156,7 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     #_PlotRiseTime(segments, point_sources, solution)
     #_PlotRuptTime(segments, point_sources, solution)
     _PlotSlipDistribution(segments, point_sources, solution, autosize=autosize, max_val=max_val)
-    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, files_str=files_str, stations_gps=stations_gps, stations_cgps=stations_cgps, max_slip=max_val)
+    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, files_str=files_str, stations_gps=stations_gps, stations_cgps=stations_cgps, max_slip=max_val, legend_len=legend_len, scale=scale, limits=limits)
     _PlotSlipTimes(segments, point_sources, solution)
 
 def plot_misfit(used_data_type, forward=False):
@@ -350,10 +352,10 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False, max
     rupt_time = solution['rupture_time']
     max_slip = [np.max(slip_seg.flatten()) for slip_seg in slip]
     max_slip = np.max(max_slip)
-    print('Max Slip: ' + str(max_slip) + ' cm')
+    print('Max Slip of Solution: ' + str(max_slip) + ' cm')
     if max_val != None:
         max_slip = max_val
-    print('Max Slip: ' + str(max_slip) + ' cm')
+    print('Max Slip for Plotting: ' + str(max_slip) + ' cm')
     x_label = 'Distance Along Strike (km)'
     y_label = 'Distance Along Dip (km)'
     for i_segment, (segment, slip_seg, rake_seg, rupttime_seg, ps_seg)\
@@ -774,7 +776,7 @@ def _PlotSlipDist_Compare(segments, point_sources, input_model,
 
 def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
              convex_hulls=[], files_str=None, stations_gps=None, stations_cgps=None,
-             option='Solucion.txt', max_slip=None):
+             option='Solucion.txt', max_slip=None, legend_len=None, scale=None, limits=[None,None,None,None]):
     """We plot slip map.
     """
     import collections
@@ -785,9 +787,9 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     x = np.arange(stk_subfaults) * delta_strike - hyp_stk * delta_strike
     y = np.arange(dip_subfaults) * delta_dip - hyp_dip * delta_dip
     slip = solution['slip']
-#
-# accurate plot coordinates
-#
+    #
+    # accurate plot coordinates
+    #
     segments_lats, segments_lons, segments_deps = __redefine_lat_lon(segments, point_sources)
     min_lats = [min(segment_lat.flatten()) for segment_lat in segments_lats]
     max_lats = [max(segment_lat.flatten()) for segment_lat in segments_lats]
@@ -798,54 +800,30 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     min_lon = np.min(min_lons)# - 0.5
     max_lon = np.max(max_lons)# + 0.5
 
-#    # outline the segments in black #
-#    for segment in range(len(segments_lats)):
-#        depths = segments_deps[segment].flatten()
-#        min_lats_idx = np.where(segments_lats[segment].flatten()==min_lats[segment])[0][0]
-#        cornerA = [segments_lons[segment].flatten()[min_lats_idx], min_lats[segment], depths[min_lats_idx], 0]
-#        min_lons_idx = np.where(segments_lons[segment].flatten()==min_lons[segment])[0][0]
-#        cornerB = [min_lons[segment], segments_lats[segment].flatten()[min_lons_idx], depths[min_lons_idx], 1]
-#        max_lats_idx = np.where(segments_lats[segment].flatten()==max_lats[segment])[0][0]
-#        cornerC = [segments_lons[segment].flatten()[max_lats_idx], max_lats[segment], depths[max_lats_idx], 2]
-#        max_lons_idx = np.where(segments_lons[segment].flatten()==max_lons[segment])[0][0]
-#        cornerD = [max_lons[segment], segments_lats[segment].flatten()[max_lons_idx], depths[max_lons_idx], 3]
-#        corners = np.c_[cornerA, cornerB, cornerC, cornerD]
-#        max_dep = max(corners[2,:])
-#        idx_max = np.where(np.array(corners[2,:]) == max_dep)[0][0]
-#        min1 = min2 = corners[:,idx_max]
-#        for i in range(len(corners)):
-#            if corners[2,i] < min1[2]:
-#                min2 = min1
-#                min1 = corners[:,i]
-#            elif corners[2,i] < min2[2] and collections.Counter(corners[:,i]) != collections.Counter(min1):
-#                min2 = corners[:,i]
-#
-#        updip = np.c_[min1,min2]
-#        corners = np.c_[corners,cornerA]
-
     margin = 1.3 * (stk_subfaults * delta_strike) / 111.19#min(3 * (stk_subfaults * delta_strike) / 111.19, 10)
     lat0 = tensor_info['lat']
     lon0 = tensor_info['lon']
     tectonic = '{}.shp'.format(default_dirs['trench_graphics'])
     dictn = {
-            'projection': ccrs.PlateCarree(),
+            'projection':ccrs.AlbersEqualArea(lon0,lat0,standard_parallels=(lat0-3., lat0+3)),
+            'transform': ccrs.PlateCarree(),
             #'facecolor': '#eafff5'
             'facecolor': 'None'
     }
 
-    fig, ax = plt.subplots(1, 1, figsize=(15, 15), subplot_kw=dictn)
+    fig = plt.figure(figsize=(15, 15))
+    ax = fig.add_subplot(111,projection=dictn['projection'],facecolor=dictn['facecolor'])
     ax.spines['geo'].set_linewidth(2)
     fig.subplots_adjust(hspace=0, wspace=0, top=0.9, bottom=0.1, right=0.8)
-    tiler = Stamen('terrain-background')
-    ax.add_image(tiler, 10)
     tectonic = cf.ShapelyFeature(
-            shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
+            shpreader.Reader(tectonic).geometries(), dictn['transform'],
             edgecolor='white', facecolor="None", lw=4)
     shpfilename = shpreader.natural_earth(
                 resolution='10m', category='cultural', name='admin_0_countries')
     countries = cf.ShapelyFeature(
-            shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
+            shpreader.Reader(shpfilename).geometries(), dictn['transform'],
             edgecolor='black', facecolor='None')
+    
     if files_str is not None:
         for file in files_str:
             name = file['name']
@@ -856,10 +834,10 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             max_lon = max(max_lon, lonp)
             distance = max(np.abs(latp - lat0), np.abs(lonp - lon0))
             margin = max(margin, 1.2 * distance)
-            ax.plot(lonp, latp, 'w', marker='^', markersize=10, lw=0.3, markeredgecolor='k',
-                    transform=ccrs.PlateCarree(), zorder=4)
-     #       ax.text(lonp + 0.02, latp + 0.02, '{}'.format(name),
-     #               transform=ccrs.PlateCarree(), zorder=4)
+            ax.plot(lonp, latp, 'w', marker='v', markersize=15, lw=0.3, markeredgecolor='k',
+                    transform=dictn['transform'], zorder=4)
+            #ax.text(lonp + 0.02, latp + 0.02, '{}'.format(name),
+            #        transform=dictn['projection'], zorder=4)
     if stations_cgps is not None:
         for file in stations_cgps:
             name = file['name']
@@ -871,9 +849,9 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             distance = max(np.abs(latp - lat0), np.abs(lonp - lon0))
             margin = max(margin, 1.2 * distance)
             ax.plot(lonp, latp, 'b', marker='^', markersize=10, lw=0.3, markeredgecolor='k',
-                    transform=ccrs.PlateCarree(), zorder=4)
-            ax.text(lonp + 0.02, latp + 0.02, '{}'.format(name),
-                    transform=ccrs.PlateCarree(), zorder=4)
+                    transform=dictn['transform'], zorder=4)
+            #ax.text(lonp + 0.02, latp + 0.02, '{}'.format(name),
+            #        transform=dictn['projection'], zorder=4)
 
     if stations_gps is not None:
         max_obs = np.zeros(3)
@@ -889,6 +867,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
             distance = max(np.abs(sta_lat - lat0), np.abs(sta_lon - lon0))
             margin = max(margin, 1.2 * distance)
         max_obs = np.max(max_obs)
+        print(f'Max Obs: {max_obs}')
         #plt.text(lon0 + margin - 2, lat0 + margin - 0.25,
         #         '{:.2f} cm'.format(max_obs), transform=ccrs.PlateCarree())
         #plt.text(lon0 + margin - 2, lat0 + margin - 0.45,
@@ -896,33 +875,32 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         for name, sta_lat, sta_lon, obs, syn, error in stations_gps2:
             #plt.plot(sta_lon, sta_lat, 'ks', transform=ccrs.PlateCarree(),
             #         markersize=14)
-            scale = 2
+            if scale == None:
+                scale=2  # bigger number here makes arrows look longer
+            scale2=2
             gps_z, gps_n, gps_e = syn
-            east_west = float(gps_e) / max_obs / scale
-            north_south = float(gps_n) / max_obs / scale
-            plt.arrow(sta_lon, sta_lat, east_west, north_south, color='r',
-                      zorder=3, linewidth=3.5, head_width=0.03, head_length=0.03,
-                      transform=ccrs.PlateCarree())
+            east_west = float(gps_e) / max_obs / (1./scale)
+            north_south = float(gps_n) / max_obs / (1./scale)
+            plt.arrow(sta_lon, sta_lat, east_west, north_south, facecolor='r',
+                      zorder=7, linewidth=0.5, width=0.02*scale2, head_width=0.05*scale2, head_length=0.05*scale2,
+                      transform=dictn['transform'], edgecolor='k')
             up_down = float(gps_z) / max_obs#/ 100
-            #plt.arrow(sta_lon, sta_lat, 0.0, up_down, color='r', zorder=3,
-            #          linewidth=2, head_width=0.05, head_length=0.05,
-            #          transform=ccrs.PlateCarree())
             gps_z, gps_n, gps_e = obs
-            east_west = float(gps_e) / max_obs / scale
-            north_south = float(gps_n) / max_obs / scale
-            plt.arrow(sta_lon, sta_lat, east_west, north_south, color='k', zorder=3,
-                      linewidth=2, head_width=0.03, head_length=0.03,
-                      transform=ccrs.PlateCarree())
-            up_down = float(gps_z) / max_obs / scale #/ 100
+            east_west = float(gps_e) / max_obs / (1./scale)
+            north_south = float(gps_n) / max_obs / (1./scale)
+            plt.arrow(sta_lon, sta_lat, east_west, north_south, facecolor='k', zorder=5,
+                      linewidth=0.5, width=0.02*scale2, head_width=0.05*scale2, head_length=0.05*scale2,
+                      transform=dictn['transform'])
+            up_down = float(gps_z) / max_obs / (1./scale) #/ 100
             #plt.arrow(sta_lon, sta_lat, 0.0, up_down, zorder=3,
             #          linewidth=2, head_width=0.05, head_length=0.05,
             #          transform=ccrs.PlateCarree())
             ### INCLUDE GNSS STATION NAMES ON PLOT? ###
-#            plt.text(sta_lon + 0.02, sta_lat + 0.02, '{}'.format(name),
-#                     transform=ccrs.PlateCarree())
+    #        plt.text(sta_lon + 0.02, sta_lat + 0.02, '{}'.format(name),
+    #                 transform=ccrs.PlateCarree())
             err_z, err_n, err_e = error
-            width = float(err_e) / max_obs/ scale
-            height = float(err_n) / max_obs/ scale
+            width = float(err_e) / max_obs/ (1./scale)
+            height = float(err_n) / max_obs/ (1./scale)
            # ellipse = patches.Ellipse(
            #         (sta_lon + east_west, sta_lat + north_south), width,
            #         height, zorder=4, color='k', linewidth=5,
@@ -935,24 +913,27 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         #plt.arrow(lon0 + margin - 0.2, lat0 + margin - 0.4, -1, 0, color='k',
         #          zorder=3, linewidth=2, head_width=0.05, head_length=0.05,
         #          transform=ccrs.PlateCarree())
-        from matplotlib.patches import Rectangle
-        legend_len = 10 #cm
-        ax.add_patch(Rectangle((min_lon-0.4, min_lat-0.4), (max_lon - min_lon)+0.8, 0.122*(max_lat-min_lat), edgecolor='k', facecolor='0.5', alpha=0.5))
-        plt.arrow(max_lon-0.2, min_lat-0.25, legend_len / max_obs / scale, 0, color='k', zorder=3, linewidth=2, head_width=0.03, head_length=0.03,transform=ccrs.PlateCarree())
-        plt.arrow(max_lon-0.2, min_lat - 0.35, legend_len / max_obs / scale, 0, color='r', zorder=3, linewidth=2, head_width=0.03, head_length=0.03,transform=ccrs.PlateCarree())
-        #plt.text(max_lon -0.17 , min_lat - 0.2, str(legend_len) + ' cm')
-        #plt.text(max_lon - 0.95, min_lat - 0.25, 'Observed GNSS')
-        #plt.text(max_lon - 0.95, min_lat - 0.35, 'Synthetic GNSS')
-        plt.text(0.95, 0.1, f'{legend_len} cm', horizontalalignment='center',verticalalignment='center', transform=ax.transAxes)
-        plt.text(0.9, 0.07, 'Observed GNSS', horizontalalignment='right', verticalalignment='center', transform=ax.transAxes)
-        plt.text(0.9, 0.03, 'Synthetic GNSS', horizontalalignment='right', verticalalignment='center', transform=ax.transAxes)
+        if legend_len == None:
+            legend_len=20
+        #ax.add_patch(Rectangle((min_lon-0.4, min_lat-0.4), (max_lon - min_lon)+0.8, 0.122*(max_lat-min_lat), edgecolor='k', facecolor='0.5', alpha=0.5, transform=dictn['transform']))
+        plt.arrow(0.83*(max_lon-min_lon)+(min_lon+0.5), 0.08*(max_lat-min_lat)+(min_lat-0.5), legend_len / max_obs / (1./scale), 0, facecolor='k', edgecolor='k', zorder=10, linewidth=0.5, width=0.02*scale2, head_width=0.05*scale2, head_length=0.05*scale2,transform=dictn['transform'])
+        plt.arrow(0.83*(max_lon-min_lon)+(min_lon+0.5), 0.04*(max_lat-min_lat)+(min_lat-0.5), legend_len / max_obs / (1./scale), 0, facecolor='r', edgecolor='k', zorder=10, linewidth=0.5, width=0.02*scale2, head_width=0.05*scale2, head_length=0.05*scale2,transform=dictn['transform'])
+        plt.text(0.9, 0.09, f'{int(legend_len)} cm', horizontalalignment='center',verticalalignment='center', transform=ax.transAxes)
+        plt.text(0.82, 0.06, 'Observed GNSS', horizontalalignment='right', verticalalignment='center', transform=ax.transAxes)
+        plt.text(0.82, 0.03, 'Synthetic GNSS', horizontalalignment='right', verticalalignment='center', transform=ax.transAxes)
     max_slip = max([np.amax(slip_fault) for slip_fault in slip])\
         if not max_slip else max_slip
-    margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
+    if limits == [None,None,None,None]:
+        margins = [min_lon - 0.5, max_lon + 0.5, min_lat - 0.5, max_lat + 0.5]
+    else:
+        margins = [min_lon - limits[0], max_lon + limits[1], min_lat - limits[2], max_lat + limits[3]]
+    print(margins)
+    ax.add_patch(Rectangle((margins[0]+.05, margins[2]+.05), 0.975*(margins[1]-margins[0]), 0.1*(margins[3]-margins[2]), edgecolor='k', facecolor='0.5', alpha=0.5, transform=dictn['transform'],zorder=3))
     #ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries)
-    ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries, bathymetry=None, faults=True, aftershocks=True)
-    ax.plot(lon0, lat0, '*', markersize=15, transform=ccrs.PlateCarree(),
-            zorder=4, markerfacecolor="None", markeredgecolor='k', markeredgewidth=1.5)
+    ax.set_extent(margins)
+    ax = set_map_cartopy(ax, margins, tectonic=tectonic, countries=countries, bathymetry=None, faults=True, aftershocks=True, transform=dictn['transform'])
+    ax.plot(lon0, lat0, '*', markersize=15, transform=dictn['transform'],
+            zorder=5, markerfacecolor="None", markeredgecolor='k', markeredgewidth=1.5)
 
     # outline the segments in black #
     for segment in range(len(segments_lats)):
@@ -979,31 +960,29 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
         updip = np.c_[min1,min2]
         corners = np.c_[corners,cornerA]
 
-        ax.plot(corners[0,:],corners[1,:], 'k',lw=2, zorder=10)
-        ax.plot(updip[0,:],updip[1,:], 'r', lw=1.5, zorder=10)
+        ax.plot(corners[0,:],corners[1,:], 'k',lw=2, zorder=4, transform=dictn['transform'])
+        ax.plot(updip[0,:],updip[1,:], 'r', lw=1.5, zorder=4, transform=dictn['transform'])
 
         #plot multiple segment hypocenters if any
         if 'hypocenter' in segments[segment]:
             hyp = segments[segment]['hypocenter']
-            ax.plot(hyp['lon'], hyp['lat'], '*', markersize=15, transform=ccrs.PlateCarree(), zorder=4, markerfacecolor="None", markeredgecolor='k', markeredgewidth=1.5)
-#
-# plot slip map
-#
+            ax.plot(hyp['lon'], hyp['lat'], '*', markersize=15, transform=dictn['transform'], zorder=5, markerfacecolor="None", markeredgecolor='k', markeredgewidth=1.5)
+    #
+    # plot slip map
+    #
     ax, cs = plot_map(ax, segments_lats, segments_lons, slip, max_val=max_slip,
-                      transform=dictn['projection'])
+                      transform = dictn['transform'])
     sm = plt.cm.ScalarMappable(cmap=slipcpt,norm=plt.Normalize(vmin=0.,vmax=max_slip/100.))
 
-    #from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-    #cb_ax = inset_axes(ax, width = "30%", height = "5%", loc = 'lower left')
-    #from matplotlib.axes.Axes import inset_axes
-    cb_ax = ax.inset_axes([0.1, 0.04, 0.3, 0.02])
-    #cb_ax = inset_axes(ax, width = 0.3, height = 0.02, loc = 'lower left')
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+#    cb_ax = inset_axes(ax, width = "30%", height = "5%", loc = 'lower left')
+    cb_ax = ax.inset_axes([0.06, 0.03, 0.3, 0.02])
     cbar = plt.colorbar(sm, cax=cb_ax, orientation='horizontal')
     cbar.outline.set_linewidth(3)
     cbar.set_label('Slip (m)')
     cbar.ax.xaxis.set_ticks_position('top')
     cbar.ax.xaxis.set_label_position('top')
-    ax.set_aspect('auto', adjustable=None)
+    
     plt.savefig('Map.png', dpi=300, bbox_inches='tight')
     plt.savefig('Map.ps')
     plt.close()
@@ -1074,7 +1053,7 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
 
     values = [observed, synthetic, diffs, obs_no_ramp, syn_no_ramp, ramp]
     titles = ['Observed', 'Synthetic', 'Misfit', 'Observed - Ramp', 'Synthetic - Ramp', 'Ramp']
-    labels = ['Observed LOS (m)', 'Modeled LOS (m)', 'Residual (m)','Observed LOS (m)', 'Modeled LOS (m)', 'Modeled Ramp LOS (m)']
+    labels = ['Observed LOS (cm)', 'Modeled LOS (cm)', 'Residual (cm)','Observed LOS (cm)', 'Modeled LOS (cm)', 'Modeled Ramp LOS (cm)']
     rows = [0, 0, 0, 1, 1, 1]
     cols = [0, 1, 2, 0, 1, 2]
     zipped = zip(values, titles, labels, rows, cols)
@@ -1317,7 +1296,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
     ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
     ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
-    ax.fill_between(time, rel_mr, color='0.9')
+    #ax.fill_between(time, rel_mr, color='0.9')
     ax.plot(time, rel_mr, 'k', lw=2)
     if mr_time == None:
         tenth = np.ones(len(time))*0.1
@@ -1328,7 +1307,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     ax.set_ylim([0,1])
     ax.set_xlim([0,max(time)])
     plt.savefig('MomentRate.png')#, bbox_inches='tight')
-    #plt.savefig('MomentRate.ps')
+    plt.savefig('MomentRate.ps')
     plt.close()
     return
 
@@ -1819,6 +1798,13 @@ if __name__ == '__main__':
                         help="plot comparison for checkerboard test")
     parser.add_argument("-max","--maxvalue",default=None, type=float,
                         help="Choose maximum slip value for plot")
+    parser.add_argument("-legend","--legend_length",default=None, type=float,
+                        help="Length of static GNSS vector for legend (in cm)")
+    parser.add_argument("-scale","--scale_factor",default=None, type=float,
+                        help="Scale factor for static GNSS vector lengths (larger means shorter vectors)")
+    parser.add_argument("-limits","--map_limits", type=float, nargs=4,
+                        help="Specify map limits [W,E,N,S] from edges of plotted features. eg: 0.5 0.5 0.5 0.5\
+                        gives a 0.5 degree buffer on each side. Negative numbers will cut off plotted features.")
     args = parser.parse_args()
     os.chdir(args.folder)
     used_data = []
@@ -1855,6 +1841,19 @@ if __name__ == '__main__':
         maxval=args.maxvalue
     else:
         maxval=None
+    if args.legend_length != None:
+        legend_len=args.legend_length
+    else:
+        legend_len=None
+    if args.scale_factor != None:
+        scale=args.scale_factor
+    else:
+        scale=None
+    if args.map_limits:
+        limits=[args.map_limits[0],args.map_limits[1],args.map_limits[2],args.map_limits[3]]
+        print(f'Axes limits: {limits}')
+    else:
+        limits=[None,None,None,None]
     if args.ffm_solution:
         if not os.path.isfile('velmodel_data.json'):
             vel_model = mv.select_velmodel(tensor_info, default_dirs)
@@ -1875,7 +1874,8 @@ if __name__ == '__main__':
             evID = None
         plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                      vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID,
-                     files_str=traces_info,stations_gps=stations_gps, stations_cgps=traces_info_cgps, max_val=maxval)
+                     files_str=traces_info,stations_gps=stations_gps, stations_cgps=traces_info_cgps, 
+                     max_val=maxval, legend_len=legend_len, scale=scale, limits=limits)
         static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)        
 
     if args.shakemappolygon:
