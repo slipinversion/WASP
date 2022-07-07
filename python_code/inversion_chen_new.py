@@ -60,9 +60,11 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     if 'gps' in data_type:
         copy2(os.path.join('data', 'gps_data'), sol_folder)
     if 'insar' in data_type:
-        for file in ['insar_asc.txt', 'insar_desc.txt']:
-            if os.path.isfile(os.path.join('data', file)):
-                copy2(os.path.join('data', file), sol_folder)
+        insar_files = glob.glob(os.path.join('data', 'insar_a*txt'))
+        insar_files = insar_files + glob.glob(os.path.join('data', 'insar_d*txt'))
+        for file in insar_files:
+            if os.path.isfile(file):
+                copy2(file, sol_folder)
     data_prop = tp.properties_json(tensor_info, dt_cgps=dt_cgps)
     os.chdir(os.path.join(sol_folder, 'data'))
     time2 = time.time()
@@ -72,8 +74,10 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     logger.info('Time spent processing traces: {}'.format(time2))
     os.chdir(sol_folder)
     data_folder = os.path.join(sol_folder, 'data')
-    insar_asc = None if not os.path.isfile('insar_asc.txt') else 'insar_asc.txt'
-    insar_desc = None if not os.path.isfile('insar_desc.txt') else 'insar_desc.txt'
+    insar_asc = glob.glob('insar_asc*txt')
+    insar_asc = None if len(insar_asc) == 0 else insar_asc
+    insar_desc = glob.glob('insar_desc*txt')
+    insar_desc = None if len(insar_desc) == 0 else insar_desc
     dm.filling_data_dicts(
         tensor_info, data_type, data_prop, data_folder,
         insar_asc=insar_asc, insar_desc=insar_desc)
@@ -180,8 +184,10 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
         velmodel = mv.select_velmodel(tensor_info, default_dirs)
     np_plane_info = plane_data['plane_info']
     data_folder = os.path.join('..', 'data')
-    insar_asc = None if not os.path.isfile('insar_asc.txt') else 'insar_asc.txt'
-    insar_desc = None if not os.path.isfile('insar_desc.txt') else 'insar_desc.txt'
+    insar_asc = glob.glob('insar_asc*txt')
+    insar_asc = None if len(insar_asc) == 0 else insar_asc
+    insar_desc = glob.glob('insar_desc*txt')
+    insar_desc = None if len(insar_desc) == 0 else insar_desc
     dm.filling_data_dicts(
         tensor_info, data_type, data_prop, data_folder,
         insar_asc=insar_asc, insar_desc=insar_desc)
@@ -271,6 +277,8 @@ def modelling_new_data(tensor_info, data_type, default_dirs,
         data_type2 = data_type2 + ['cgps']
     if os.path.isfile('static_data.json'):
         data_type2 = data_type2 + ['gps']
+    if os.path.isfile('insar_data.json'):
+        data_type2 = data_type2 + ['insar']
     manual_modelling(tensor_info, data_type2, default_dirs, segments_data)
     return
 
@@ -711,15 +719,19 @@ def execute_plot(tensor_info, data_type, segments_data, default_dirs,
     if 'insar' in data_type:
         insar_data = get_outputs.get_insar()
         if 'ascending' in insar_data:
-            insar_points = insar_data['ascending']['points']
-            plot._PlotInsar(
-                tensor_info, segments, point_sources,
-                default_dirs, insar_points, los='ascending')
+            asc_properties = insar_data['ascending']
+            for i, asc_property in enumerate(asc_properties):
+                insar_points = asc_property['points']
+                plot._PlotInsar(
+                    tensor_info, segments, point_sources,
+                    default_dirs, insar_points, los='ascending{}'.format(i))
         if 'descending' in insar_data:
-            insar_points = insar_data['descending']['points']
-            plot._PlotInsar(
-                tensor_info, segments, point_sources,
-                default_dirs, insar_points, los='descending')
+            desc_properties = insar_data['descending']
+            for i, desc_property in enumerate(desc_properties):
+                insar_points = desc_property['points']
+                plot._PlotInsar(
+                    tensor_info, segments, point_sources,
+                    default_dirs, insar_points, los='descending{}'.format(i))
     if plot_input:
         input_model = load_ffm_model(
             segments_data, point_sources, option='fault&rise_time.txt')

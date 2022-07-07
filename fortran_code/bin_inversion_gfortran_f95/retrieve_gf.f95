@@ -8,11 +8,11 @@ module retrieve_gf
    &  wave_pts2, max_seg, block_far, ltde, n_data, max_psources, max_dip_psources, &
    &  max_dip_subfaults, block_stg, pi, twopi, wave_pts
    use model_parameters, only : point_sources, segments, v_ref, nxs_sub, nys_sub, delay_seg, &
-   &  dxs, dys, nx_p, ny_p, dip, strike, shear, t_latest
+   &  dxs, dys, nx_p, ny_p, dip, strike, shear, t_latest, cum_subfaults
    use wavelets, only : fourier_coefs, meyer_yamada
    use wavelet_param, only : lnpt, nlen, jmin, jmax, max_freq
-   use retrieve_surf_gf, only : get_surf_gf_data, interp_gf, get_surf_gf, &
-   &  npt_bank, dt_bank, check_bounds
+   use retrieve_surf_gf, only : get_surf_gf_data, interp_gf, get_surf_gf, npt_bank, &
+   &  dt_bank, check_bounds
    use rad_pattern, only : rad_coef
    use geodesics, only : distaz
    use get_stations_data, only : sta_name1, sta_name2, sta_name3, disp_or_vel, &
@@ -233,7 +233,7 @@ contains
 
    subroutine get_body_waves_gf(ll_in, ll_out)
    implicit none
-   integer nstaon, channel, ll_g, k, nsta, n_chan, &
+   integer nstaon, channel, ll_g, k, nsta, n_chan, subfault, psource, &
    &  love, ll, segment, iys, iyp, io_seg, iys_c, iy_c, jf, i, ipy, npxy, &
    &  nkxy, nxs_c, nys_c, nxp_c, nyp_c, ll_s, kxy, ixs, kpxy, ixp, & 
 !, iud(max_stations_tele), &
@@ -263,7 +263,6 @@ contains
    z0 = cmplx(0.0, 0.0)
 
    open(9, file='channels_body.txt', status='old')
-!   open(13,file='Obser.tele',status='unknown')
    read(9,*)
    read(9,*)
    read(9,*)
@@ -357,8 +356,8 @@ contains
                end do
             end do
             do ll_s = 1, nkxy
-               do k = 1, npxy
-                  tdel(k, ll_s, segment, channel) = 0.0
+               do psource = 1, npxy
+                  tdel(psource, ll_s, segment, channel) = 0.0
                end do
             end do
          end if
@@ -377,15 +376,16 @@ contains
       LL = 0
       ddelt = 0.0
       z = z0
+      subfault = 0
       do segment = 1, segments
          kxy = 0
          do iys = 1, nys_sub(segment)
             do ixs = 1, nxs_sub(segment)
                kxy = kxy+1
-               ll = ll+1
+               subfault = subfault+1
                do i = 1, 2*max_freq
-                  green_dip(i, ll_g, ll) = z0
-                  green_stk(i, ll_g, ll) = z0
+                  green_dip(i, ll_g, subfault) = z0
+                  green_stk(i, ll_g, subfault) = z0
                end do
                kahan_y1(:) = z0
                kahan_t1(:) = z0
@@ -393,24 +393,24 @@ contains
                kahan_y2(:) = z0
                kahan_t2(:) = z0
                kahan_c2(:) = z0
-               kpxy = 0
+               psource = 0
                do iyp = 1, ny_p
                   do ixp = 1, nx_p
-                     kpxy = kpxy+1
-                     time = point_sources(4, ixp, iyp, ixs, iys, segment)/v_ref+delay_seg(segment)
-                     time = time + tdel(kpxy, kxy, segment, channel)
+                     psource = psource+1
+                     time = point_sources(4, psource, subfault)/v_ref+delay_seg(segment)
+                     time = time + tdel(psource, kxy, segment, channel)
                      do i = 1, 2*max_freq
                         W = -twopi*(i-1)*df*time
                         z = cmplx(0.0, w)
                         z = cexp(z)
                         kahan_y1(i) = green_dip0(i, iyp, iys, segment, channel)*z - kahan_c1(i)
-                        kahan_t1(i) = green_dip(i, ll_g, ll) + kahan_y1(i)
-                        kahan_c1(i) = (kahan_t1(i) - green_dip(i, ll_g, ll)) - kahan_y1(i)
-                        green_dip(i, ll_g, ll) = kahan_t1(i)
+                        kahan_t1(i) = green_dip(i, ll_g, subfault) + kahan_y1(i)
+                        kahan_c1(i) = (kahan_t1(i) - green_dip(i, ll_g, subfault)) - kahan_y1(i)
+                        green_dip(i, ll_g, subfault) = kahan_t1(i)
                         kahan_y2(i) = green_stk0(i, iyp, iys, segment, channel)*z - kahan_c2(i)
-                        kahan_t2(i) = green_stk(i, ll_g, ll) + kahan_y2(i)
-                        kahan_c2(i) = (kahan_t2(i) - green_stk(i, ll_g, ll)) - kahan_y2(i)
-                        green_stk(i, ll_g, ll) = kahan_t2(i)
+                        kahan_t2(i) = green_stk(i, ll_g, subfault) + kahan_y2(i)
+                        kahan_c2(i) = (kahan_t2(i) - green_stk(i, ll_g, subfault)) - kahan_y2(i)
+                        green_stk(i, ll_g, subfault) = kahan_t2(i)
                      end do
                   end do
                end do
@@ -421,8 +421,10 @@ contains
                      w = twopi*(i-1)*df
                      z = cmplx(0.0, w)
                   end if
-                  green_dip(i, ll_g, ll) = z*green_dip(i, ll_g, ll)/npxy
-                  green_stk(i, ll_g, ll) = z*green_stk(i, ll_g, ll)/npxy
+                  green_dip(i, ll_g, subfault) = z*green_dip(i, ll_g, subfault)/npxy
+                  green_stk(i, ll_g, subfault) = z*green_stk(i, ll_g, subfault)/npxy
+!                  green_dip2(i, ll, ll_g) = green_dip(i, ll_g, ll)
+!                  green_stk2(i, ll, ll_g) = green_stk(i, ll_g, ll)
                end do
             end do
          end do
@@ -437,7 +439,7 @@ contains
 
    subroutine get_surface_waves_gf(ll_in, ll_out)
    implicit none
-   integer ll_in, ll_out, nf1, nf2, nf3, nf4, no, &
+   integer ll_in, ll_out, nf1, nf2, nf3, nf4, no, subfault, psource, &
    &  npp, ix, iy, segment_subfault, j, ll_g, ll, io_chan, i, k, io_mod(max_stations), &
    &  segment, channel, i_ch, channel_max, n_chan, &
    &  iys, ixs, io_up(max_stations), io_ew(max_stations), io_ns(max_stations)
@@ -521,20 +523,28 @@ contains
    tlen_bank = npt_bank*dt_bank
    df_bank = 1.0/tlen_bank
    const_c = dt_bank/dt
-   ll = 0
+   subfault = 0
    dist_min = 20.0
    dist_max = 120.0
    do segment = 1, segments
       dip_segment = dip(segment)
       theta = strike(segment)
-      dep_min = point_sources(3, 1, 1, 1, 1, segment)
-      dep_max = point_sources(3, 1, ny_p, 1, nys_sub(segment), segment)
+      subfault = cum_subfaults(segment) + 1
+      dep_min = point_sources(3, 1, subfault)
+      subfault = cum_subfaults(segment)
+      subfault = subfault + (nys_sub(segment)-1)*nxs_sub(segment) + 1
+      psource = (ny_p-1)*nx_p + 1
+      dep_max = point_sources(3, psource, subfault)
       call check_bounds(30.0, 90.0, dep_min, dep_max)
       do iys = 1, nys_sub(segment)
          segment_subfault = (iys-1)*nxs_sub(segment)+1
-         depth_sub = point_sources(3, 1, int(ny_p/2) + 1, 1, iys, segment)
-         dep_min = point_sources(3, 1, 1, 1, iys, segment) - 1.0
-         dep_max = point_sources(3, 1, ny_p, 1, iys, segment) + 1.0
+         psource = int(ny_p/2)*nx_p + 1
+         subfault = cum_subfaults(segment)
+         subfault = subfault + (iys-1)*nxs_sub(segment) + 1
+         depth_sub = point_sources(3, psource, subfault)
+         dep_min = point_sources(3, 1, subfault) - 1.0
+         psource = (ny_p-1)*nx_p + 1
+         dep_max = point_sources(3, psource, subfault) + 1.0
          if (dep_min .lt. 4) dep_min = 4
 !  
 !  Sanity check:
@@ -547,30 +557,29 @@ contains
 !       values at each frequency are same. In this code, we will let dt_bank = 2 sec
 !       and npt_bank = 2048, in contrast, dt_sample = 4 sec, npt_bank = 1024 
 !
+         subfault = subfault - 1
          do ixs = 1, nxs_sub(segment)
-            ll = ll+1
-            segment_subfault = (iys-1)*nxs_sub(segment)+ixs
-            lat_p = point_sources(1, int(nx_p/2) + 1, int(ny_p/2) + 1, ixs, iys, segment)
-            lon_p = point_sources(2, int(nx_p/2) + 1, int(ny_p/2) + 1, ixs, iys, segment)
-            shear_subfault = shear(segment_subfault, segment)
+            subfault = subfault + 1
+            psource = int(ny_p/2)*nx_p + int(nx_p/2) + 1
+            lat_p = point_sources(1, psource, subfault)
+            lon_p = point_sources(2, psource, subfault)
+            shear_subfault = shear(subfault)
             do i = 1, max_freq
                omega = (i-1)*df_bank*twopi
                sour_sub(i) = cmplx(0.0, 0.0)
                kahan_y = z0
                kahan_t = z0
                kahan_c = z0
-               do iy = 1, ny_p
-                  do ix = 1, nx_p
-                     h = point_sources(4, ix, iy, ixs, iys, segment)
-                     time = h/v_ref
-                     tsub(1) = time+delay_seg(segment)
-                     a = -omega*tsub(1)
-                     kahan_y = cmplx(cos(a), sin(a)) - kahan_c
-                     kahan_t = sour_sub(i) + kahan_y
-                     kahan_c = (kahan_t - sour_sub(i)) - kahan_y
-                     sour_sub(i) = kahan_t
-!                     sour_sub(i) = sour_sub(i)+cmplx(cos(a), sin(a))
-                  end do
+               do psource = 1, ny_p*nx_p
+                  h = point_sources(4, psource, subfault)
+                  time = h/v_ref
+                  tsub(1) = time+delay_seg(segment)
+                  a = -omega*tsub(1)
+                  kahan_y = cmplx(cos(a), sin(a)) - kahan_c
+                  kahan_t = sour_sub(i) + kahan_y
+                  kahan_c = (kahan_t - sour_sub(i)) - kahan_y
+                  sour_sub(i) = kahan_t
+!                  sour_sub(i) = sour_sub(i)+cmplx(cos(a), sin(a))
                end do
                sour_sub(i) = sour_sub(i)*const_c/npp
             end do
@@ -616,11 +625,11 @@ contains
                         end do
                      end if
                      if (i .le. max_freq .and. segment .le. 10) then
-                        green_stk(i, ll_g, ll) = wss*filter(i)*sour_sub(i)*shear_subfault
-                        green_dip(i, ll_g, ll) = www*filter(i)*sour_sub(i)*shear_subfault
+                        green_stk(i, ll_g, subfault) = wss*filter(i)*sour_sub(i)*shear_subfault
+                        green_dip(i, ll_g, subfault) = www*filter(i)*sour_sub(i)*shear_subfault
                      else
-                        green_dip(i, ll_g, ll) = cmplx(0.0, 0.0)
-                        green_stk(i, ll_g, ll) = cmplx(0.0, 0.0)
+                        green_dip(i, ll_g, subfault) = cmplx(0.0, 0.0)
+                        green_stk(i, ll_g, subfault) = cmplx(0.0, 0.0)
                      end if
                   end do
                end do

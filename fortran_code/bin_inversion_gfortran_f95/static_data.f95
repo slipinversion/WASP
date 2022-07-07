@@ -10,14 +10,14 @@
 module static_data
 
 
-   use constants, only : max_subf, max_seg, dpi
-   use model_parameters, only : nxs_sub, nys_sub, nx_p, ny_p, segments
+   use constants, only : max_subf, max_seg, max_subfaults, dpi
+   use model_parameters, only : nxs_sub, nys_sub, nx_p, ny_p, segments, subfaults
    implicit none
    integer, parameter, private :: n_stations = 500
    integer :: n_chan
    real*8 :: synm_whole(n_stations, 3), weight_sum
    real :: lat(n_stations), lon(n_stations), max_gps
-   real :: green(n_stations, 6, max_subf, max_seg), syn_disp(n_stations, 3)
+   real :: green(n_stations, 6, max_subfaults), syn_disp(n_stations, 3)
    real :: obse(n_stations, 3), weight(n_stations, 3)
    character(len=6) :: sta_name(n_stations)
   
@@ -27,9 +27,9 @@ contains
 
    subroutine initial_gps(slip, rake)
    implicit none
-   integer k, j, segment, channel, no, nxy, i, segmenteg
-   integer iys, ixs, n_tt
-   real slip(max_subf, max_seg), rake(max_subf, max_seg)
+   integer k, j, segment, channel, no, i
+   integer iys, ixs, n_tt, subfault
+   real slip(:), rake(:)
    real :: cosal, sinal, angle
    real*8 :: disp
    logical is_file
@@ -53,15 +53,13 @@ contains
       read(33,*) n_tt
       do channel = 1, n_chan
          read(33,*)
-         do segmenteg = 1, segments
+         subfault = 0
+         do segment = 1, segments
             read(33,*)
-            nxy = 0
-            do iys = 1, nys_sub(segmenteg)
-               do ixs = 1, nxs_sub(segmenteg)
-                  nxy = nxy + 1
-                  read(33,*)(green(channel, k, nxy, segmenteg), k = 1, 6)
-               end do
-            end do
+            do j = 1, nys_sub(segment)*nxs_sub(segment)
+               subfault = subfault + 1
+               read(33,*)(green(channel, k, subfault), k = 1, 6)
+            enddo
          end do
       end do
       close(33)
@@ -70,18 +68,12 @@ contains
          j = 2 * k - 1
          do channel = 1, n_chan
             disp = 0.d0
-            do segment = 1, segments
-               nxy = 0
-               do iys = 1, nys_sub(segment)
-                  do ixs = 1, nxs_sub(segment)
-                     nxy = nxy + 1
-                     angle = rake(nxy, segment)*dpi 
-                     sinal = sin(angle)
-                     cosal = cos(angle)
-                     disp = disp + slip(nxy, segment) &
-     &  *(sinal*green(channel, j, nxy, segment)+cosal*green(channel, j+1, nxy, segment))
-                  end do
-               end do
+            do subfault = 1, subfaults
+               angle = rake(subfault)*dpi 
+               sinal = sin(angle)
+               cosal = cos(angle)
+               disp = disp + slip(subfault) &
+     &  *(sinal*green(channel, j, subfault)+cosal*green(channel, j+1, subfault))
             end do
             syn_disp(channel, k) = disp
          end do
@@ -99,27 +91,25 @@ contains
 !
 ! routine for loading static synthetic seismograms, given a rupture model
 !
-   subroutine static_synthetic(slip, rake, subfaults_segment, err)
+   subroutine static_synthetic(slip, rake, err)
    implicit none
-   real slip(max_subf, max_seg), rake(max_subf, max_seg)!, err
-   integer k, j, segment, channel, subfaults_segment(max_seg), nxy
+   real slip(:), rake(:)!, err
+   integer k, j, segment, channel, subfault
    real err, dif, angle, sinal, cosal
    real*8 :: disp, err2
-      
+   
    err2 = 0.d0
    synm_whole(:, :) = 0.d0
    do k = 1, 3
       j = 2 * k - 1
       do channel = 1, n_chan
          disp = 0.d0
-         do segment = 1, segments
-            do nxy = 1, subfaults_segment(segment)
-               angle = rake(nxy, segment)*dpi 
-               sinal = sin(angle)
-               cosal = cos(angle)
-               disp = disp + slip(nxy, segment) &
-       &  *(sinal*green(channel, j, nxy, segment)+cosal*green(channel, j+1, nxy, segment))
-            end do
+         do subfault = 1, subfaults
+            angle = rake(subfault)*dpi 
+            sinal = sin(angle)
+            cosal = cos(angle)
+            disp = disp + slip(subfault) &
+       &  *(sinal*green(channel, j, subfault)+cosal*green(channel, j+1, subfault))
          end do
          synm_whole(channel, k) = disp
          dif = synm_whole(channel, k) - obse(channel, k)
@@ -134,10 +124,10 @@ contains
 !  
 ! subroutine for removing the static response of current subfault for all static stations
 !  
-   subroutine static_remove_subfault(slip, rake, n_s, n_sub)
+   subroutine static_remove_subfault(slip, rake, subfault)
    implicit none
    real, intent(in) :: slip, rake
-   integer, intent(in) :: n_s, n_sub
+   integer, intent(in) :: subfault
    integer k, j, channel
    real disp, angle, sinal, cosal
 !
@@ -149,7 +139,7 @@ contains
       j = 2*k-1
       do channel = 1, n_chan
          disp = slip &
-     &   *(sinal*green(channel, j, n_sub, n_s)+cosal*green(channel, j+1, n_sub, n_s))
+     &   *(sinal*green(channel, j, subfault)+cosal*green(channel, j+1, subfault))
          synm_whole(channel, k) = synm_whole(channel, k)-disp
       end do
    end do
@@ -161,11 +151,11 @@ contains
 ! subroutine for testing the new response of the current subfault, for all stations
 ! we also give the misfit error of static data
 !
-   pure subroutine static_modify_subfault(slip, rake, n_s, n_sub, err)
+   pure subroutine static_modify_subfault(slip, rake, subfault, err)
    implicit none
    real, intent(in) :: slip, rake
    real, intent(out) :: err
-   integer, intent(in) :: n_s, n_sub
+   integer, intent(in) :: subfault
    integer k, j, channel
    real disp, angle, dif, sinal, cosal
    real*8 :: err2
@@ -179,7 +169,7 @@ contains
       j = 2*k-1
       do channel = 1, n_chan
          disp = slip &
-       & *(sinal*green(channel, j, n_sub, n_s)+cosal*green(channel, j+1, n_sub, n_s))
+       & *(sinal*green(channel, j, subfault)+cosal*green(channel, j+1, subfault))
          dif = (synm_whole(channel, k) + disp) - obse(channel, k)
          err2 = err2 + weight(channel, k) * dif * dif / max_gps / max_gps!100.0
       end do
@@ -194,10 +184,10 @@ contains
 ! subroutine for asliping response of current subfault, for all stations.
 ! we also give the misfit error of static data
 !
-   subroutine static_add_subfault(slip, rake, n_s, n_sub)
+   subroutine static_add_subfault(slip, rake, subfault)
    implicit none
    real, intent(in) :: slip, rake
-   integer, intent(in) :: n_s, n_sub
+   integer, intent(in) :: subfault
    integer k, j, channel
    real disp, angle, dif, sinal, cosal
    
@@ -209,7 +199,7 @@ contains
       j = 2*k-1
       do channel = 1, n_chan
          disp = slip &
-       & *(sinal*green(channel, j, n_sub, n_s)+cosal*green(channel, j+1, n_sub, n_s))
+       & *(sinal*green(channel, j, subfault)+cosal*green(channel, j+1, subfault))
          synm_whole(channel, k) = synm_whole(channel, k)+disp
       end do
    end do

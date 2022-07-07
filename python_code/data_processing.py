@@ -247,7 +247,7 @@ def __remove_response_body(used_tele_sacs, response_files, tensor_info,
     return
 
 
-def __rotation(tensor_info, used_tele_sacs, logger=None):
+def __rotation(tensor_info, used_sacs, rotate_RT=True, logger=None):
     """We rotate horizontal body waves to match transverse and radial
     directions to the event.
     """
@@ -255,7 +255,7 @@ def __rotation(tensor_info, used_tele_sacs, logger=None):
     event_lon = tensor_info['lon']
     string = lambda x, y, z: '{}_{}_{}.sac'.format(x, y, z)
 
-    streams = [read(sac) for sac in used_tele_sacs]
+    streams = [read(sac) for sac in used_sacs]
     stations = [st[0].stats.station for st in streams]
     stations = list(set(stations))
 
@@ -289,8 +289,6 @@ def __rotation(tensor_info, used_tele_sacs, logger=None):
             data1 = stream[0].data
             data2 = stream[1].data
             data0 = np.ones(len(data1))
-            # baz = stream[0].stats.sac.cmpaz
-            # data1, data2 = rotate.rotate_rt_ne(data1, data2, 360 - baz)
             data0, data1, data2 = rotate.rotate2zne(
                 data0,
                 0,
@@ -304,18 +302,30 @@ def __rotation(tensor_info, used_tele_sacs, logger=None):
             )
             stream[0].data = data1
             stream[1].data = data2
-            stream[0].stats.channel = 'BHN'
-            stream[1].stats.channel = 'BHE'
+            channel1 = stream[0].stats.channel
+            channel2 = stream[1].stats.channel
+            stream[0].stats.channel = channel1[:-1] + 'N'
+            stream[1].stats.channel = channel2[:-1] + 'E'
         net = stream[0].stats.network
-        transverse = string(net, sta, 'SH')
-        radial = string(net, sta, 'RD')
-        dist, az, baz = gps2dist_azimuth(
-            event_lat, event_lon, station_lat, station_lon)
-        stream.rotate(method='NE->RT', back_azimuth=baz)
-        stream_radial = stream.select(channel="*R")
-        stream_transverse = stream.select(channel="*T")
-        stream_transverse.write(transverse, format='SAC', byteorder = 0)
-        stream_radial.write(radial, format='SAC', byteorder = 0)
+        if rotate_RT:
+            transverse = string(net, sta, 'SH')
+            radial = string(net, sta, 'RD')
+            dist, az, baz = gps2dist_azimuth(
+                event_lat, event_lon, station_lat, station_lon)
+            stream.rotate(method='NE->RT', back_azimuth=baz)
+            stream_radial = stream.select(channel="*R")
+            stream_transverse = stream.select(channel="*T")
+            stream_transverse.write(transverse, format='SAC', byteorder = 0)
+            stream_radial.write(radial, format='SAC', byteorder = 0)
+        else:
+            channel1 = stream[0].stats.channel
+            channel2 = stream[1].stats.channel
+            north = string('acc', sta, channel1)
+            east = string('acc', sta, channel2)
+            stream_north = stream.select(channel="*N")
+            stream_east = stream.select(channel="*E")
+            stream_east.write(east, format='SAC', byteorder = 0)
+            stream_north.write(north, format='SAC', byteorder = 0)
     return
 
 
@@ -844,6 +854,11 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
 
     logger1.info('Select strong motion traces')
     os.chdir(os.path.join(data_folder, 'STR'))
+    horizontal_sacs = glob.glob('*HN1*sac') + glob.glob('*HN2*sac')
+    __rotation(tensor_info, horizontal_sacs, rotate_RT=False, logger=logger1)
+    for file in horizontal_sacs:
+        if os.path.isfile(file):
+            os.remove(file)
     strong_files1 = glob.glob('acc*')
     strong_files2 = __select_str_files(strong_files1, tensor_info)
     logger1.info('Update duration of traces')

@@ -1,7 +1,7 @@
 module ffm_methods
 
 
-   use constants, only : max_seg, max_subfaults2, max_subf
+   use constants, only : max_seg, max_subfaults, max_subf
    use model_parameters, only : write_model, deallocate_ps
    use modelling_inputs, only : n_iter, io_re, cooling_rate, t_stop, t_mid, t0
    use get_stations_data, only : get_data
@@ -15,10 +15,10 @@ module ffm_methods
                      &   annealing_iter3, annealing_iter4, n_threads
    use annealing_static, only : print_static_summary, annealing_iter
    implicit none
-   real :: rupt_time0(max_subf, max_seg)
-   real :: t_rise0(max_subf, max_seg), t_fall0(max_subf, max_seg)
+   real :: rupt_time0(max_subfaults)
+   real :: t_rise0(max_subfaults), t_fall0(max_subfaults)
    real :: t
-   real*8 :: ramp(18)
+   real*8 :: ramp(36)
    integer :: i
    character(len=10) :: input
 
@@ -50,8 +50,8 @@ contains
    subroutine waveform_ffm(strong, cgps, body, surf, dart, &
        & slip, rake, rupt_time, t_rise, t_fall)
    implicit none
-   real :: slip(:, :), rake(:, :), rupt_time(:, :)
-   real :: t_rise(:, :), t_fall(:, :)
+   real :: slip(:), rake(:), rupt_time(:)
+   real :: t_rise(:), t_fall(:)
    logical :: strong, cgps, dart, body, surf
    logical :: get_coeff, static, insar
    logical :: use_waveforms
@@ -90,8 +90,8 @@ contains
    subroutine mixed_ffm(strong, cgps, body, surf, dart, &
        & static, insar, slip, rake, rupt_time, t_rise, t_fall)
    implicit none
-   real :: slip(:, :), rake(:, :), rupt_time(:, :)
-   real :: t_rise(:, :), t_fall(:, :)
+   real :: slip(:), rake(:), rupt_time(:)
+   real :: t_rise(:), t_fall(:)
    logical :: static, strong, cgps, dart, body, surf
    logical :: get_coeff, insar, ramp_gf_file
    logical :: use_waveforms
@@ -159,7 +159,7 @@ contains
 
    subroutine static_ffm(slip, rake, static, insar)
    implicit none
-   real :: slip(:, :), rake(:, :)
+   real :: slip(:), rake(:)
    logical :: static, get_coeff, insar, ramp_gf_file
    logical :: use_waveforms
    use_waveforms = .False.

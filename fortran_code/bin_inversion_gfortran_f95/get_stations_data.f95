@@ -8,7 +8,7 @@ module get_stations_data
    integer, parameter :: nnsta_tele = 80
    real :: weight(max_stations), wave_obs(wave_pts2, max_stations), wmax(max_stations), dt_channel(max_stations)
    integer :: misfit_type(12, max_stations), t_max_val(max_stations)
-   integer :: t_min(max_stations), t_max(max_stations)
+   integer :: t_min(max_stations), t_max(max_stations), channels
    real :: wavelet_weight(12, max_stations)
    character(len=10) :: sta_name1(max_stations), sta_name2(max_stations), sta_name3(max_stations), &
          &     sta_name4(max_stations), sta_name5(max_stations)
@@ -29,12 +29,8 @@ contains
 !
    integer :: ll_in, ll_out
    logical :: strong, cgps, body, surf, dart
-   real erm
-   complex z0
 
    write(*,*)'Get stations metadata and waveforms and store them in memory...'
-   z0 = cmplx(0.0, 0.0)
-   erm = 0.0
    call fourier_coefs()
    call meyer_yamada()
    ll_in = 0
@@ -62,6 +58,7 @@ contains
       call get_dart_stations(ll_in, ll_out)
       ll_in = ll_out
    end if
+   channels = ll_out
    end subroutine get_data
 
    
@@ -98,11 +95,7 @@ contains
    read(9,*) ir_max, n_chan
    read(9,*)
    call error1(ll_in, n_chan)
-   if (n_wave_weight.ne.n_chan) then
-      write(*,*)'n_wave_chan n_chan',n_wave_weight,n_chan
-      write(*,*)'Mismatch in amount of stations betweeen wavelet file and stations file'
-      stop
-   end if
+   call error2(n_wave_weight, n_chan)
    ir = 0
    io_chan = 0
  
@@ -179,11 +172,7 @@ contains
    read(9,*) ir_max, n_chan
    read(9,*)
    call error1(ll_in, n_chan)
-   if (n_wave_weight.ne.n_chan) then
-      write(*,*)'n_wave_chan n_chan',n_wave_weight,n_chan
-      write(*,*)'Mismatch in amount of stations betweeen wavelet file and stations file'
-      stop
-   end if
+   call error2(n_wave_weight, n_chan)
    ir = 0
    io_chan = 0
  
@@ -268,6 +257,7 @@ contains
    rewind 14
 !   write(*,*)'n_chan: ', n_chan3
    n_chan = nstaon 
+   call error2(n_wave_weight, nstaon)
    
    filename = 'waveforms_body.txt'
    filename = trim(filename)
@@ -350,11 +340,7 @@ contains
    read(9,*) ir_max, n_chan
    read(9,*)
    call error1(ll_in, n_chan)
-   if (n_wave_weight.ne.n_chan) then
-      write(*,*)'n_wave_chan n_chan',n_wave_weight,n_chan
-      write(*,*)'Mismatch in amount of stations between wavelet file and stations file'
-      stop
-   end if
+   call error2(n_wave_weight, n_chan)
 !       
 !       Here we read the green functions of long period surface waves
 !  
@@ -444,11 +430,7 @@ contains
    read(9,*) ir_max, n_chan
    read(9,*)
    call error1(ll_in, n_chan)
-   if (n_wave_weight.ne.n_chan) then
-      write(*,*)'n_wave_chan n_chan',n_wave_weight,n_chan
-      write(*,*)'Mismatch in amount of stations betweeen wavelet file and stations file'
-      stop
-   end if
+   call error2(n_wave_weight, n_chan)
  
    do ir = 1, ir_max
       read(9,*) no, sta_name5(ir), lat_s, lon_s, io_mod, component5(ir), weig(ir), nos
@@ -602,6 +584,17 @@ contains
       stop
    end if
    end subroutine error1
+   
+
+   subroutine error2(n_wave_weight, n_chan)
+   implicit none
+   integer :: n_wave_weight, n_chan
+   if (n_wave_weight.ne.n_chan) then
+      write(0,*)'n_wave_chan n_chan',n_wave_weight,n_chan
+      write(0,*)'Mismatch in amount of stations betweeen wavelet file and stations file'
+      stop
+   end if
+   end subroutine error2
 
 
 end module get_stations_data      

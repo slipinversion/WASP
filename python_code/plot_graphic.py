@@ -195,9 +195,9 @@ def _plot_vel_model(velmodel, point_sources):
     max_depth = [max(ps_segment[:, :, :, :, 2].flatten())\
         for ps_segment in point_sources]
     max_depth = max(max_depth)
-    p_vel = np.array(velmodel['p_vel']).astype(np.float)
-    sh_vel = np.array(velmodel['s_vel']).astype(np.float)
-    thick = np.array(velmodel['thick']).astype(np.float)
+    p_vel = np.array(velmodel['p_vel']).astype(float)
+    sh_vel = np.array(velmodel['s_vel']).astype(float)
+    thick = np.array(velmodel['thick']).astype(float)
 
     depths = np.zeros(len(thick) + 1)
 

@@ -429,18 +429,40 @@ def insar_data(insar_asc=None, insar_desc=None, ramp_asc=None, ramp_desc=None):
 
     insar_dict = {}
     if insar_asc:
-        insar_dict['ascending'] = {
-            'name': insar_asc,
-            'weight': 1.0,
-            'ramp': ramp_asc
-        }
+        if not ramp_asc or len(ramp_asc) == 0 or ramp_asc == None:
+            ramp_asc = [None] * len(insar_asc)
+        if not len(ramp_asc) == len(insar_asc):
+            raise RuntimeError(
+                'You need to input the same amount of input to'\
+                + ' both the amount of ascending tracks and their ramp-types')
+        zipped = zip(insar_asc, ramp_asc)
+        properties = []
+        for track, ramp in zipped:
+            new_dict = {
+                'name': track,
+                'weight': 1.0,
+                'ramp': ramp
+            }
+            properties = properties + [new_dict]
+        insar_dict['ascending'] = properties
 
     if insar_desc:
-        insar_dict['descending'] = {
-            'name': insar_desc,
-            'weight': 1.0,
-            'ramp': ramp_desc
-        }
+        if not ramp_desc or len(ramp_desc) == 0 or ramp_desc == None:
+            ramp_desc = [None] * len(insar_desc)
+        if not len(ramp_desc) == len(insar_desc):
+            raise RuntimeError(
+                'You need to input the same amount of input to'\
+                + ' both the amount of descending tracks and their ramp-types')
+        zipped = zip(insar_desc, ramp_desc)
+        properties = []
+        for track, ramp in zipped:
+            new_dict = {
+                'name': track,
+                'weight': 1.0,
+                'ramp': ramp
+            }
+            properties = properties + [new_dict]
+        insar_dict['descending'] = properties
 
     with open('insar_data.json', 'w') as f:
         json.dump(

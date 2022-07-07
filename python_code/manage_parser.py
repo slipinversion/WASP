@@ -74,16 +74,16 @@ def parser_data_dict(parser):
         "-in", "--insar", action="store_true",
         help="create JSON for InSar data")
     parser.add_argument(
-        "-ina", "--insar_asc",
+        "-ina", "--insar_asc", default=[], nargs='*',
         help="Ascending InSar data")
     parser.add_argument(
-        "-ind", "--insar_desc",
+        "-ind", "--insar_desc", default=[], nargs='*',
         help="Descending InSar data")
     parser.add_argument(
-        "-inar", "--insar_asc_ramp",
+        "-inar", "--insar_asc_ramp", nargs='*',
         default=None, help="Ramp of ascending InSar data")
     parser.add_argument(
-        "-indr", "--insar_desc_ramp",
+        "-indr", "--insar_desc_ramp", nargs='*',
         default=None, help="Ramp of descending InSar data")
     return parser
 
