@@ -574,70 +574,83 @@ def input_chen_insar():
     insar_info = json.load(open('insar_data.json'))
     lines = []
     new_lines = []
-    weight_asc = 0
-    weight_desc = 0
-    lines_asc = 0
-    lines_desc = 0
-    size1 = 0
-    size2 = 0
-    ramp_asc = None
-    ramp_desc = None
+    weights = []
+    sizes = []
+    ramps = []
     if 'ascending' in insar_info:
-        ascending = insar_info['ascending']
-        insar_asc = ascending['name']
-        weight_asc = ascending['weight']
-        ramp_asc = ascending['ramp']
-        with open(insar_asc, 'r') as infile:
-            for line in infile:
-                if line.startswith('#'):
-                    continue
-                else:
-                    lines.append(line.split())
+        properties = insar_info['ascending']
+        for asc_property in properties:
+            track = asc_property['name']
+            weights = weights + [asc_property['weight']]
+            ramps = ramps + [asc_property['ramp']]
+            new_lines = []
+            with open(track, 'r') as infile:
+                for line in infile:
+                    if line.startswith('#'):
+                        continue
+                    else:
+                        new_lines.append(line.split())
+            lines = lines + [new_lines]
+            sizes = sizes + [len(new_lines)]
             #lines = [line.split() for line in infile]
         #lines = lines[1:]
         lines_asc = len(lines)
     if 'descending' in insar_info:
-        descending = insar_info['descending']
-        insar_desc = descending['name']
-        weight_desc = descending['weight']
-        ramp_desc = descending['ramp']
-        with open(insar_desc, 'r') as infile:
-            for line in infile:
-                if line.startswith('#'):
-                    continue
-                else:
-                    new_lines.append(line.split())
-#            new_lines = [line.split() for line in infile]
-        lines = lines + new_lines#[1:]
-        lines_desc = len(lines) - lines_asc
+        properties = insar_info['descending']
+        for desc_property in properties:
+            track = desc_property['name']
+            weights = weights + [desc_property['weight']]
+            ramps = ramps + [desc_property['ramp']]
+            new_lines = []
+            with open(track, 'r') as infile:
+                for line in infile:
+                    if line.startswith('#'):
+                        continue
+                    else:
+                        new_lines.append(line.split())
+            lines = lines + [new_lines]
+            sizes = sizes + [len(new_lines)]
+    points = np.sum(sizes)
 
     string = '{0:3d} {1:>5} {2:>12.6f} {3:>12.6f} {4:>12.6f} {5:>12.6f}'\
             ' {6:>12.6f} {7:>12.6f}\n'
     string_fun = lambda i, name, lat, lon, a, b, c, d:\
         string.format(i, name, lat, lon, a, b, c, d)
+    points2 = 0
     with open('insar_data.txt', 'w') as outfile:
-        outfile.write('{}\n{} {} {} {}\n'.format(
-            len(lines), lines_asc, lines_desc, weight_asc, weight_desc))
-        for i, line in enumerate(lines):
-            lat = float(line[1])
-            lon = float(line[0])
-            observed = 100*float(line[2])
-            look_ew = float(line[3])
-            look_ns = float(line[4])
-            look_ud = float(line[5])
-            outfile.write(
-                string_fun(
-                    i, i, lat, lon, observed,
-                    look_ud, look_ns, look_ew
+        outfile.write('{}\n\n'.format(points))
+        for new_lines in lines:
+            for i, line in enumerate(new_lines):
+                points2 = points2 + 1
+                lat = float(line[1])
+                lon = float(line[0])
+                observed = 100*float(line[2])
+                look_ew = float(line[3])
+                look_ns = float(line[4])
+                look_ud = float(line[5])
+                outfile.write(
+                    string_fun(
+                        points2, i, lat, lon, observed,
+                        look_ud, look_ns, look_ew
                 )
             )
 
-    if not ramp_asc and not ramp_desc:
+    with open('insar_weights.txt', 'w') as outfile:
+        outfile.write('{}\n'.format(len(weights)))
+        zipped = zip(sizes, weights)
+        for length, weight in zipped:
+            outfile.write('{} {}\n'.format(length, weight))
+
+    if not any(ramps):
         if os.path.isfile('ramp_gf.txt'):
             os.remove('ramp_gf.txt')
         return
-    latitudes = [float(line[1]) for line in lines]
-    longitudes = [float(line[0]) for line in lines]
+
+    latitudes = []
+    longitudes = []
+    for new_lines in lines:
+        latitudes = latitudes + [float(line[1]) for line in lines]
+        longitudes = longitudes + [float(line[0]) for line in lines]
     ref_lon = longitudes[0]
     zipped = zip(latitudes, longitudes)
     utm_coords = [mng.coords2utm(lat, lon, ref_lon) for lat, lon in zipped]
@@ -646,12 +659,14 @@ def input_chen_insar():
     min_northing = np.min(northings)
     min_easting = np.min(eastings)
 
-    if lines_asc > 0:
-        if ramp_asc is not None:
+    zipped = zip(ramps, sizes)
+    block_matrix = None
+    for ramp, length in zipped:
+        if ramp is not None:
             size1 = 3
-            if ramp_asc == 'bilinear':
+            if ramp == 'bilinear':
                 size1 = 6
-            elif ramp_asc == 'quadratic':
+            elif ramp == 'quadratic':
                 size1 = 5
             east1  = (np.array(eastings[:lines_asc])-min_easting)
             north1  = (np.array(northings[:lines_asc])-min_northing)
@@ -666,67 +681,77 @@ def input_chen_insar():
             if ramp_asc == 'linear':
                 size1 = 3
                 zipped = zip(east1, north1)
-                gf_ramp1 = [[east, north, 1] for east, north in zipped]
-                gf_ramp1 = np.array(gf_ramp1)
+                gf_ramp2 = [[east, north, 1] for east, north in zipped]
+                gf_ramp2 = np.array(gf_ramp2)
             elif ramp_asc == 'bilinear':
                 size1 = 3
                 zipped = zip(east1, north1, east_north, east2, north2)
-                gf_ramp1 = [[e1, n1, 1, en, e2, n2] for e1, n1, en, e2, n2 in zipped]
-                gf_ramp1 = np.array(gf_ramp1)
-            elif ramp_asc == 'quadratic':
-                zipped = zip(east1, north1, east_north)
-                gf_ramp1 = [[e1, n1, 1, en, en**2] for e1, n1, en in zipped]
-                gf_ramp1 = np.array(gf_ramp1)
-
-    if lines_desc > 0:
-        if ramp_desc is not None:
-            size2 = 3
-            if ramp_desc == 'bilinear':
-                size2 = 6
-            elif ramp_desc == 'quadratic':
-                size2 = 5
-            east1  = (np.array(eastings[lines_asc:])-min_easting)
-            north1  = (np.array(northings[lines_asc:])-min_northing)
-            east1 = east1 / np.max(np.abs(east1))
-            north1 = north1 / np.max(np.abs(north1))
-            east2  = east1**2
-            north2  = north1**2
-            east2  = east2 / np.max(east2)
-            north2  = north2 / np.max(north2)
-            east_north = east1*north1
-            east_north = east_north / np.max(east_north)
-            if ramp_desc == 'linear':
-                zipped = zip(east1, north1)
-                gf_ramp2 = [[east, north, 1] for east, north in zipped]
-                gf_ramp2 = np.array(gf_ramp2)
-            elif ramp_desc == 'bilinear':
-                zipped = zip(east1, north1, east_north, east2, north2)
                 gf_ramp2 = [[e1, n1, 1, en, e2, n2] for e1, n1, en, e2, n2 in zipped]
                 gf_ramp2 = np.array(gf_ramp2)
-            elif ramp_desc == 'quadratic':
+            elif ramp_asc == 'quadratic':
                 zipped = zip(east1, north1, east_north)
                 gf_ramp2 = [[e1, n1, 1, en, en**2] for e1, n1, en in zipped]
                 gf_ramp2 = np.array(gf_ramp2)
+            if not block_matrix or block_matrix == None:
+                block_matrix = np.block(gf_ramp2)
+            else:
+                shape1 = block_matrix.shape
+                rows1, cols1 = shape1
+                block_matrix = np.block([
+                    [block_matrix, np.zeros((rows1, size1))],
+                    [np.zeros(length, cols1), gf_ramp2]
+                ])
 
-    if ramp_asc is not None and ramp_desc is None:
-        gf_ramp = np.block([
-            [gf_ramp1],
-            [np.zeros((lines_desc, size1))]
-        ])
-    elif ramp_asc is None and ramp_desc is not None:
-        gf_ramp = np.block([
-            [np.zeros((lines_asc, size2))],
-            [gf_ramp2]
-        ])
-    else:
-        gf_ramp = np.block([
-            [gf_ramp1, np.zeros((lines_asc, size2))],
-            [np.zeros((lines_desc, size1)), gf_ramp2]
-        ])
+    # if lines_desc > 0:
+    #     if ramp_desc is not None:
+    #         size2 = 3
+    #         if ramp_desc == 'bilinear':
+    #             size2 = 6
+    #         elif ramp_desc == 'quadratic':
+    #             size2 = 5
+    #         east1  = (np.array(eastings[lines_asc:])-min_easting)
+    #         north1  = (np.array(northings[lines_asc:])-min_northing)
+    #         east1 = east1 / np.max(np.abs(east1))
+    #         north1 = north1 / np.max(np.abs(north1))
+    #         east2  = east1**2
+    #         north2  = north1**2
+    #         east2  = east2 / np.max(east2)
+    #         north2  = north2 / np.max(north2)
+    #         east_north = east1*north1
+    #         east_north = east_north / np.max(east_north)
+    #         if ramp_desc == 'linear':
+    #             zipped = zip(east1, north1)
+    #             gf_ramp2 = [[east, north, 1] for east, north in zipped]
+    #             gf_ramp2 = np.array(gf_ramp2)
+    #         elif ramp_desc == 'bilinear':
+    #             zipped = zip(east1, north1, east_north, east2, north2)
+    #             gf_ramp2 = [[e1, n1, 1, en, e2, n2] for e1, n1, en, e2, n2 in zipped]
+    #             gf_ramp2 = np.array(gf_ramp2)
+    #         elif ramp_desc == 'quadratic':
+    #             zipped = zip(east1, north1, east_north)
+    #             gf_ramp2 = [[e1, n1, 1, en, en**2] for e1, n1, en in zipped]
+    #             gf_ramp2 = np.array(gf_ramp2)
+    #
+    # if ramp_asc is not None and ramp_desc is None:
+    #     gf_ramp = np.block([
+    #         [gf_ramp1],
+    #         [np.zeros((lines_desc, size1))]
+    #     ])
+    # elif ramp_asc is None and ramp_desc is not None:
+    #     gf_ramp = np.block([
+    #         [np.zeros((lines_asc, size2))],
+    #         [gf_ramp2]
+    #     ])
+    # else:
+    #     gf_ramp = np.block([
+    #         [gf_ramp1, np.zeros((lines_asc, size2))],
+    #         [np.zeros((lines_desc, size1)), gf_ramp2]
+    #     ])
 
     with open('ramp_gf.txt', 'w') as outf:
-        outf.write('{} {}\n'.format(ramp_asc, ramp_desc))
-        shape = gf_ramp.shape
+        string = ' '.join([str(v)] for v in ramps) + '\n'
+        outf.write(string)
+        shape = block_matrix.shape
         rows, cols = shape
         for row in range(0, rows):
             new_row = [str(a) for a in gf_ramp[row]]

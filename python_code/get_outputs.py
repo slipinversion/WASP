@@ -51,9 +51,9 @@ def read_solution_static_format(segments):
             'Inconsistency between Fault.time and Solucion.txt.'
             ' Different amount of fault segments')
     for segment, start, end in zip(segments, faults_data, headers):
-        #
-        # load FFM solution model and coordinates
-        #
+#
+# load FFM solution model and coordinates
+#
         lat_fault = np.array([float(line[0]) for line in jk[start:end]])
         lon_fault = np.array([float(line[1]) for line in jk[start:end]])
         depth_fault = np.array([float(line[2]) for line in jk[start:end]])
@@ -397,108 +397,127 @@ def get_insar():
         lines_syn = [line.split() for line in syn_file]
 
     lines_ramp = []
-    ramp1 = None
-    ramp2 = None
+    ramps = []
+    lines0 = 0
+    lines1 = 1
     if 'ascending' in insar_data:
-        ramp1 = insar_data['ascending']['ramp']
+        asc_properties = insar_data['ascending']
+        ramps = [asc_property['ramp'] for asc_property in asc_properties]
     if 'descending' in insar_data:
-        ramp2 = insar_data['descending']['ramp']
-    if ramp1 is None and ramp2 is None:
+        desc_properties = insar_data['descending']
+        ramps = ramps + [desc_property['ramp'] for desc_property in desc_properties]
+    if not any(ramps):
         if 'ascending' in insar_data:
-            insar_points = []
-            insar_asc = insar_data['ascending']['name']
-            with open(insar_asc, 'r') as asc_file:
-                lines_asc = [line.split() for line in asc_file]
-            len_ascending = len(lines_asc)
-            zipped = zip(lines_asc[1:], lines_syn[1:len_ascending])
-            for line1, line2 in zipped:
-                lat = float(line1[1])
-                lon = float(line1[0])
-                observed = 100*float(line1[2])
-                synthetic = float(line2[4])
-                new_dict = {
-                    'lat': lat,
-                    'lon': lon,
-                    'observed': observed,
-                    'synthetic': synthetic,
-                    'ramp': 0
-                }
-                insar_points = insar_points + [new_dict]
-            insar_data['ascending']['points'] = insar_points
+            asc_properties = insar_data['ascending']
+            for asc_property in asc_properties:
+                insar_points = []
+                insar_asc = asc_property['name']
+                with open(insar_asc, 'r') as asc_file:
+                    lines_asc = [line.split() for line in asc_file]
+                lines_asc = [line for line in lines_asc if not '#' in ''.join(line)]
+                lines1 = lines0 + len(lines_asc)
+                zipped = zip(lines_asc[:], lines_syn[lines0 + 1:lines1])
+                for line1, line2 in zipped:
+                    lat = float(line1[1])
+                    lon = float(line1[0])
+                    observed = 100*float(line1[2])
+                    synthetic = float(line2[4])
+                    new_dict = {
+                        'lat': lat,
+                        'lon': lon,
+                        'observed': observed,
+                        'synthetic': synthetic,
+                        'ramp': 0
+                    }
+                    insar_points = insar_points + [new_dict]
+                asc_property['points'] = insar_points
+                lines0 = lines0 + len(lines_asc)
         if 'descending' in insar_data:
-            insar_points = []
-            insar_desc = insar_data['descending']['name']
-            with open(insar_desc, 'r') as desc_file:
-                lines_desc = [line.split() for line in desc_file]
-            len_descending = len(lines_desc)  - 1
-            zipped = zip(lines_desc[1:], lines_syn[-len_descending:])
-            for line1, line2 in zipped:
-                lat = float(line1[1])
-                lon = float(line1[0])
-                observed = 100*float(line1[2])
-                synthetic = float(line2[4])
-                new_dict = {
-                    'lat': lat,
-                    'lon': lon,
-                    'observed': observed,
-                    'synthetic': synthetic,
-                    'ramp': 0
-                }
-                insar_points = insar_points + [new_dict]
-            insar_data['descending']['points'] = insar_points
+            desc_properties = insar_data['descending']
+            for desc_property in desc_properties:
+                insar_points = []
+                insar_desc = desc_property['name']
+                with open(insar_desc, 'r') as desc_file:
+                    lines_desc = [line.split() for line in desc_file]
+                lines_desc = [line for line in lines_desc if not '#' in ''.join(line)]
+                lines1 = lines0 + len(lines_desc)
+                zipped = zip(lines_desc[:], lines_syn[lines0 + 1:lines1])
+                for line1, line2 in zipped:
+                    lat = float(line1[1])
+                    lon = float(line1[0])
+                    observed = 100*float(line1[2])
+                    synthetic = float(line2[4])
+                    new_dict = {
+                        'lat': lat,
+                        'lon': lon,
+                        'observed': observed,
+                        'synthetic': synthetic,
+                        'ramp': 0
+                    }
+                    insar_points = insar_points + [new_dict]
+                desc_property['points'] = insar_points
+                lines0 = lines0 + len(lines_desc)
     else:
         with open('insar_ramp.txt', 'r') as ramp_file:
             lines_ramp = [line.split() for line in ramp_file]
         if 'ascending' in insar_data:
-            insar_points = []
-            insar_asc = insar_data['ascending']['name']
-            with open(insar_asc, 'r') as asc_file:
-                lines_asc = [line.split() for line in asc_file]
-            len_ascending = len(lines_asc)
-            zipped = zip(
-                lines_asc[1:],
-                lines_syn[1:len_ascending],
-                lines_ramp[1:len_ascending])
-            for line1, line2, line3 in zipped:
-                lat = float(line1[1])
-                lon = float(line1[0])
-                observed = 100*float(line1[2])
-                synthetic = float(line2[4])
-                ramp = float(line3[4])
-                new_dict = {
-                    'lat': lat,
-                    'lon': lon,
-                    'observed': observed,
-                    'synthetic': synthetic,
-                    'ramp': ramp
-                }
-                insar_points = insar_points + [new_dict]
-            insar_data['ascending']['points'] = insar_points
+            asc_properties = insar_data['ascending']
+            for asc_property in asc_properties:
+                insar_points = []
+                insar_asc = asc_property['name']
+                with open(insar_asc, 'r') as asc_file:
+                    lines_asc = [line.split() for line in asc_file]
+                lines_asc = [line for line in lines_asc if not '#' in ''.join(line)]
+                lines1 = lines0 + len(lines_asc)
+                zipped = zip(
+                    lines_asc[:],
+                    lines_syn[lines0 + 1:lines1],
+                    lines_ramp[lines0 + 1:lines1])
+                for line1, line2, line3 in zipped:
+                    lat = float(line1[1])
+                    lon = float(line1[0])
+                    observed = 100*float(line1[2])
+                    synthetic = float(line2[4])
+                    ramp = float(line3[4])
+                    new_dict = {
+                        'lat': lat,
+                        'lon': lon,
+                        'observed': observed,
+                        'synthetic': synthetic,
+                        'ramp': ramp
+                    }
+                    insar_points = insar_points + [new_dict]
+                asc_property['points'] = insar_points
+                lines0 = lines0 + len(lines_asc)
         if 'descending' in insar_data:
-            insar_points = []
-            insar_desc = insar_data['descending']['name']
-            with open(insar_desc, 'r') as desc_file:
-                lines_desc = [line.split() for line in desc_file]
-            len_descending = len(lines_desc)  - 1
-            zipped = zip(
-                lines_desc[1:],
-                lines_syn[-len_descending:],
-                lines_ramp[-len_descending:])
-            for line1, line2, line3 in zipped:
-                lat = float(line1[1])
-                lon = float(line1[0])
-                observed = 100*float(line1[2])
-                synthetic = float(line2[4])
-                ramp = float(line3[4])
-                new_dict = {
-                    'lat': lat,
-                    'lon': lon,
-                    'observed': observed,
-                    'synthetic': synthetic,
-                    'ramp': ramp
-                }
-                insar_points = insar_points + [new_dict]
-            insar_data['descending']['points'] = insar_points
+            desc_properties = insar_data['descending']
+            for desc_property in desc_properties:
+                insar_points = []
+                insar_desc = desc_property['name']
+                with open(insar_desc, 'r') as desc_file:
+                    lines_desc = [line.split() for line in desc_file]
+                lines_desc = [line for line in lines_desc if not '#' in ''.join(line)]
+                lines1 = lines0 + len(lines_desc)
+                zipped = zip(
+                    lines_desc[:],
+                    lines_syn[lines0 + 1:lines1],
+                    lines_ramp[lines0 + 1:lines1])
+                for line1, line2 in zipped:
+                    lat = float(line1[1])
+                    lon = float(line1[0])
+                    observed = 100*float(line1[2])
+                    synthetic = float(line2[4])
+                    ramp = float(line3[4])
+                    new_dict = {
+                        'lat': lat,
+                        'lon': lon,
+                        'observed': observed,
+                        'synthetic': synthetic,
+                        'ramp': ramp
+                    }
+                    insar_points = insar_points + [new_dict]
+                desc_property['points'] = insar_points
+                lines0 = lines0 + len(lines_desc)
     return insar_data
 
 
