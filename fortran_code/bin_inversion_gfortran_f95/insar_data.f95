@@ -16,6 +16,8 @@ module insar_data
    integer, parameter, private :: max_points = 2500
    integer, private :: tracks, points
    integer :: ramp_length
+   integer :: point_tracks(6)
+   real :: weight_tracks(6)
    real*8 :: synm_whole(max_points), weight_sum
    real*8 :: ramp_gf(36, max_points)
    real :: lat(max_points), lon(max_points), max_los, syn_disp(max_points)
@@ -37,8 +39,8 @@ contains
    subroutine get_insar_data()
    implicit none
    integer i, no, k, points2, track
-   integer point_tracks(6), cum_points(6)
-   real weight_tracks(6)
+   integer cum_points(6)!point_tracks(6)
+!   real weight_tracks(6)
 
    points2 = 0
    weight_sum = 0.0
@@ -68,15 +70,16 @@ contains
 
    subroutine is_ramp(ramp_gf_file)
    implicit none
-   integer :: point, i
+   integer :: point, i, track
    logical :: ramp_gf_file
    character(len=10) :: ramp_type
+   ramp_length = 0
    inquire( file = 'ramp_gf.txt', exist = ramp_gf_file )
    if (ramp_gf_file) then
       open(23, file='ramp_gf.txt', status='old')
       read(23,*) ramp_types(:tracks)
       do i = 1, tracks
-         ramp_type = ramp_types(i)   
+         ramp_type = trim(ramp_types(i))
          select case (ramp_type)
          case ('linear')
             ramp_length = ramp_length + 3
@@ -86,10 +89,19 @@ contains
             ramp_length = ramp_length + 5
          end select
       enddo
-      do point = 1, points
-         ramp_gf(:, point) = 0.d0
-         read(23,*)ramp_gf(:ramp_length, point)
-      end do
+      point = 0
+      do track = 1, tracks
+         ramp_type = trim(ramp_types(track))
+         do i = 1, point_tracks(track)
+            point = point + 1
+            ramp_gf(:, point) = 0.d0
+            if ((ramp_type .eq. 'None') .eqv. .False.) read(23,*)ramp_gf(:ramp_length, point)
+         enddo
+      enddo
+      !do point = 1, points
+      !   ramp_gf(:, point) = 0.d0
+      !   read(23,*)ramp_gf(:ramp_length, point)
+      !end do
       close(23)
    end if
    end subroutine is_ramp
@@ -172,12 +184,11 @@ contains
    
       open(12,file='insar_ramp.txt')
       write(12,*) points
-      read(12,*)ramp_types(:tracks)
       do point = 1, points
          ramp2 = 0.d0 
          do k = 1, ramp_length
             ramp2 = ramp2 + ramp_gf(k, point)*ramp(k)
-         end do 
+         end do
          write(12,*) point, sta_name(point), lat(point), lon(point), ramp2
       end do
       close(12)
