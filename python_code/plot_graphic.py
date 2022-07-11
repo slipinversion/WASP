@@ -1161,15 +1161,19 @@ if __name__ == '__main__':
     if args.insar:
         insar_data = get_outputs.get_insar()
         if 'ascending' in insar_data:
-            insar_points = insar_data['ascending']['points']
-            _PlotInsar(
-                tensor_info, segments, point_sources,
-                default_dirs, insar_points, los='ascending')
+            asc_properties = insar_data['ascending']
+            for i, asc_property in enumerate(asc_properties):
+                insar_points = asc_property['points']
+                _PlotInsar(
+                    tensor_info, segments, point_sources,
+                    default_dirs, insar_points, los='ascending{}'.format(i))
         if 'descending' in insar_data:
-            insar_points = insar_data['descending']['points']
-            _PlotInsar(
-                tensor_info, segments, point_sources,
-                default_dirs, insar_points, los='descending')
+            desc_properties = insar_data['descending']
+            for i, desc_property in enumerate(desc_properties):
+                insar_points = desc_property['points']
+                _PlotInsar(
+                    tensor_info, segments, point_sources,
+                    default_dirs, insar_points, los='descending{}'.format(i))
 
     if args.beachballs:
         plot_beachballs(segments, used_data)

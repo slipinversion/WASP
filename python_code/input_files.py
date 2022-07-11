@@ -649,8 +649,8 @@ def input_chen_insar():
     latitudes = []
     longitudes = []
     for new_lines in lines:
-        latitudes = latitudes + [float(line[1]) for line in lines]
-        longitudes = longitudes + [float(line[0]) for line in lines]
+        latitudes = latitudes + [float(line[1]) for line in new_lines]
+        longitudes = longitudes + [float(line[0]) for line in new_lines]
     ref_lon = longitudes[0]
     zipped = zip(latitudes, longitudes)
     utm_coords = [mng.coords2utm(lat, lon, ref_lon) for lat, lon in zipped]
@@ -661,6 +661,7 @@ def input_chen_insar():
 
     zipped = zip(ramps, sizes)
     block_matrix = None
+    start = 0
     for ramp, length in zipped:
         if ramp is not None:
             size1 = 3
@@ -668,8 +669,8 @@ def input_chen_insar():
                 size1 = 6
             elif ramp == 'quadratic':
                 size1 = 5
-            east1  = (np.array(eastings[:lines_asc])-min_easting)
-            north1  = (np.array(northings[:lines_asc])-min_northing)
+            east1  = (np.array(eastings[start:start + length])-min_easting)
+            north1  = (np.array(northings[start:start + length])-min_northing)
             east1 = east1 / np.max(np.abs(east1))
             north1 = north1 / np.max(np.abs(north1))
             east2  = east1**2
@@ -678,29 +679,32 @@ def input_chen_insar():
             north2  = north2 / np.max(north2)
             east_north = east1*north1
             east_north = east_north / np.max(east_north)
-            if ramp_asc == 'linear':
+            if ramp == 'linear':
                 size1 = 3
                 zipped = zip(east1, north1)
                 gf_ramp2 = [[east, north, 1] for east, north in zipped]
                 gf_ramp2 = np.array(gf_ramp2)
-            elif ramp_asc == 'bilinear':
+            elif ramp == 'bilinear':
                 size1 = 3
                 zipped = zip(east1, north1, east_north, east2, north2)
                 gf_ramp2 = [[e1, n1, 1, en, e2, n2] for e1, n1, en, e2, n2 in zipped]
                 gf_ramp2 = np.array(gf_ramp2)
-            elif ramp_asc == 'quadratic':
+            elif ramp == 'quadratic':
                 zipped = zip(east1, north1, east_north)
                 gf_ramp2 = [[e1, n1, 1, en, en**2] for e1, n1, en in zipped]
                 gf_ramp2 = np.array(gf_ramp2)
-            if not block_matrix or block_matrix == None:
+            if block_matrix is None:
+                block_matrix = np.block(gf_ramp2)
+            elif len(block_matrix) == 0:
                 block_matrix = np.block(gf_ramp2)
             else:
                 shape1 = block_matrix.shape
                 rows1, cols1 = shape1
                 block_matrix = np.block([
                     [block_matrix, np.zeros((rows1, size1))],
-                    [np.zeros(length, cols1), gf_ramp2]
+                    [np.zeros((length, cols1)), gf_ramp2]
                 ])
+        start = start + length
 
     # if lines_desc > 0:
     #     if ramp_desc is not None:
@@ -749,12 +753,12 @@ def input_chen_insar():
     #     ])
 
     with open('ramp_gf.txt', 'w') as outf:
-        string = ' '.join([str(v)] for v in ramps) + '\n'
+        string = ' '.join(str(v) for v in ramps) + '\n'
         outf.write(string)
         shape = block_matrix.shape
         rows, cols = shape
         for row in range(0, rows):
-            new_row = [str(a) for a in gf_ramp[row]]
+            new_row = [str(a) for a in block_matrix[row]]
             string = ' '.join(new_row)  + '\n'
             outf.write(string)
 
