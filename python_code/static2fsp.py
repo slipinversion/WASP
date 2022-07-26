@@ -189,7 +189,8 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
         '\n'.format(now.day, now.month, now.year))
         outfile.write('%\n% SOURCE MODEL PARAMETERS\n')
         if len(segments) == 1:
-            outfile.write('% Nsbfs = {} subfaults\n'.format(stk_subfaults, dip_subfaults))
+            n_subfaults = stk_subfaults * dip_subfaults
+            outfile.write('% Nsbfs = {} subfaults\n'.format(n_subfaults))
         outfile.write('% X,Y,Z coordinates in km; SLIP in m\n')
         outfile.write('% if applicable: RAKE in deg, RISE in s, TRUP in s, '\
             'slip in each TW in m\n')
