@@ -574,6 +574,10 @@ def select_process_cgps(cgps_files, tensor_info, data_prop):
     __select_cgps_files(cgps_files, tensor_info)
     logger1.info('Process selected cGPS traces')
     os.chdir(os.path.join(os.getcwd(), 'cGPS'))
+    final_files = glob.glob('final*')
+    for final_file in final_files:
+        if os.path.isfile(final_file):
+            os.remove(final_file)
     cgps_files1 = glob.glob('*L[HXY]*.sac') + glob.glob('*L[HXY]*.SAC')
     __change_start(cgps_files1, tensor_info, cgps=True)
     new_process_cgps(tensor_info, cgps_files1, data_prop, logger=logger1)
@@ -847,6 +851,10 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
     response_files = glob.glob('SACPZ*') + glob.glob('SAC_PZs*')
     response_files = [os.path.abspath(response) for response in response_files]
     os.chdir(os.path.join(data_folder, 'STR'))
+    final_files = glob.glob('final*')
+    for final_file in final_files:
+        if os.path.isfile(final_file):
+            os.remove(final_file)
     strong_files1 = glob.glob('acc*')
     if remove_response:
         logger1.info('Remove response for selected strong motion traces')

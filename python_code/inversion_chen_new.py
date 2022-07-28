@@ -244,12 +244,20 @@ def modelling_new_data(tensor_info, data_type, default_dirs,
     sol_folder = os.path.abspath(sol_folder)
     if os.path.isfile(os.path.join(data_folder, 'gps_data')):
         copy2(os.path.join(data_folder, 'gps_data'), sol_folder)
+    insar_asc = glob.glob(os.path.join(data_folder, 'insar_a*txt'))
+    insar_desc = glob.glob(os.path.join(data_folder, 'insar_d*txt'))
+    insar_files = insar_asc + insar_desc
+    for file in insar_files:
+        if os.path.isfile(file):
+            copy2(file, sol_folder)
     data_prop = json.load(open('sampling_filter.json'))
     os.chdir(os.path.join(data_folder))
     time2 = time.time()
     processing(tensor_info, data_type, data_prop, st_response=st_response)
     os.chdir(sol_folder)
-    dm.filling_data_dicts(tensor_info, data_type, data_prop, data_folder)
+    dm.filling_data_dicts(
+        tensor_info, data_type, data_prop, data_folder,
+        insar_asc=insar_asc, insar_desc=insar_desc)
     gf_bank_str = os.path.join(sol_folder, 'GF_strong')
     gf_bank_cgps = os.path.join(sol_folder, 'GF_cgps')
     get_gf_bank = default_dirs['strong_motion_gf_bank2']
