@@ -924,12 +924,21 @@ def __select_str_files(strong_files, tensor_info):
         st = read(sac)
         syn_len = 20 + 4*time_shift + 7*depth/50
         start, end = [st[0].stats.starttime, st[0].stats.endtime]
+        print(end - start, syn_len)
         if end - start < syn_len:
             continue
         if not __select_distance(tensor_info, station_lat, station_lon,
                                  max_distance=distance, use_centroid=True):
             continue
         strong_files2 = strong_files2 + [sac]
+    if len(strong_files2) == 0:
+        raise RuntimeError(
+            'No strong motion waveforms selected. Either strong motion '\
+            + 'waveforms are too distant, or they are shorter than '\
+            + '{} '.format(syn_len)\
+            + 'seconds, which is the required length for strong motions '\
+            + 'for this event'
+        )
 
     return strong_files2
 
