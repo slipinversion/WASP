@@ -12,10 +12,6 @@ module annealing
    use misfit_eval, only : misfit_channel
    use modelling_inputs, only : smooth_moment, smooth_slip, smooth_time, io_re, moment_input, emin0, &
             &   t_latest
-   use model_parameters, only : segments, ta0, dta, msou, dxs, dys, nxs0, nys0, nx_p, ny_p, v_min, v_max, &
-            &   tbl, tbr, v_ref, nxs_sub, nys_sub, time_max, time_min, shear, &
-            &   slip0, rake0, rupt_time0, t_rise0, t_fall0, c_depth, beg, dp, np, dip, &
-            &   strike, delay_seg, time_ref, subfaults
    use regularization, only : slip_laplace, time_laplace, define_slip_field, modify_slip_field
    use static_data, only : static_synthetic, static_remove_subfault, &
                        &   static_modify_subfault, static_add_subfault
@@ -32,6 +28,11 @@ module annealing
    integer, parameter :: double = kind(1.d0)
    integer, private :: threads
    integer, parameter, private :: max_move=50, accept_max=5
+   integer :: segments, msou, nxs_sub(max_seg), nys_sub(max_seg), subfaults
+   real :: beg(max_subfaults2), dp(max_subfaults2)
+   integer :: np(max_subfaults2)
+   real :: time_min(max_subfaults), time_max(max_subfaults)
+   real :: shear(max_subfaults), ta0, dta, dxs, dys
 
 
 contains
@@ -44,13 +45,31 @@ contains
    if (auto) threads = 3
    call omp_set_num_threads(threads)
    end subroutine n_threads
+
+
+   subroutine get_parameters()
+   use model_parameters, only : query_rise_time, query_shear, query_segments, &
+   &  query_subfaults, query_space
+   implicit none
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
+   integer :: cum_subfaults(max_seg), nx_p, ny_p
+   real :: v_min, v_max, v_ref, time_ref(max_subfaults2)
+   call query_rise_time(ta0, dta, msou)
+   call query_shear(shear)
+   call query_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call query_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
+   call query_space(time_min, time_max, time_ref, beg, dp, np)
+   end subroutine get_parameters
    
    
    subroutine initial_model(slip, rake, rupt_time, t_rise, t_fall)
+   use model_parameters, only : slip0, rake0, rupt_time0, t_rise0, t_fall0
    implicit none
    real :: slip(:), rake(:), rupt_time(:), t_rise(:), t_fall(:)
    real :: x(max_subfaults2)
    integer :: nxy, i, segment, k, npa, subfault, etc
+   
+   call get_parameters()
    npa = 0
    do segment = 1, segments
       npa = npa + 4*nxs_sub(segment)*nys_sub(segment)

@@ -2,13 +2,26 @@ module regularization
    
 
    use constants, only : max_seg, max_subf, max_subfaults, dpi
-   use model_parameters, only : nxs_sub, nys_sub, nleft, nright, nup, ndown, &
-             &  rake_min, segments, subfaults, cum_subfaults
    implicit none
    real :: slip_field(2, max_subfaults)
+   real :: rake_min
+   integer :: subfaults, cum_subfaults(max_seg)
+   integer :: nxs_sub(max_seg), nys_sub(max_seg)
+   integer :: nleft(3, max_subfaults), nright(3, max_subfaults), & 
+   & nup(3, max_subfaults), ndown(3, max_subfaults)
 
 
 contains
+
+
+   subroutine get_parameters()
+   use model_parameters, only : query_segments, query_borders
+   implicit none
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
+   integer :: segments
+   call query_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call query_borders(rake_min, nleft, nright, nup, ndown)   
+   end subroutine get_parameters
    
         
    subroutine define_slip_field(slip, rake)
@@ -22,6 +35,7 @@ contains
 !  
 !  we define the slip vector field
 !  
+   call get_parameters()
    do subfault = 1, subfaults
       angle = (rake(subfault)-rake_min)*dpi
       slip_field(1, subfault) = slip(subfault)*cos(angle)

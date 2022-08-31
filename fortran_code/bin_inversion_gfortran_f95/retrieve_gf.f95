@@ -7,19 +7,24 @@ module retrieve_gf
    use constants, only : npuse, max_stations, max_subfaults, max_subf, nt, nny, ndis, &
    &  wave_pts2, max_seg, block_far, ltde, n_data, max_psources, max_dip_psources, &
    &  max_dip_subfaults, block_stg, pi, twopi, wave_pts
-   use model_parameters, only : point_sources, segments, v_ref, nxs_sub, nys_sub, delay_seg, &
-   &  dxs, dys, nx_p, ny_p, dip, strike, shear, t_latest, cum_subfaults
    use wavelets, only : fourier_coefs, meyer_yamada
    use wavelet_param, only : lnpt, nlen, jmin, jmax, max_freq
+   use model_parameters, only : point_sources
    use retrieve_surf_gf, only : get_surf_gf_data, interp_gf, get_surf_gf, npt_bank, &
    &  dt_bank, check_bounds
    use rad_pattern, only : rad_coef
    use geodesics, only : distaz
-   use get_stations_data, only : sta_name1, sta_name2, sta_name3, disp_or_vel, &
-          & component1, component2, idata, mmm, llove, dt_channel
+   use get_stations_data, only : sta_name, disp_or_vel, &
+          & component, idata, mmm, llove, dt_channel
    implicit none
    integer, parameter :: nnsta_tele = 80
    complex, allocatable :: green_dip(:, :, :), green_stk(:, :, :)
+!   complex, allocatable :: green_dip2(:, :, :), green_stk2(:, :, :)
+   integer :: segments, nxs_sub(max_seg), nys_sub(max_seg), nx_p, ny_p
+   integer :: cum_subfaults(max_seg)
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
+   real :: shear(max_subfaults)
+   real :: dxs, dys, v_ref
 
 
 contains
@@ -34,6 +39,7 @@ contains
    allocate(green_stk(npuse, max_stations, max_subfaults))
 
    write(*,*)'Store GF in memory...'
+   call get_parameters()
    call fourier_coefs()
    call meyer_yamada()
 !
@@ -62,6 +68,18 @@ contains
 !      ll_in = ll_out
 !   end if
    end subroutine get_gf
+
+
+   subroutine get_parameters()
+   use model_parameters, only : query_shear, query_segments, &
+   &  query_subfaults
+   implicit none
+   integer :: subfaults, cum_subfaults(max_seg)
+   real :: v_min, v_max
+   call query_shear(shear)
+   call query_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call query_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
+   end subroutine get_parameters
 
    
    subroutine get_strong_motion_gf(ll_in, ll_out)
@@ -107,14 +125,13 @@ contains
 
    do channel = 1, channel_max
 
-      comp = component1(channel)
-      channel2 = comp(3:3)
-
       io_chan = io_chan+1
       ll_g = io_chan+ll_in
-      if (channel2 .eq. 'Z') filename = trim(sta_name1(channel))//'1'
-      if (channel2 .eq. 'N') filename = trim(sta_name1(channel))//'2'
-      if (channel2 .eq. 'E') filename = trim(sta_name1(channel))//'3'
+      comp = component(ll_g)
+      channel2 = comp(3:3)
+      if (channel2 .eq. 'Z') filename = trim(sta_name(ll_g))//'1'
+      if (channel2 .eq. 'N') filename = trim(sta_name(ll_g))//'2'
+      if (channel2 .eq. 'E') filename = trim(sta_name(ll_g))//'3'
       filename = trim(filename)
 
       open(12, file=filename, status='old', access='direct',recl=block_stg)
@@ -193,14 +210,13 @@ contains
 
    do channel = 1, channel_max
 
-      comp = component2(channel)
-      channel2 = comp(3:3)
-
       io_chan = io_chan+1
       ll_g = io_chan+ll_in
-      if (channel2 .eq. 'Z') filename = trim(sta_name2(channel))//'.cgps.1'
-      if (channel2 .eq. 'N') filename = trim(sta_name2(channel))//'.cgps.2'
-      if (channel2 .eq. 'E') filename = trim(sta_name2(channel))//'.cgps.3'
+      comp = component(ll_g)
+      channel2 = comp(3:3)
+      if (channel2 .eq. 'Z') filename = trim(sta_name(ll_g))//'.cgps.1'
+      if (channel2 .eq. 'N') filename = trim(sta_name(ll_g))//'.cgps.2'
+      if (channel2 .eq. 'E') filename = trim(sta_name(ll_g))//'.cgps.3'
       filename = trim(filename)
 
       open(12, file=filename, status='old', access='direct', recl=block_stg)
@@ -273,10 +289,6 @@ contains
 !  Because the data is micrometer, so The amplitude of block should
 !  time e+4 Only in this test
 !
-!   open(15,file='Wave.tele')
-!   read(15,*)! jmin, jmax, max_freq
-!   read(15,*)
-!   read(15,*) n_wave_weight
 
    dt = dt_channel(ll_in + 1)
    tlen = nlen*dt
@@ -293,11 +305,11 @@ contains
 !  Here we read the green functions of the teleseismic body waves
 !  
       if (love .eq. 0) then
-         fname4 = trim(sta_name3(channel))//'.GRE'
-         fname6 = trim(sta_name3(channel))//'.TDE'
+         fname4 = trim(sta_name(ll_g))//'.GRE'
+         fname6 = trim(sta_name(ll_g))//'.TDE'
       else
-         fname4 = trim(sta_name3(channel))//'SH.GRE'
-         fname6 = trim(sta_name3(channel))//'SH.TDE'
+         fname4 = trim(sta_name(ll_g))//'SH.GRE'
+         fname6 = trim(sta_name(ll_g))//'SH.TDE'
       end if
       open(12, file=fname4, status='old', access='direct', recl=block_far)
       open(32, file=fname6, status='old', access='direct', recl=ltde)
@@ -456,7 +468,7 @@ contains
 
    character(len=250) modes
    character(len=100) surf_gf_bank
-   character(len=6) sta_name(max_stations)
+   character(len=6) sta_name1
 
    write(*,*)'Store long period surface waves GF in memory...'
    z0 = cmplx(0.0, 0.0)
@@ -488,7 +500,7 @@ contains
    read(9,*) channel_max, n_chan
    read(9,*)
    do channel = 1, channel_max    
-      read(9,*) no, sta_name(channel), lat_s(channel), lon_s(channel), io_mod(channel), &
+      read(9,*) no, sta_name1, lat_s(channel), lon_s(channel), io_mod(channel), &
       &  io_up(channel), io_ns(channel), io_ew(channel), ang_ns(channel), ang_ew(channel)
    end do
 !  int

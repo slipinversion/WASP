@@ -10,10 +10,8 @@ module get_stations_data
    integer :: misfit_type(12, max_stations), t_max_val(max_stations)
    integer :: t_min(max_stations), t_max(max_stations), channels
    real :: wavelet_weight(12, max_stations)
-   character(len=10) :: sta_name1(max_stations), sta_name2(max_stations), sta_name3(max_stations), &
-         &     sta_name4(max_stations), sta_name5(max_stations)
-   character(len=3) :: component1(max_stations), component2(max_stations), component3(max_stations), &
-         &     component4(max_stations), component5(max_stations)
+   character(len=15) :: sta_name(max_stations)
+   character(len=3) :: component(max_stations)
    integer :: mmm(max_stations), llove(max_stations), io_up(max_stations), idata(max_stations), &
          &     disp_or_vel(max_stations), used_data
 
@@ -100,7 +98,8 @@ contains
    io_chan = 0
  
    do ir = 1, ir_max
-      read(9,*) no, sta_name1(ir), lat_s, lon_s, io_mod(ir), component1(ir), weig(ir), nos(ir)
+      ll_g = ir+ll_in
+      read(9,*) no, sta_name(ll_g), lat_s, lon_s, io_mod(ir), component(ll_g), weig(ir), nos(ir)
       if (weig(ir) .gt. 0) n_chan3 = n_chan3 + 1
    end do
    close(9)
@@ -177,7 +176,8 @@ contains
    io_chan = 0
  
    do ir = 1, ir_max
-      read(9,*) no, sta_name2(ir), lat_s, lon_s, io_mod(ir), component2(ir), weig(ir), nos(ir)
+      ll_g = ir+ll_in
+      read(9,*) no, sta_name(ll_g), lat_s, lon_s, io_mod(ir), component(ll_g), weig(ir), nos(ir)
       if (weig(ir) .gt. 0) n_chan3 = n_chan3 + 1
    end do
    close(9)
@@ -264,15 +264,17 @@ contains
    call get_waveforms(filename, nstaon, ll_in, ll_out, cgps)
 
    do ir = 1, nstaon
-      read(9,*) nos, earth, sttyp, sta_name3(ir), fname, &
+      ll_g = ir+ll_in
+      read(9,*) nos, earth, sttyp, sta_name(ll_g), fname, &
       & rang, az, lat_sta, lon_sta, earth_angle, float1, &
       & mmm(ir), disp_or_vel(ir), float2, llove(ir), int1, idata(ir)
-      ll_g = ir+ll_in
       if (idata(ir) .gt. 0 .or. mmm(ir) .eq. 3) cycle
       dt_channel(ll_g) = dt
       read(14,*) weight(ll_g)
       weight(ll_g) = weight(ll_g) / n_chan3
       love = llove(ir)
+      component(ll_g) = 'P'
+      if (love .gt. 0) component(ll_g) = 'SH'
       
       do k = 1, 11
          misfit_type(k, ll_g) = 0
@@ -345,7 +347,8 @@ contains
 !       Here we read the green functions of long period surface waves
 !  
    do ir = 1, ir_max    
-      read(9,*) no, sta_name4(ir), lat_s(ir), lon_s(ir), io_mod(ir), &
+      ll_g = ir+ll_in
+      read(9,*) no, sta_name(ll_g), lat_s(ir), lon_s(ir), io_mod(ir), &
       & io_up(ir), io_ns(ir), io_ew(ir), ang_ns(ir), ang_ew(ir), &
       & io_str(ir),(weig(ir, k), k = 1, 3), nos(ir)
       if ((weig(ir, 1) .gt. 0) .and. (io_up(ir) .eq. 1)) n_chan3 = n_chan3 + 1
@@ -359,11 +362,13 @@ contains
          io_chan = io_chan + 1
          ll_g = io_chan + ll_in
          weight(ll_g) = weig(ir, 1) / n_chan3
+         component(ll_g) = 'R'
       end if
       if (io_ns(ir) .eq. 1) then
          io_chan = io_chan + 1
          ll_g = io_chan + ll_in
          weight(ll_g) = weig(ir, 2) /n_chan3
+         component(ll_g) = 'L'
       end if
    end do
    
@@ -414,8 +419,8 @@ contains
 !  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
 !       subfault is 3e+21. The gfs is for Mo = 1e+20
 !
-   open(9, file='Readlp.dart', status='old')
-   open(15, file='Wave.dart', status='old')
+   open(9, file='channels_dart.txt', status='old')
+   open(15, file='wavelets_dart.txt', status='old')
    read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
@@ -433,12 +438,13 @@ contains
    call error2(n_wave_weight, n_chan)
  
    do ir = 1, ir_max
-      read(9,*) no, sta_name5(ir), lat_s, lon_s, io_mod, component5(ir), weig(ir), nos
+      ll_g = ir+ll_in
+      read(9,*) no, sta_name(ll_g), lat_s, lon_s, io_mod, component(ll_g), weig(ir), nos
       if (weig(ir) .gt. 0) n_chan3 = n_chan3 + 1
    end do
    close(9)
    
-   filename = 'Obser.dart'
+   filename = 'waveforms_dart.txt'
    filename = trim(filename)
    call get_waveforms(filename, ir_max, ll_in, ll_out, cgps) 
 
