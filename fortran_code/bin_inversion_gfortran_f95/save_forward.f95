@@ -2,19 +2,41 @@ module save_forward
 
 
    use constants, only : max_seg, max_subf, wave_pts2, wave_pts, max_stations, n_data, twopi, &
-           &      pi, max_rise_time_range, max_subfaults2,  dpi
-   use wavelet_param, only : lnpt, max_freq, nlen 
-   use get_stations_data, only : dt_channel, sta_name, component, llove, io_up
+           &      pi, max_rise_time_range, max_subfaults2, dpi 
+   use wavelet_param, only : get_data_param 
+   use get_stations_data, only : get_properties, llove, io_up
    use retrieve_gf, only : green_stk, green_dip
    use rise_time, only : source, fourier_asym_cosine, realtr, fft
-   use modelling_inputs, only : get_annealing_param
    implicit none
    integer, parameter :: nnsta_tele = 80
    integer :: nxs_sub(max_seg), nys_sub(max_seg), nx_p, ny_p, msou, segments, subfaults
-   real :: dta, ta0
+   real :: dta, ta0, dt_channel(max_stations)
+   integer :: lnpt, max_freq, nlen
+   character(len=15) :: sta_name(max_stations)
+   character(len=3) :: component(max_stations)
 
 
 contains
+
+
+   subroutine saveforward_set_fault_parameters()
+   use model_parameters, only : get_rise_time, get_segments, get_subfaults
+   implicit none
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg), dxs, dys
+   integer :: cum_subfaults(max_seg)
+   real :: v_min, v_max, v_ref
+   call get_rise_time(ta0, dta, msou)
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call get_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
+   end subroutine saveforward_set_fault_parameters
+
+
+   subroutine saveforward_set_data_properties()
+   implicit none
+   integer :: jmin, jmax, channels
+   call get_data_param(lnpt, jmin, jmax, nlen, max_freq)
+   call get_properties(sta_name, component, dt_channel, channels) 
+   end subroutine saveforward_set_data_properties
 
 
    subroutine write_forward(slip, rake, rupt_time, tl, tr, strong, cgps, body, surf)
@@ -30,7 +52,6 @@ contains
    complex z0
 !
    write(*,*)'Return synthetics from input kinematic model...'
-   call get_parameters()
    z0 = cmplx(0.0, 0.0)
    erm = 0.0
    ll_in = 0
@@ -58,18 +79,6 @@ contains
 !      ll_in = ll_out
 !   end if
    end subroutine write_forward
-
-
-   subroutine get_parameters()
-   use model_parameters, only : query_rise_time, query_segments, query_subfaults
-   implicit none
-   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg), dxs, dys
-   integer :: cum_subfaults(max_seg)
-   real :: v_min, v_max, v_ref
-   call query_rise_time(ta0, dta, msou)
-   call query_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
-   call query_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
-   end subroutine get_parameters
    
    
    subroutine write_strong_motion_forward(slip, rake, rupt_time, tl, tr, ll_in, ll_out)
@@ -484,8 +493,8 @@ contains
 
    subroutine create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
    implicit none
-   integer ll_g, isl, isr, jf, &
-   &  i, k, subfault
+   integer ll_g, isl, isr, jf, segment, &
+   &  i, k, subfault, ixs, iys, segment_subfault
    real slip(:), rake(:), rupt_time(:), &
    &  tr(:), tl(:), a, b, ww, dt, rake2
    real*8 df

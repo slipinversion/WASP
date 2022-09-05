@@ -30,18 +30,18 @@ module annealing_static
 contains
 
 
-   subroutine get_parameters()
-   use model_parameters, only : query_shear, query_segments, query_subfaults, query_space
+   subroutine annealingstatic_set_fault_properties()
+   use model_parameters, only : get_shear, get_segments, get_subfaults, get_space
    implicit none
    real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
    integer :: cum_subfaults(max_seg), nx_p, ny_p
    real :: v_min, v_max, v_ref, time_ref(max_subfaults2)
    real :: time_min(max_subfaults2), time_max(max_subfaults2)
-   call query_shear(shear)
-   call query_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
-   call query_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
-   call query_space(time_min, time_max, time_ref, beg, dp, np)
-   end subroutine get_parameters
+   call get_shear(shear)
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call get_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
+   call get_space(time_min, time_max, time_ref, beg, dp, np)
+   end subroutine annealingstatic_set_fault_properties
 
 
    subroutine print_static_summary(slip, rake, static, insar, get_coeff, ramp)
@@ -55,7 +55,6 @@ contains
    real*8 :: misfit2
    logical :: static, get_coeff, insar
 
-   call get_parameters()
    do segment = 1, segments
       subfaults_segment(segment) = nys_sub(segment)*nxs_sub(segment)
    end do

@@ -577,24 +577,24 @@ contains
    end subroutine subfault_positions
    
 
-   subroutine query_rise_time(ta00, dta0, msou0)
+   subroutine get_rise_time(ta00, dta0, msou0)
    implicit none
    real :: ta00, dta0
    integer :: msou0 
    ta00 = ta0
    dta0 = dta
    msou0 = msou
-   end subroutine query_rise_time
+   end subroutine get_rise_time
 
    
-   subroutine query_shear(shear0)
+   subroutine get_shear(shear0)
    implicit none
    real :: shear0(:) 
    shear0(:) = shear(:)
-   end subroutine query_shear
+   end subroutine get_shear
 
    
-   subroutine query_segments(nxs_sub0, nys_sub0, dip0, strike0, delay_seg0, &
+   subroutine get_segments(nxs_sub0, nys_sub0, dip0, strike0, delay_seg0, &
    &  segments0, subfaults0, cum_subfaults0)
    implicit none
    integer :: nxs_sub0(:), nys_sub0(:), subfaults0, segments0, cum_subfaults0(:)
@@ -607,10 +607,10 @@ contains
    segments0 = segments
    subfaults0 = subfaults
    cum_subfaults0(:) = cum_subfaults(:)
-   end subroutine query_segments
+   end subroutine get_segments
 
 
-   subroutine query_subfaults(dxs0, dys0, nx_p0, ny_p0, v_min0, v_max0, v_ref0)
+   subroutine get_subfaults(dxs0, dys0, nx_p0, ny_p0, v_min0, v_max0, v_ref0)
    implicit none
    integer :: nx_p0, ny_p0
    real :: dxs0, dys0, v_min0, v_max0, v_ref0
@@ -621,10 +621,10 @@ contains
    v_min0 = v_min
    v_max0 = v_max
    v_ref0 = v_ref
-   end subroutine query_subfaults
+   end subroutine get_subfaults
    
 
-   subroutine query_space(time_min0, time_max0, time_ref0, beg0, dp0, np0)
+   subroutine get_space(time_min0, time_max0, time_ref0, beg0, dp0, np0)
    implicit none
    real :: time_min0(max_subfaults), time_max0(max_subfaults)
    real :: time_ref0(max_subfaults)
@@ -636,10 +636,10 @@ contains
    beg0(:) = beg(:)
    dp0(:) = dp(:)
    np0(:) = np(:)
-   end subroutine query_space
+   end subroutine get_space
 
    
-   subroutine query_borders(rake_min0, nleft0, nright0, nup0, ndown0)
+   subroutine get_borders(rake_min0, nleft0, nright0, nup0, ndown0)
    implicit none
    integer :: nleft0(3, max_subfaults), nright0(3, max_subfaults), & 
    & nup0(3, max_subfaults), ndown0(3, max_subfaults)
@@ -649,7 +649,7 @@ contains
    nup0(:, :) = nup(:, :)
    ndown0(:, :) = ndown(:, :)
    rake_min0 = rake_min
-   end subroutine query_borders
+   end subroutine get_borders
 
 
    subroutine deallocate_ps()

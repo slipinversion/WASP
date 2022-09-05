@@ -9,7 +9,8 @@ program run_modelling
    use random_gen, only : start_seed
    use annealing, only : n_threads
    use ffm_methods, only: check_waveforms, check_static, waveform_ffm, &
-                     &  mixed_ffm, static_ffm 
+                     &  mixed_ffm, static_ffm
+   use regularization, only : regularization_set_fault_parameters 
    implicit none
    integer :: i
    real :: slip(max_subfaults), rake(max_subfaults), rupt_time(max_subfaults)
@@ -51,6 +52,7 @@ program run_modelling
    call get_model_space()
    call get_special_boundaries()
    call subfault_positions()
+   call regularization_set_fault_parameters()
    if ((use_waveforms) .and. (use_static .eqv. .False.)) then
       call waveform_ffm(strong, cgps, body, surf, dart, &
        & slip, rake, rupt_time, t_rise, t_fall)

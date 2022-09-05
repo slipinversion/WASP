@@ -14,14 +14,14 @@ module regularization
 contains
 
 
-   subroutine get_parameters()
-   use model_parameters, only : query_segments, query_borders
+   subroutine regularization_set_fault_parameters()
+   use model_parameters, only : get_segments, get_borders
    implicit none
    real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
    integer :: segments
-   call query_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
-   call query_borders(rake_min, nleft, nright, nup, ndown)   
-   end subroutine get_parameters
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call get_borders(rake_min, nleft, nright, nup, ndown)   
+   end subroutine regularization_set_fault_parameters
    
         
    subroutine define_slip_field(slip, rake)
@@ -35,7 +35,6 @@ contains
 !  
 !  we define the slip vector field
 !  
-   call get_parameters()
    do subfault = 1, subfaults
       angle = (rake(subfault)-rake_min)*dpi
       slip_field(1, subfault) = slip(subfault)*cos(angle)

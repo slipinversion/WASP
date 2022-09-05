@@ -11,7 +11,6 @@ module static_data
 
 
    use constants, only : max_subf, max_seg, max_subfaults, dpi
-   use model_parameters, only : nxs_sub, nys_sub, nx_p, ny_p, segments, subfaults
    implicit none
    integer, parameter, private :: n_stations = 500
    integer :: n_chan
@@ -20,10 +19,20 @@ module static_data
    real :: green(n_stations, 6, max_subfaults), syn_disp(n_stations, 3)
    real :: obse(n_stations, 3), weight(n_stations, 3)
    character(len=6) :: sta_name(n_stations)
+   integer :: subfaults, segments, nxs_sub(max_seg), nys_sub(max_seg)
   
 
 contains
 
+
+   subroutine staticdata_set_fault_parameters()
+   use model_parameters, only : get_segments
+   implicit none
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
+   integer :: cum_subfaults(max_seg)
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   end subroutine staticdata_set_fault_parameters
+   
 
    subroutine initial_gps(slip, rake)
    implicit none

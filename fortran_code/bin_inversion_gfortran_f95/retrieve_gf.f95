@@ -7,15 +7,14 @@ module retrieve_gf
    use constants, only : npuse, max_stations, max_subfaults, max_subf, nt, nny, ndis, &
    &  wave_pts2, max_seg, block_far, ltde, n_data, max_psources, max_dip_psources, &
    &  max_dip_subfaults, block_stg, pi, twopi, wave_pts
-   use wavelets, only : fourier_coefs, meyer_yamada
-   use wavelet_param, only : lnpt, nlen, jmin, jmax, max_freq
+   use wavelet_param, only : get_data_param
    use model_parameters, only : point_sources
    use retrieve_surf_gf, only : get_surf_gf_data, interp_gf, get_surf_gf, npt_bank, &
    &  dt_bank, check_bounds
    use rad_pattern, only : rad_coef
    use geodesics, only : distaz
-   use get_stations_data, only : sta_name, disp_or_vel, &
-          & component, idata, mmm, llove, dt_channel
+   use get_stations_data, only : get_properties, disp_or_vel, &
+          & idata, mmm, llove
    implicit none
    integer, parameter :: nnsta_tele = 80
    complex, allocatable :: green_dip(:, :, :), green_stk(:, :, :)
@@ -24,10 +23,32 @@ module retrieve_gf
    integer :: cum_subfaults(max_seg)
    real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
    real :: shear(max_subfaults)
-   real :: dxs, dys, v_ref
-
+   real :: dxs, dys, v_ref, dt_channel(max_stations)
+   integer :: lnpt, nlen, jmin, jmax, max_freq, channels
+   character(len=15) :: sta_name(max_stations)
+   character(len=3) :: component(max_stations)
+   
 
 contains
+
+
+   subroutine retrievegf_set_data_properties()
+   implicit none
+   call get_properties(sta_name, component, dt_channel, channels)
+   call get_data_param(lnpt, jmin, jmax, nlen, max_freq)
+   end subroutine retrievegf_set_data_properties
+
+
+   subroutine retrievegf_set_fault_parameters()
+   use model_parameters, only : get_shear, get_segments, &
+   &  get_subfaults
+   implicit none
+   integer :: subfaults, cum_subfaults(max_seg)
+   real :: v_min, v_max
+   call get_shear(shear)
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call get_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
+   end subroutine retrievegf_set_fault_parameters
 
 
    subroutine get_gf(strong, cgps, body, surf, dart)
@@ -39,9 +60,6 @@ contains
    allocate(green_stk(npuse, max_stations, max_subfaults))
 
    write(*,*)'Store GF in memory...'
-   call get_parameters()
-   call fourier_coefs()
-   call meyer_yamada()
 !
 !  Here, we load into memory the green functions for each subfault, for every used station
 !  
@@ -68,18 +86,6 @@ contains
 !      ll_in = ll_out
 !   end if
    end subroutine get_gf
-
-
-   subroutine get_parameters()
-   use model_parameters, only : query_shear, query_segments, &
-   &  query_subfaults
-   implicit none
-   integer :: subfaults, cum_subfaults(max_seg)
-   real :: v_min, v_max
-   call query_shear(shear)
-   call query_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
-   call query_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
-   end subroutine get_parameters
 
    
    subroutine get_strong_motion_gf(ll_in, ll_out)
