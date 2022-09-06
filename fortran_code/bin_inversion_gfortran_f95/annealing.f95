@@ -300,11 +300,10 @@ contains
    & slip_beg, slip_max, slip_end, angle_beg, angle_end, angle_max, &
    & rupt_beg, rupt_end, rupt_max, rise_time_beg, rise_time_end, rise_time_max
    real*8 :: forward_real2(wave_pts, max_stations), forward_imag2(wave_pts, max_stations)
-   real :: delta_freq0, delta_freq, rake2, omega!, ex!, misfit2
-   real*8 :: misfit2, ex
+   real :: delta_freq0, delta_freq, rake2!, ex!, misfit2
+   real*8 :: omega, misfit2, ex
    complex :: green_subf
-   complex :: z, z1
-   complex*16 :: forward(wave_pts), z0
+   complex*16 :: z, z1, forward(wave_pts), z0
 
    z0 = cmplx(0.d0, 0.d0, double)
    value1 = 0.0
@@ -326,16 +325,16 @@ contains
          b = cos(rake2)*slip(subfault)
          isl = int((t_rise(subfault)-ta0)/dta+0.5)+1
          isr = int((t_fall(subfault)-ta0)/dta+0.5)+1
-!         omega = -twopi*delta_freq*rupt_time(subfault)
-!         z1 = cmplx(cos(omega), sin(omega), double)
-!         z = cmplx(1.d0, 0.d0, double)
+         omega = -twopi*delta_freq*rupt_time(subfault)
+         z1 = cmplx(cos(omega), sin(omega), double)
+         z = cmplx(1.d0, 0.d0, double)
          do i = 1, max_freq
-            omega = -twopi*delta_freq*rupt_time(subfault)*(i-1)
-            z = cmplx(cos(omega), sin(omega))
+!            omega = -twopi*delta_freq*rupt_time(subfault)*(i-1)
+!            z = cmplx(cos(omega), sin(omega))
             forward(i) = forward(i) &
             & +(a*green_dip(i, channel, subfault)+b*green_stk(i, channel, subfault)) &
             & *source(i, channel, isl, isr)*z
-!            z = z*z1    ! we may need to increase numerical precision
+            z = z*z1    ! we may need to increase numerical precision
          end do
       end do
 
@@ -409,8 +408,8 @@ contains
          z1 = cmplx(cos(omega), sin(omega), double)
          z = cmplx(1.d0, 0.d0, double)
          do i = 1, max_freq
-            omega = -twopi*delta_freq*(i-1)*rupt_time(subfault)
-            z = cmplx(cos(omega), sin(omega))
+!            omega = -twopi*delta_freq*(i-1)*rupt_time(subfault)
+!            z = cmplx(cos(omega), sin(omega))
             green_subf = &
             & (a*green_dip(i, channel, subfault)+b*green_stk(i, channel, subfault))* &
             & source(i, channel, isl, isr)*z

@@ -485,6 +485,10 @@ contains
 !
    area = dxs*dys
    block = 1000.0*area*(1.e-10)
+
+   open(9, file='surf_filter.txt', status='old')
+   read(9,*)f1, f2, f3, f4
+   close(9)
   
    open(9, file='channels_surf.txt', status='old')
    open(15, file='wavelets_surf.txt', status='old')
@@ -512,10 +516,10 @@ contains
 !  int
 !  by default frequency window: 0.003 0.004 0.007 0.008
 !
-   f1 = 0.003
-   f2 = 0.004
-   f3 = 0.006
-   f4 = 0.007
+!   f1 = 0.003
+!   f2 = 0.004
+!   f3 = 0.006
+!   f4 = 0.007
    nf1 = int(f1/df)
    nf2 = int(f2/df)
    nf3 = int(f3/df)
