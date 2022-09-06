@@ -536,7 +536,7 @@ def processing(tensor_info, data_type, data_prop, st_response=True):
     if 'tele_body' in data_type:
         proc.select_process_tele_body(tele_files, tensor_info, data_prop)
     if 'surf_tele' in data_type:
-        proc.select_process_surf_tele(tele_files, tensor_info)
+        proc.select_process_surf_tele(tele_files, tensor_info, data_prop)
     if 'strong_motion' in data_type:
         proc.select_process_strong(
             strong_files, tensor_info,

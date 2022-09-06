@@ -18,6 +18,7 @@ import errno
 import get_outputs
 from scipy.signal import butter, filtfilt
 from obspy.geodetics import kilometers2degrees
+from obspy.io.sac.util import SacIOError
 
 
 ################################
@@ -368,6 +369,15 @@ def input_chen_tele_surf(tensor_info, data_prop):
 
     nsta = len(traces_info)
 
+    filtro = data_prop['surf_filter']
+    freq1 = filtro['freq1']
+    freq2 = filtro['freq2']
+    freq3 = filtro['freq3']
+    freq4 = filtro['freq4']
+
+    with open('surf_filter.txt', 'w') as outfile:
+        outfile.write('{} {} {} {}'.format(freq1, freq2, freq3, freq4))
+
     date_origin = tensor_info['date_origin']
     string = '{:3d} {:>6} {:>8.3f} {:>9.3f} 31' + 3 * '  {:>1}'\
             + 2 * ' {:>7.2f}' + '  1' + 3 * '  {:>7.2f}' + ' 0\n'
@@ -706,52 +716,6 @@ def input_chen_insar():
                 ])
         start = start + length
 
-    # if lines_desc > 0:
-    #     if ramp_desc is not None:
-    #         size2 = 3
-    #         if ramp_desc == 'bilinear':
-    #             size2 = 6
-    #         elif ramp_desc == 'quadratic':
-    #             size2 = 5
-    #         east1  = (np.array(eastings[lines_asc:])-min_easting)
-    #         north1  = (np.array(northings[lines_asc:])-min_northing)
-    #         east1 = east1 / np.max(np.abs(east1))
-    #         north1 = north1 / np.max(np.abs(north1))
-    #         east2  = east1**2
-    #         north2  = north1**2
-    #         east2  = east2 / np.max(east2)
-    #         north2  = north2 / np.max(north2)
-    #         east_north = east1*north1
-    #         east_north = east_north / np.max(east_north)
-    #         if ramp_desc == 'linear':
-    #             zipped = zip(east1, north1)
-    #             gf_ramp2 = [[east, north, 1] for east, north in zipped]
-    #             gf_ramp2 = np.array(gf_ramp2)
-    #         elif ramp_desc == 'bilinear':
-    #             zipped = zip(east1, north1, east_north, east2, north2)
-    #             gf_ramp2 = [[e1, n1, 1, en, e2, n2] for e1, n1, en, e2, n2 in zipped]
-    #             gf_ramp2 = np.array(gf_ramp2)
-    #         elif ramp_desc == 'quadratic':
-    #             zipped = zip(east1, north1, east_north)
-    #             gf_ramp2 = [[e1, n1, 1, en, en**2] for e1, n1, en in zipped]
-    #             gf_ramp2 = np.array(gf_ramp2)
-    #
-    # if ramp_asc is not None and ramp_desc is None:
-    #     gf_ramp = np.block([
-    #         [gf_ramp1],
-    #         [np.zeros((lines_desc, size1))]
-    #     ])
-    # elif ramp_asc is None and ramp_desc is not None:
-    #     gf_ramp = np.block([
-    #         [np.zeros((lines_asc, size2))],
-    #         [gf_ramp2]
-    #     ])
-    # else:
-    #     gf_ramp = np.block([
-    #         [gf_ramp1, np.zeros((lines_asc, size2))],
-    #         [np.zeros((lines_desc, size1)), gf_ramp2]
-    #     ])
-
     with open('ramp_gf.txt', 'w') as outf:
         string = ' '.join(str(v) for v in ramps) + '\n'
         outf.write(string)
@@ -847,6 +811,11 @@ def __get_stream(file):
             stream = read(file['file'], format='SAC')
             break
         except IndexError:
+            print(i)
+            print('Obspy bug when reading the file {}. '\
+                    'Waveform set to random'.format(file['file']))
+            continue
+        except SacIOError:
             print(i)
             print('Obspy bug when reading the file {}. '\
                     'Waveform set to random'.format(file['file']))
@@ -1211,8 +1180,6 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     else:
         tensor_info = tensor.get_tensor()
-    # green_dict = json.load(open('cgps_gf.json'))
-    # write_green_file(green_dict, cgps=True)
     if args.plane:
         velmodel = json.load(open('velmodel_data.json'))
 #        write_velmodel(velmodel)

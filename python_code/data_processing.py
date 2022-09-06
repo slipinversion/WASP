@@ -394,7 +394,7 @@ def process_body_waves(tele_files, phase, data_prop, tensor_info):
 ##################################
 
 
-def select_process_surf_tele(tele_files0, tensor_info):
+def select_process_surf_tele(tele_files0, tensor_info, data_prop):
     """Module for selecting and processing surface wave data.
 
     :param tensor_info: dictionary with moment tensor information
@@ -449,7 +449,7 @@ def select_process_surf_tele(tele_files0, tensor_info):
     __picker(tensor_info, tele_files1, depth, model)
     logger1.info('Remove instrumental response for surface waves')
     response_files = glob.glob('SACPZ*') + glob.glob('SAC_PZs*')
-    __remove_response_surf(tele_files1, response_files, logger=logger1)
+    __remove_response_surf(tele_files1, response_files, data_prop, logger=logger1)
     logger1.info('Rotate horizontal components for surface waves')
     os.chdir(os.path.join(data_folder, 'LONG'))
     horizontal_sacs = glob.glob('*_BH[EN12]*sac')
@@ -465,7 +465,7 @@ def select_process_surf_tele(tele_files0, tensor_info):
     return
 
 
-def __remove_response_surf(used_tele_sacs, response_files, logger=None):
+def __remove_response_surf(used_tele_sacs, response_files, data_prop, logger=None):
     """We remove instrumental response for surface wave data.
     """
     sacheaders = [SACTrace.read(sac) for sac in used_tele_sacs]
@@ -473,7 +473,12 @@ def __remove_response_surf(used_tele_sacs, response_files, logger=None):
         os.path.join('{}_{}_{}.sac'.format(network, station, channel))
 
     streams = [read(sac) for sac in used_tele_sacs]
-    freqs = [0.003, 0.004, 0.006, 0.007]
+    filtro = data_prop['surf_filter']
+    freq1 = filtro['freq1']
+    freq2 = filtro['freq2']
+    freq3 = filtro['freq3']
+    freq4 = filtro['freq4']
+    freqs = [freq1, freq2, freq3, freq4]
 
     for stream, sac in zip(streams, used_tele_sacs):
         name = stream[0].stats.station
