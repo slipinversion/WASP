@@ -1223,7 +1223,7 @@ if __name__ == '__main__':
         select_process_tele_body(tele_files, tensor_info, data_prop)
     if args.surface:
         tele_files = glob.glob('*BH*SAC') + glob.glob('*BH*sac')
-        select_process_surf_tele(tele_files, tensor_info)
+        select_process_surf_tele(tele_files, tensor_info, data_prop)
     if args.strong:
         strong_files = glob.glob('*.HN*SAC') + glob.glob('*.HL*SAC')\
                     + glob.glob('*.HN*sac') + glob.glob('*.HL*sac')\
