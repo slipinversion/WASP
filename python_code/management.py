@@ -54,39 +54,6 @@ def theoretic_arrivals(model, dist, depth):
     return arrivals
     
     
-# def update_data(tensor_info, data_type=None):
-#     """
-#     
-#     :param data_type: list of data types to be used in modelling.
-#     :param tensor_info: dictionary with moment tensor information
-#     :type data_type: list, optional
-#     :type tensor_info: dict
-#     """
-#     if not data_type:
-#         data_type = [
-#             'tele_body', 'surf_tele', 'strong_motion', 'cgps', 'gps'
-#         ]
-# #    data_type = inversion_data(tensor_info) if not data_type else data_type
-#     data_type2 = []
-#     if 'tele_body' in data_type:
-#         data_type2 = data_type2 + ['tele_body']\
-#             if os.path.isfile('tele_waves.json') else data_type2
-#     if 'surf_tele' in data_type:
-#         data_type2 = data_type2 + ['surf_tele']\
-#             if os.path.isfile('surf_waves.json') else data_type2
-#     if 'strong_motion' in data_type:
-#         data_type2 = data_type2 + ['strong_motion']\
-#             if os.path.isfile('strong_motion_waves.json') else data_type2
-#     if 'cgps' in data_type:
-#         data_type2 = data_type2 + ['cgps']\
-#             if os.path.isfile('cgps_waves.json') else data_type2
-#     if 'gps' in data_type:
-#         data_type2 = data_type2 + ['gps']\
-#             if os.path.isfile('static_data.json') else data_type2
-# #    os.chdir(current_dir)
-#     return set(data_type2) & set(data_type) 
-    
-    
 def default_dirs():
     """Environment variables.
     """

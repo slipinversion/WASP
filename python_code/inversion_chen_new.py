@@ -8,6 +8,7 @@ import os
 import json
 import logging
 import subprocess
+import warnings
 from shutil import copy2, move
 import glob
 from data_acquisition import acquisition
@@ -154,7 +155,7 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
 
 
 def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
-                logger, velmodel=None):
+                logger, velmodel=None, check_surf=True):
     """Routine for automatic FFM modelling for each nodal plane
 
     :param tensor_info: dictionary with moment tensor properties
@@ -164,6 +165,7 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
     :param data_prop: dictionary with properties for different waveform types
     :param logger: logging object
     :param velmodel: dictionary with velocity model
+    :param check_surf: check whether surface waves can be used
     :type default_dirs: dict
     :type tensor_info: dict
     :type plane_data: dict
@@ -171,6 +173,7 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
     :type data_prop: dict
     :type logger: Logger
     :type velmodel: dict, optional
+    :type check_surf: bool, optional
     """
 #
 # Create JSON files
@@ -194,6 +197,12 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
     segments_data = pf.create_finite_fault(tensor_info, np_plane_info, data_type)
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
+    data_type = _check_surf_GF(point_sources, data_type, logger=logger)
     mp.modelling_prop(tensor_info, segments_data, data_type=data_type)
 #
 # write text files from JSONs
@@ -223,6 +232,23 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
         if os.path.isfile(os.path.join(dirname, base, file)):
             copy2(os.path.join(dirname, base, file),
                   os.path.join(dirname, 'plots'))
+
+
+def _check_surf_GF(point_sources, used_data, logger=None):
+    """
+    """
+    new_used_data = used_data.copy()
+    depths = [ps[:, :, :, :, 2] for ps in point_sources]
+    depths = [np.max(depths1) for depths1 in depths]
+    max_depth = np.max(depths)
+    is_surf = 'surf_tele' in used_data
+    if max_depth > 125 and is_surf:
+        warnings.warn("Maximum depth larger than 125 km. "\
+                      "Surface waves won't be used")
+        new_used_data.remove('surf_tele')
+        if logger:
+            logger.info("Maximum depth larger than 125 km.")
+    return new_used_data
 
 
 def modelling_new_data(tensor_info, data_type, default_dirs,
