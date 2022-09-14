@@ -5,10 +5,15 @@ program run_forward
        &  t_rise0, t_fall0, write_model, deallocate_ps
    use modelling_inputs, only : get_annealing_param
    use get_stations_data, only : get_data
-   use retrieve_gf, only : get_gf, deallocate_gf
-   use save_forward, only : write_forward
-   use static_data, only : initial_gps
-   use insar_data, only : initial_insar, get_insar_gf, deallocate_insar_gf
+   use retrieve_gf, only : get_gf, deallocate_gf, retrievegf_set_data_properties, &
+                    &   retrievegf_set_fault_parameters
+   use wavelets, only : wavelets_set_data_properties, fourier_coefs, meyer_yamada
+   use save_forward, only : write_forward, saveforward_set_fault_parameters, &
+                    &   saveforward_set_data_properties
+   use static_data, only : initial_gps, staticdata_set_fault_parameters
+   use insar_data, only : initial_insar, get_insar_gf, deallocate_insar_gf, &
+                    &   get_insar_data, is_ramp, initial_ramp, &
+                    &   insardata_set_fault_parameters
    implicit none
    integer i
    character(len=10) :: input
@@ -36,8 +41,18 @@ program run_forward
    end do
    call get_annealing_param()
    call get_faults_data()
+   call retrievegf_set_fault_parameters()
+   call saveforward_set_fault_parameters()
+   call fourier_coefs()
+   call meyer_yamada()
    call get_data(strong, cgps, body, surf, dart)
+   call wavelets_set_data_properties()
+   call retrievegf_set_data_properties()
+   call wavelets_set_data_properties()
+   call saveforward_set_data_properties()
    call get_gf(strong, cgps, body, surf, dart)
+   call staticdata_set_fault_parameters()
+   call insardata_set_fault_parameters()
    call write_forward(slip0, rake0, rupt_time0, t_rise0, t_fall0, strong, cgps, body, surf)
    if (static) call initial_gps(slip0, rake0)
    if (insar) call get_insar_gf()
