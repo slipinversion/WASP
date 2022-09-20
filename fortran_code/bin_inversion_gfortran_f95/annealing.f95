@@ -5,17 +5,13 @@ module annealing
             &   max_subfaults2, wave_pts, max_subfaults
    use retrieve_gf, only : green_dip, green_stk
    use wavelets, only : wavelet_syn
-   use wavelet_param, only : max_freq, lnpt 
+   use wavelet_param, only : get_data_param 
    use rise_time, only : source
-   use get_stations_data, only : dt_channel, used_data, channels
+   use get_stations_data, only : get_properties, count_wavelets
    use random_gen, only : ran1, cauchy
    use misfit_eval, only : misfit_channel
    use modelling_inputs, only : smooth_moment, smooth_slip, smooth_time, io_re, moment_input, emin0, &
             &   t_latest
-   use model_parameters, only : segments, ta0, dta, msou, dxs, dys, nxs0, nys0, nx_p, ny_p, v_min, v_max, &
-            &   tbl, tbr, v_ref, nxs_sub, nys_sub, time_max, time_min, shear, &
-            &   slip0, rake0, rupt_time0, t_rise0, t_fall0, c_depth, beg, dp, np, dip, &
-            &   strike, delay_seg, time_ref, subfaults
    use regularization, only : slip_laplace, time_laplace, define_slip_field, modify_slip_field
    use static_data, only : static_synthetic, static_remove_subfault, &
                        &   static_modify_subfault, static_add_subfault
@@ -32,6 +28,13 @@ module annealing
    integer, parameter :: double = kind(1.d0)
    integer, private :: threads
    integer, parameter, private :: max_move=50, accept_max=5
+   integer :: segments, msou, nxs_sub(max_seg), nys_sub(max_seg), subfaults
+   real :: beg(max_subfaults2), dp(max_subfaults2)
+   integer :: np(max_subfaults2)
+   real :: time_min(max_subfaults), time_max(max_subfaults)
+   real :: shear(max_subfaults), ta0, dta, dxs, dys
+   integer :: max_freq, lnpt, channels
+   real :: dt_channel(max_stations)
 
 
 contains
@@ -44,13 +47,41 @@ contains
    if (auto) threads = 3
    call omp_set_num_threads(threads)
    end subroutine n_threads
+
+
+   subroutine annealing_set_fault_parameters()
+   use model_parameters, only : get_rise_time, get_shear, get_segments, &
+   &  get_subfaults, get_space
+   implicit none
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
+   integer :: cum_subfaults(max_seg), nx_p, ny_p
+   real :: v_min, v_max, v_ref, time_ref(max_subfaults2)
+   call get_rise_time(ta0, dta, msou)
+   call get_shear(shear)
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call get_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
+   call get_space(time_min, time_max, time_ref, beg, dp, np)
+   end subroutine annealing_set_fault_parameters
+
+
+   subroutine annealing_set_data_properties()
+   implicit none
+   integer :: jmin, jmax, nlen
+   character(len=15) :: sta_name(max_stations)
+   character(len=3) :: component(max_stations)
+
+   call get_properties(sta_name, component, dt_channel, channels)
+   call get_data_param(lnpt, jmin, jmax, nlen, max_freq)
+   end subroutine annealing_set_data_properties
    
    
    subroutine initial_model(slip, rake, rupt_time, t_rise, t_fall)
+   use model_parameters, only : slip0, rake0, rupt_time0, t_rise0, t_fall0
    implicit none
    real :: slip(:), rake(:), rupt_time(:), t_rise(:), t_fall(:)
    real :: x(max_subfaults2)
    integer :: nxy, i, segment, k, npa, subfault, etc
+   
    npa = 0
    do segment = 1, segments
       npa = npa + 4*nxs_sub(segment)*nys_sub(segment)
@@ -98,18 +129,20 @@ contains
       & forward_imag(wave_pts2, max_stations), cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2)
    real :: rake2, delta_freq, delta_freq0, moment0, kahan_y, kahan_t, kahan_c
    real*8 :: omega, misfit2, ex
-   integer :: i, segment, channel, isl, isr, jf, k, subfault
+   integer :: i, segment, channel, isl, isr, jf, k, subfault, used_data
    complex*16 :: z0, forward(wave_pts), z, z1
    logical :: static, get_coeff, insar
+   character(len=15) :: sta_name(max_stations)
+   character(len=3) :: component(max_stations)
 
+   used_data = 0
+   call count_wavelets(used_data)
    z0 = cmplx(0.d0, 0.d0, double)
    min_dt = 10
-!   channels = 0
    gps_misfit = 0.0
    insar_misfit = 0.0
    do i = 1, max_stations
       if (dt_channel(i) .gt. 1.e-4) min_dt = min(min_dt, dt_channel(i))
-!      if (dt_channel(i) .gt. 1.e-4) channels = channels + 1
    end do
    jf = 2**(lnpt-1)+1
 !
@@ -254,11 +287,12 @@ contains
 
    subroutine annealing_iter3(slip, rake, rupt_time, t_rise, t_fall, t)
    implicit none
+   real, intent(inout) :: slip(:), rake(:), rupt_time(:), t_fall(:), t_rise(:)
+   real, intent(in) :: t
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, &
    & n_total, j
-   real slip(:), rake(:), rupt_time(:), t_fall(:), t_rise(:), t, &
-   & duse, ause, vuse, forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), &
+   real :: duse, ause, vuse, forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), &
    & de, rand, c, aux, dpb, amp, moment_reg, value1, gps_misfit, &
    & moment, d_sub, a_sub, slip_reg, a, b, moment0, &
    & time_reg, t_save, a_save, d_save, x, kahan_y, kahan_t, kahan_c, &
@@ -295,6 +329,8 @@ contains
          z1 = cmplx(cos(omega), sin(omega), double)
          z = cmplx(1.d0, 0.d0, double)
          do i = 1, max_freq
+!            omega = -twopi*delta_freq*rupt_time(subfault)*(i-1)
+!            z = cmplx(cos(omega), sin(omega))
             forward(i) = forward(i) &
             & +(a*green_dip(i, channel, subfault)+b*green_stk(i, channel, subfault)) &
             & *source(i, channel, isl, isr)*z
@@ -372,7 +408,7 @@ contains
          z1 = cmplx(cos(omega), sin(omega), double)
          z = cmplx(1.d0, 0.d0, double)
          do i = 1, max_freq
-!            omega = -twopi_0*delta_freq*(i-1)*rupt_time(subfault_seg, segment)
+!            omega = -twopi*delta_freq*(i-1)*rupt_time(subfault)
 !            z = cmplx(cos(omega), sin(omega))
             green_subf = &
             & (a*green_dip(i, channel, subfault)+b*green_stk(i, channel, subfault))* &
@@ -585,12 +621,14 @@ contains
    subroutine annealing_iter4(slip, rake, rupt_time, t_rise, &
    & t_fall, t, static, insar, ramp)
    implicit none
+   real, intent(inout) :: slip(:), rake(:), rupt_time(:), t_fall(:), t_rise(:)
+   real, intent(in) :: t
+   logical, intent(in) :: static, insar
+   real*8, optional :: ramp(:)
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, &
    & n_total, j
-   real*8, optional :: ramp(:)
-   real slip(:), rake(:), rupt_time(:), t_fall(:), t_rise(:), t, &
-   & forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), duse, ause, vuse, &
+   real :: forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), duse, ause, vuse, &
    & de, rand, c, aux, dpb, amp, moment_reg, value1, gps_misfit, insar_misfit, &
    & moment, d_sub, a_sub, slip_reg, a, b, kahan_y, kahan_c, kahan_t, &
    & time_reg, t_save, a_save, d_save, x, moment0, &
@@ -604,7 +642,6 @@ contains
    real :: delta_freq, delta_freq0, rake2!, ex
    complex :: green_subf
    complex*16 :: z, z1, forward(wave_pts), z0
-   logical :: static, insar
 !
    z0 = cmplx(0.d0, 0.d0, double)
    value1 = 0.0
@@ -716,8 +753,6 @@ contains
          z1 = cmplx(cos(omega), sin(omega), double)
          z = cmplx(1.d0, 0.d0, double)
          do i = 1, max_freq
-!            omega = -twopi_0*delta_freq*(i-1)*rupt_time(subfault_seg, segment)
-!            z = cmplx(cos(omega), sin(omega))
             green_subf = &
             &  (a*green_dip(i, channel, subfault)+b*green_stk(i, channel, subfault)) &
             &  *source(i, channel, isl, isr)*z

@@ -2,14 +2,25 @@ module wavelets
 
 
    use constants, only : pi, twopi, wave_pts2
-   use wavelet_param, only : jmin, jmax, lnpt, nlen
+   use wavelet_param, only : get_data_param
    implicit none
    complex :: rwt1(wave_pts2, 12), rwt2(wave_pts2, 12), c1, c2
    integer :: kkk(4200, 15)
    real :: cos_fft(4200), sin_fft(4200)
+   real :: wavelet_r1(wave_pts2, 12), wavelet_r2(wave_pts2, 12)
+   real :: wavelet_i1(wave_pts2, 12), wavelet_i2(wave_pts2, 12)
+   real :: real_c1, imag_c1, real_c2, imag_c2
+   integer :: jmin, jmax, lnpt, nlen
 
 
 contains
+   
+
+   subroutine wavelets_set_data_properties()
+   implicit none
+   integer :: max_freq
+   call get_data_param(lnpt, jmin, jmax, nlen, max_freq)
+   end subroutine wavelets_set_data_properties
 
 
    subroutine wavelet_obs(cr, cz, u)
@@ -73,8 +84,8 @@ contains
    real, intent(out) :: u(wave_pts2)
    real, intent(inout) :: cr(wave_pts2), cz(wave_pts2)
    integer lcc, kmax, lb, i, i1, i2, j, k
-        
-   complex fre(wave_pts2)
+   real :: cr0(wave_pts2), cz0(wave_pts2)
+!   complex fre(wave_pts2)
    complex cc
 
    lcc = nlen/2!2**(lnpt-1)
@@ -88,22 +99,32 @@ contains
    end do
    cz(lcc) = 0.0
    do j = 1, nlen
-      fre(j) = cmplx(cr(j)/nlen, cz(j)/nlen)
+      cr0(j) = cr(j)/nlen
+      cz0(j) = cz(j)/nlen
    end do
 !
 ! c1 = wave(pi2, 2), c2 = wave(pi, 2).
 !
-   u(1) = real(fre(2)*c1)
-   u(2) = real(fre(2)*c2+fre(3)*c1)
-   u(3) = real(-fre(2)*c2+fre(3)*c1)
+!   u(1) = real(fre(2)*c1)
+!   u(2) = real(fre(2)*c2+fre(3)*c1)
+!   u(3) = real(-fre(2)*c2+fre(3)*c1)
+   u(1) = cr0(2)*real_c1 - cz0(2)*imag_c1
+   u(2) = cr0(2)*real_c2 - cz0(2)*imag_c2
+   u(2) = u(2) + cr0(3)*real_c1 - cz0(3)*imag_c1
+   u(3) = -cr0(2)*real_c2 + cz0(2)*imag_c2
+   u(3) = u(3) + cr0(3)*real_c1 - cz0(3)*imag_c1
         
    kmax = 2
    do j=3, jmax
       kmax = 2*kmax  
       do k = 1, kmax
-         cc = fre(k)*rwt1(k, j)+fre(k+kmax)*rwt2(k, j)
-         cr(k) = real(cc)
-         cz(k) = aimag(cc)
+         cr(k) = cr0(k)*wavelet_r1(k,j) - cz0(k)*wavelet_i1(k,j) &
+         & + cr0(k+kmax)*wavelet_r2(k,j) - cz0(k+kmax)*wavelet_i2(k,j)
+         cz(k) = cr0(k)*wavelet_i1(k,j) + cz0(k)*wavelet_r1(k,j) &
+         & + cr0(k+kmax)*wavelet_i2(k,j) + cz0(k+kmax)*wavelet_r2(k,j)
+         !cc = fre(k)*rwt1(k, j)+fre(k+kmax)*rwt2(k, j)
+         !cr(k) = real(cc)
+         !cz(k) = aimag(cc)
       end do
       lcc = j-1
       call cifft(cr, cz, Lcc)
@@ -120,7 +141,6 @@ contains
 ! old version
 !
    implicit none
-!   integer, parameter :: inpt=2100
    integer, intent(in) :: n
    real, intent(inout) :: xr(:), xi(:)
    integer k, i, ib, nb, lx, l, lb, lbh, ist, jh, j1, j
@@ -172,7 +192,6 @@ contains
 !
 ! old version
 !
-!   integer, parameter :: inpt=2100
    integer, intent(in) :: n
    real, intent(inout) :: xr(wave_pts2), xi(wave_pts2)
    integer k, ib, nb, lx, l, lb, lbh, ist, jh, j1, j
@@ -255,6 +274,10 @@ contains
    integer j, is, kmax
    c1 = 2.*wave(twopi, 2)
    c2 = 2.*wave(pi, 2)
+   real_c1 = real(c1)
+   imag_c1 = aimag(c1)
+   real_c2 = real(c2)
+   imag_c2 = aimag(c2)
 !
 !       Create the coefficients of Mayer wavelet function
 !       so it should be called before any further application.
@@ -266,6 +289,10 @@ contains
          omega2 = omega1+twopi
          rwt1(is, j) = 2.*wave(omega1, 2)
          rwt2(is, j) = 2.*wave(omega2, 2)
+         wavelet_r1(is, j) = real(rwt1(is, j))
+         wavelet_i1(is, j) = aimag(rwt1(is, j))
+         wavelet_r2(is, j) = real(rwt2(is, j))
+         wavelet_i2(is, j) = aimag(rwt2(is, j))
       end do
    end do
    end subroutine meyer_yamada

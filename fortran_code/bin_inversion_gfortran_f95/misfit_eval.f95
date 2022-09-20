@@ -1,14 +1,26 @@
 module misfit_eval
 
 
-   use constants, only : wave_pts2
-   use wavelet_param, only : lnpt, jmin, jmax, nlen
-   use get_stations_data, only : weight, wave_obs, wmax, misfit_type, &
-        &  t_min, t_max, wavelet_weight
+   use constants, only : wave_pts2, max_stations
+   use wavelet_param, only : get_data_param
+   use get_stations_data, only : get_options, get_wavelet_obs
    implicit none
+   real :: weight(max_stations), wave_obs(wave_pts2, max_stations), wmax(max_stations)
+   integer :: misfit_type(12, max_stations), lnpt, jmin, jmax, nlen
+   integer :: t_min(max_stations), t_max(max_stations)
+   real :: wavelet_weight(12, max_stations)
 
 
 contains
+
+
+   subroutine misfit_eval_set_data_properties()
+   implicit none
+   integer :: max_freq, t_max_val(max_stations)
+   call get_data_param(lnpt, jmin, jmax, nlen, max_freq)
+   call get_options(weight, misfit_type, t_min, t_max, wavelet_weight)
+   call get_wavelet_obs(wave_obs, wmax, t_max_val)
+   end subroutine misfit_eval_set_data_properties
 
 
    pure subroutine misfit_channel(channel, wave_syn, error2)

@@ -2,8 +2,9 @@ module rise_time
 
 
    use constants, only : wave_pts2, max_stations, max_rise_time_range, pi, twopi
-   use get_stations_data, only : dt_channel, lnpt
-   use model_parameters, only : ta0, dta, msou
+   use model_parameters, only : get_rise_time
+   use wavelet_param, only : get_data_param
+   use get_stations_data, only : dt_channel, channels
    implicit none
    complex, allocatable :: source(:, :, :, :)
    integer, parameter, private :: double = kind(1d0)
@@ -138,8 +139,12 @@ contains
    implicit none
    real :: dt
    real*8 :: df, t1, t2
-   integer :: i, ir, isl, isr, jf 
+   integer :: i, ir, isl, isr, jf
+   real :: ta0, dta
+   integer :: msou, lnpt, jmin, jmax, nlen, max_freq
    allocate(source(wave_pts2, max_stations, max_rise_time_range, max_rise_time_range))
+   call get_rise_time(ta0, dta, msou)
+   call get_data_param(lnpt, jmin, jmax, nlen, max_freq)
 !       
 ! Here, we load into memory, the Fourier transform of rise time function 
 !

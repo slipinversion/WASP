@@ -394,7 +394,7 @@ def process_body_waves(tele_files, phase, data_prop, tensor_info):
 ##################################
 
 
-def select_process_surf_tele(tele_files0, tensor_info):
+def select_process_surf_tele(tele_files0, tensor_info, data_prop):
     """Module for selecting and processing surface wave data.
 
     :param tensor_info: dictionary with moment tensor information
@@ -449,7 +449,7 @@ def select_process_surf_tele(tele_files0, tensor_info):
     __picker(tensor_info, tele_files1, depth, model)
     logger1.info('Remove instrumental response for surface waves')
     response_files = glob.glob('SACPZ*') + glob.glob('SAC_PZs*')
-    __remove_response_surf(tele_files1, response_files, logger=logger1)
+    __remove_response_surf(tele_files1, response_files, data_prop, logger=logger1)
     logger1.info('Rotate horizontal components for surface waves')
     os.chdir(os.path.join(data_folder, 'LONG'))
     horizontal_sacs = glob.glob('*_BH[EN12]*sac')
@@ -465,7 +465,7 @@ def select_process_surf_tele(tele_files0, tensor_info):
     return
 
 
-def __remove_response_surf(used_tele_sacs, response_files, logger=None):
+def __remove_response_surf(used_tele_sacs, response_files, data_prop, logger=None):
     """We remove instrumental response for surface wave data.
     """
     sacheaders = [SACTrace.read(sac) for sac in used_tele_sacs]
@@ -473,7 +473,12 @@ def __remove_response_surf(used_tele_sacs, response_files, logger=None):
         os.path.join('{}_{}_{}.sac'.format(network, station, channel))
 
     streams = [read(sac) for sac in used_tele_sacs]
-    freqs = [0.003, 0.004, 0.006, 0.007]
+    filtro = data_prop['surf_filter']
+    freq1 = filtro['freq1']
+    freq2 = filtro['freq2']
+    freq3 = filtro['freq3']
+    freq4 = filtro['freq4']
+    freqs = [freq1, freq2, freq3, freq4]
 
     for stream, sac in zip(streams, used_tele_sacs):
         name = stream[0].stats.station
@@ -574,6 +579,10 @@ def select_process_cgps(cgps_files, tensor_info, data_prop):
     __select_cgps_files(cgps_files, tensor_info)
     logger1.info('Process selected cGPS traces')
     os.chdir(os.path.join(os.getcwd(), 'cGPS'))
+    final_files = glob.glob('final*')
+    for final_file in final_files:
+        if os.path.isfile(final_file):
+            os.remove(final_file)
     cgps_files1 = glob.glob('*L[HXY]*.sac') + glob.glob('*L[HXY]*.SAC')
     __change_start(cgps_files1, tensor_info, cgps=True)
     new_process_cgps(tensor_info, cgps_files1, data_prop, logger=logger1)
@@ -847,6 +856,10 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
     response_files = glob.glob('SACPZ*') + glob.glob('SAC_PZs*')
     response_files = [os.path.abspath(response) for response in response_files]
     os.chdir(os.path.join(data_folder, 'STR'))
+    final_files = glob.glob('final*')
+    for final_file in final_files:
+        if os.path.isfile(final_file):
+            os.remove(final_file)
     strong_files1 = glob.glob('acc*')
     if remove_response:
         logger1.info('Remove response for selected strong motion traces')
@@ -916,12 +929,21 @@ def __select_str_files(strong_files, tensor_info):
         st = read(sac)
         syn_len = 20 + 4*time_shift + 7*depth/50
         start, end = [st[0].stats.starttime, st[0].stats.endtime]
+        print(end - start, syn_len)
         if end - start < syn_len:
             continue
         if not __select_distance(tensor_info, station_lat, station_lon,
                                  max_distance=distance, use_centroid=True):
             continue
         strong_files2 = strong_files2 + [sac]
+    if len(strong_files2) == 0:
+        raise RuntimeError(
+            'No strong motion waveforms selected. Either strong motion '\
+            + 'waveforms are too distant, or they are shorter than '\
+            + '{} '.format(syn_len)\
+            + 'seconds, which is the required length for strong motions '\
+            + 'for this event'
+        )
 
     return strong_files2
 
@@ -1201,7 +1223,7 @@ if __name__ == '__main__':
         select_process_tele_body(tele_files, tensor_info, data_prop)
     if args.surface:
         tele_files = glob.glob('*BH*SAC') + glob.glob('*BH*sac')
-        select_process_surf_tele(tele_files, tensor_info)
+        select_process_surf_tele(tele_files, tensor_info, data_prop)
     if args.strong:
         strong_files = glob.glob('*.HN*SAC') + glob.glob('*.HL*SAC')\
                     + glob.glob('*.HN*sac') + glob.glob('*.HL*sac')\

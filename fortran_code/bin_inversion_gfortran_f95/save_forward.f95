@@ -2,21 +2,41 @@ module save_forward
 
 
    use constants, only : max_seg, max_subf, wave_pts2, wave_pts, max_stations, n_data, twopi, &
-           &      pi, max_rise_time_range, max_subfaults2,  dpi
-   use model_parameters, only : nxs_sub, nys_sub, ta0, dta, msou, segments, dxs, dys, &
-           &      nx_p, ny_p, subfaults
-   use wavelet_param, only : lnpt, max_freq, nlen 
-   use get_stations_data, only : dt_channel, sta_name1, sta_name2, sta_name3, sta_name4, &
-           &      sta_name5, component1, component2, component3, component4, &
-           &      component5, llove, io_up
+           &      pi, max_rise_time_range, max_subfaults2, dpi 
+   use wavelet_param, only : get_data_param 
+   use get_stations_data, only : get_properties, llove, io_up
    use retrieve_gf, only : green_stk, green_dip
    use rise_time, only : source, fourier_asym_cosine, realtr, fft
-   use modelling_inputs, only : get_annealing_param
    implicit none
    integer, parameter :: nnsta_tele = 80
+   integer :: nxs_sub(max_seg), nys_sub(max_seg), nx_p, ny_p, msou, segments, subfaults
+   real :: dta, ta0, dt_channel(max_stations)
+   integer :: lnpt, max_freq, nlen
+   character(len=15) :: sta_name(max_stations)
+   character(len=3) :: component(max_stations)
 
 
 contains
+
+
+   subroutine saveforward_set_fault_parameters()
+   use model_parameters, only : get_rise_time, get_segments, get_subfaults
+   implicit none
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg), dxs, dys
+   integer :: cum_subfaults(max_seg)
+   real :: v_min, v_max, v_ref
+   call get_rise_time(ta0, dta, msou)
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call get_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
+   end subroutine saveforward_set_fault_parameters
+
+
+   subroutine saveforward_set_data_properties()
+   implicit none
+   integer :: jmin, jmax, channels
+   call get_data_param(lnpt, jmin, jmax, nlen, max_freq)
+   call get_properties(sta_name, component, dt_channel, channels) 
+   end subroutine saveforward_set_data_properties
 
 
    subroutine write_forward(slip, rake, rupt_time, tl, tr, strong, cgps, body, surf)
@@ -139,7 +159,7 @@ contains
    
       ll_g = channel+ll_in
       call create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
-      comp = component1(channel)
+      comp = component(ll_g)
 
       do i = 1, jf
          if (i .le. max_freq) then
@@ -154,7 +174,7 @@ contains
       call realtr(cr, cz, lnpt)
       call fft(cr, cz, lnpt, 1.)
     
-      write(18,*)nlen,dt,sta_name1(channel),comp
+      write(18,*)nlen,dt,sta_name(ll_g),comp
       do k = 1, nlen
          write(18,*) cr(k), cz(k)
       end do
@@ -170,8 +190,7 @@ contains
    integer ll_in, ll_out, ll_g, isl, isr, subfault, &
    &  jf, i, k, segment_subfault, segment, channel, n_chan, ixs, iys, channel_max
    real slip(:), rake(:), rupt_time(:), &
-   &  tr(:), tl(:), cr(wave_pts2), cz(wave_pts2), a, &
-   &  b, ww, dt, rake2
+   &  tr(:), tl(:), cr(wave_pts2), cz(wave_pts2), dt
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
@@ -220,7 +239,7 @@ contains
 !
    do channel = 1, n_chan
       ll_g = channel+ll_in
-      comp = component2(channel)
+      comp = component(ll_g)
       call create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
    
       do i = 1, jf
@@ -231,7 +250,7 @@ contains
       call realtr(cr, cz, lnpt)
       call fft(cr, cz, lnpt, 1.)
    
-      write(18,*)nlen,dt,sta_name2(channel),comp
+      write(18,*)nlen,dt,sta_name(ll_g),comp
       do k = 1, nlen
          write(18,*) cr(k), cz(k)
       end do
@@ -302,9 +321,9 @@ contains
       call fft(cr, cz, lnpt, 1.0)
       nl = 2**lnpt
       if (llove(channel) .eq. 0) then
-         write(18,*)nl,dt,sta_name3(channel),'P'
+         write(18,*)nl,dt,sta_name(ll_g),'P'
       else
-         write(18,*)nl,dt,sta_name3(channel),'SH'
+         write(18,*)nl,dt,sta_name(ll_g),'SH'
       end if
       do i = 1, nl
          write(18,*) cr(i), cz(i)
@@ -323,7 +342,7 @@ contains
    &  iys, ixs!, io_up(max_stations)
 
    real slip(:), rake(:), rupt_time(:), tr(:), tl(:), &
-   &  cr(wave_pts2), cz(wave_pts2), a, b, ww, dt, rake2
+   &  cr(wave_pts2), cz(wave_pts2), dt
    real*8 t1, t2, df
 
    complex z0, forward(wave_pts2), z
@@ -386,9 +405,9 @@ contains
       call fft(cr, cz, lnpt, 1.0)
    
       if (io_up(channel) .eq. 1) then
-         write(18,*)nlen,dt,sta_name4(channel),'P'
+         write(18,*)nlen,dt,sta_name(ll_g),'P'
       else
-         write(18,*)nlen,dt,sta_name4(channel),'SH'
+         write(18,*)nlen,dt,sta_name(ll_g),'SH'
       end if
       do k = 1, nlen
          write(18,*) cr(k), cz(k)
@@ -410,11 +429,10 @@ contains
    real*8 t1, t2, df
    complex forward(wave_pts2), z0, z
    complex :: source2(wave_pts, max_rise_time_range, max_rise_time_range)
-   character(len=3) comp!component(max_stations), comp
 
    z0 = cmplx(0.0, 0.0)
    
-   open(9,file='Readlp.dart',status='old')
+   open(9,file='channels_dart.txt',status='old')
    read(9,*)
    read(9,*)
    read(9,*)
@@ -445,14 +463,13 @@ contains
 !
 !  end of rise time 
 !       
-   open(18,file='synm.dart')
+   open(18,file='synthetics_dart.txt')
    k = 0
 !       
 !  set up the green function for every subfault
 !  and calculate the initial value of objective function
 !
    do channel = 1, n_chan
-      comp = component5(channel)
       ll_g = channel+ll_in
       call create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
    
@@ -464,7 +481,7 @@ contains
       call realtr(cr, cz, lnpt)
       call fft(cr, cz, lnpt, 1.)
    
-      write(18,*)nlen,dt,sta_name5(channel),comp
+      write(18,*)nlen,dt,sta_name(ll_g),'dart'
       do k = 1, nlen
          write(18,*) cr(k), cz(k)
       end do
@@ -476,14 +493,14 @@ contains
 
    subroutine create_waveform(slip, rake, rupt_time, tl, tr, forward, source2, ll_g)
    implicit none
-   integer ll_g, isl, isr, jf, &
-   &  i, k, subfault
+   integer ll_g, isl, isr, jf, segment, &
+   &  i, k, subfault, ixs, iys, segment_subfault
    real slip(:), rake(:), rupt_time(:), &
    &  tr(:), tl(:), a, b, ww, dt, rake2
    real*8 df
    complex :: forward(:), source2(:, :, :)
    complex :: z0, z
-  
+ 
    z0 = cmplx(0.0, 0.0)
    dt = dt_channel(ll_g)
    jf = 2**(lnpt-1)+1

@@ -5,15 +5,22 @@ module ffm_methods
    use model_parameters, only : write_model, deallocate_ps
    use modelling_inputs, only : n_iter, io_re, cooling_rate, t_stop, t_mid, t0
    use get_stations_data, only : get_data
-   use retrieve_gf, only : get_gf, deallocate_gf
-   use save_forward, only : write_forward
+   use retrieve_gf, only : get_gf, deallocate_gf, retrievegf_set_data_properties, &
+                    &   retrievegf_set_fault_parameters
+   use wavelets, only : wavelets_set_data_properties, fourier_coefs, meyer_yamada
+   use misfit_eval, only : misfit_eval_set_data_properties
+   use save_forward, only : write_forward, saveforward_set_fault_parameters, &
+                    &   saveforward_set_data_properties
    use rise_time, only : get_source_fun, deallocate_source
-   use static_data, only : initial_gps
+   use static_data, only : initial_gps, staticdata_set_fault_parameters
    use insar_data, only : initial_insar, get_insar_gf, deallocate_insar_gf, &
-                    &   get_insar_data, is_ramp, initial_ramp
+                    &   get_insar_data, is_ramp, initial_ramp, &
+                    &   insardata_set_fault_parameters
    use annealing, only : initial_model, print_summary, &
-                     &   annealing_iter3, annealing_iter4, n_threads
-   use annealing_static, only : print_static_summary, annealing_iter
+                    &   annealing_iter3, annealing_iter4, n_threads, &
+                    &   annealing_set_data_properties, annealing_set_fault_parameters
+   use annealing_static, only : print_static_summary, annealing_iter, &
+                    &   annealingstatic_set_fault_properties
    implicit none
    real :: rupt_time0(max_subfaults)
    real :: t_rise0(max_subfaults), t_fall0(max_subfaults)
@@ -59,7 +66,18 @@ contains
    get_coeff = .True.
    static = .False.
    insar = .False.
+   call retrievegf_set_fault_parameters()
+   call annealing_set_fault_parameters()
+   call saveforward_set_fault_parameters()
+   call fourier_coefs()
+   call meyer_yamada()
    call get_data(strong, cgps, body, surf, dart)
+   call wavelets_set_data_properties()
+   call misfit_eval_set_data_properties()
+   call retrievegf_set_data_properties()
+   call wavelets_set_data_properties()
+   call saveforward_set_data_properties()
+   call annealing_set_data_properties()
    call get_source_fun()
    call get_gf(strong, cgps, body, surf, dart)
    call initial_model(slip, rake, rupt_time, t_rise, t_fall)
@@ -98,7 +116,21 @@ contains
    use_waveforms = .True.
    ramp_gf_file = .False.
    get_coeff = .True.
+   call retrievegf_set_fault_parameters()
+   call annealing_set_fault_parameters()
+   call annealingstatic_set_fault_properties()
+   call saveforward_set_fault_parameters()
+   call staticdata_set_fault_parameters()
+   call insardata_set_fault_parameters()
+   call fourier_coefs()
+   call meyer_yamada()
    call get_data(strong, cgps, body, surf, dart)
+   call wavelets_set_data_properties()
+   call misfit_eval_set_data_properties()
+   call retrievegf_set_data_properties()
+   call wavelets_set_data_properties()
+   call saveforward_set_data_properties()
+   call annealing_set_data_properties()
    call get_source_fun()
    call get_gf(strong, cgps, body, surf, dart)
    call initial_model(slip, rake, rupt_time, t_rise, t_fall)
@@ -165,7 +197,11 @@ contains
    use_waveforms = .False.
    get_coeff = .True.
    ramp_gf_file = .False.
+   call annealing_set_fault_parameters()
+   call annealingstatic_set_fault_properties()
    call initial_model(slip, rake, rupt_time0, t_rise0, t_fall0)
+   call staticdata_set_fault_parameters()
+   call insardata_set_fault_parameters()
    t = t_mid
    if (io_re .eq. 0) t = t0
    if (static) call initial_gps(slip, rake)

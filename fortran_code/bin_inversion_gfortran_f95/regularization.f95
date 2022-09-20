@@ -2,13 +2,26 @@ module regularization
    
 
    use constants, only : max_seg, max_subf, max_subfaults, dpi
-   use model_parameters, only : nxs_sub, nys_sub, nleft, nright, nup, ndown, &
-             &  rake_min, segments, subfaults, cum_subfaults
    implicit none
    real :: slip_field(2, max_subfaults)
+   real :: rake_min
+   integer :: subfaults, cum_subfaults(max_seg)
+   integer :: nxs_sub(max_seg), nys_sub(max_seg)
+   integer :: nleft(3, max_subfaults), nright(3, max_subfaults), & 
+   & nup(3, max_subfaults), ndown(3, max_subfaults)
 
 
 contains
+
+
+   subroutine regularization_set_fault_parameters()
+   use model_parameters, only : get_segments, get_borders
+   implicit none
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
+   integer :: segments
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call get_borders(rake_min, nleft, nright, nup, ndown)   
+   end subroutine regularization_set_fault_parameters
    
         
    subroutine define_slip_field(slip, rake)

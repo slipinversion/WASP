@@ -8,6 +8,7 @@ import os
 import json
 import logging
 import subprocess
+import warnings
 from shutil import copy2, move
 import glob
 from data_acquisition import acquisition
@@ -119,7 +120,7 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
     files4 = glob.glob('waveforms_*txt')
     files5 = glob.glob('*waves.json')
     files6 = glob.glob('static*')
-    files7 = glob.glob('filtro*')
+    files7 = glob.glob('filtro*') + glob.glob('surf_filter*')
     files8 = ['instrumental_response.txt', 'body_wave_weight.txt']
     files9 = glob.glob('insar*')
     files = files + files2 + files3 + files4 + files5\
@@ -154,7 +155,7 @@ def automatic_usgs(tensor_info, data_type, default_dirs, velmodel=None,
 
 
 def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
-                logger, velmodel=None):
+                logger, velmodel=None, check_surf=True):
     """Routine for automatic FFM modelling for each nodal plane
 
     :param tensor_info: dictionary with moment tensor properties
@@ -164,6 +165,7 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
     :param data_prop: dictionary with properties for different waveform types
     :param logger: logging object
     :param velmodel: dictionary with velocity model
+    :param check_surf: check whether surface waves can be used
     :type default_dirs: dict
     :type tensor_info: dict
     :type plane_data: dict
@@ -171,6 +173,7 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
     :type data_prop: dict
     :type logger: Logger
     :type velmodel: dict, optional
+    :type check_surf: bool, optional
     """
 #
 # Create JSON files
@@ -194,6 +197,12 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
     segments_data = pf.create_finite_fault(tensor_info, np_plane_info, data_type)
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
+    data_type = _check_surf_GF(point_sources, data_type, logger=logger)
     mp.modelling_prop(tensor_info, segments_data, data_type=data_type)
 #
 # write text files from JSONs
@@ -225,6 +234,23 @@ def _automatic2(tensor_info, plane_data, data_type, data_prop, default_dirs,
                   os.path.join(dirname, 'plots'))
 
 
+def _check_surf_GF(point_sources, used_data, logger=None):
+    """
+    """
+    new_used_data = used_data.copy()
+    depths = [ps[:, :, :, :, 2] for ps in point_sources]
+    depths = [np.max(depths1) for depths1 in depths]
+    max_depth = np.max(depths)
+    is_surf = 'surf_tele' in used_data
+    if max_depth > 125 and is_surf:
+        warnings.warn("Maximum depth larger than 125 km. "\
+                      "Surface waves won't be used")
+        new_used_data.remove('surf_tele')
+        if logger:
+            logger.info("Maximum depth larger than 125 km.")
+    return new_used_data
+
+
 def modelling_new_data(tensor_info, data_type, default_dirs,
                        data_folder, st_response=True):
     """Routine for manual finite fault modelling with new data types.
@@ -244,12 +270,20 @@ def modelling_new_data(tensor_info, data_type, default_dirs,
     sol_folder = os.path.abspath(sol_folder)
     if os.path.isfile(os.path.join(data_folder, 'gps_data')):
         copy2(os.path.join(data_folder, 'gps_data'), sol_folder)
+    insar_asc = glob.glob(os.path.join(data_folder, 'insar_a*txt'))
+    insar_desc = glob.glob(os.path.join(data_folder, 'insar_d*txt'))
+    insar_files = insar_asc + insar_desc
+    for file in insar_files:
+        if os.path.isfile(file):
+            copy2(file, sol_folder)
     data_prop = json.load(open('sampling_filter.json'))
     os.chdir(os.path.join(data_folder))
     time2 = time.time()
     processing(tensor_info, data_type, data_prop, st_response=st_response)
     os.chdir(sol_folder)
-    dm.filling_data_dicts(tensor_info, data_type, data_prop, data_folder)
+    dm.filling_data_dicts(
+        tensor_info, data_type, data_prop, data_folder,
+        insar_asc=insar_asc, insar_desc=insar_desc)
     gf_bank_str = os.path.join(sol_folder, 'GF_strong')
     gf_bank_cgps = os.path.join(sol_folder, 'GF_cgps')
     get_gf_bank = default_dirs['strong_motion_gf_bank2']
@@ -528,7 +562,7 @@ def processing(tensor_info, data_type, data_prop, st_response=True):
     if 'tele_body' in data_type:
         proc.select_process_tele_body(tele_files, tensor_info, data_prop)
     if 'surf_tele' in data_type:
-        proc.select_process_surf_tele(tele_files, tensor_info)
+        proc.select_process_surf_tele(tele_files, tensor_info, data_prop)
     if 'strong_motion' in data_type:
         proc.select_process_strong(
             strong_files, tensor_info,

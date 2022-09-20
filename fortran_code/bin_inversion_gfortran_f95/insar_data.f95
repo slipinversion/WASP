@@ -11,7 +11,6 @@ module insar_data
 
 
    use constants, only : max_subf, max_seg, max_subfaults, dpi
-   use model_parameters, only : nxs_sub, nys_sub, nx_p, ny_p, segments, subfaults
    implicit none
    integer, parameter, private :: max_points = 2500
    integer, private :: tracks, points
@@ -25,6 +24,7 @@ module insar_data
    real :: obse(max_points), look(3, max_points), weight(max_points)
    character(len=6) :: sta_name(max_points)
    character(len=10) :: ramp_types(6)
+   integer :: subfaults, segments, nxs_sub(max_seg), nys_sub(max_seg)
   
 
 contains
@@ -34,6 +34,15 @@ contains
    implicit none
    allocate(green(6, max_points, max_subfaults))
    end subroutine get_insar_gf
+  
+
+   subroutine insardata_set_fault_parameters()
+   use model_parameters, only : get_segments
+   implicit none
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
+   integer :: cum_subfaults(max_seg)
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   end subroutine insardata_set_fault_parameters
    
 
    subroutine get_insar_data()
@@ -131,7 +140,6 @@ contains
    real*8 :: disp, ramp2
    logical is_file
 !
-
    open(33, file='Insar_static_subfault.txt', status='old')
    read(33,*) n_tt
    do point = 1, points

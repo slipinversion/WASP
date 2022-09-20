@@ -5,9 +5,6 @@ module annealing_static
             &   max_subfaults2, wave_pts, max_subfaults
    use random_gen, only : ran1, cauchy
    use modelling_inputs, only : smooth_moment, smooth_slip, io_re, moment_input, emin0
-   use model_parameters, only : segments, ta0, dta, msou, dxs, dys, nxs0, nys0, nx_p, ny_p, &
-            &   nxs_sub, nys_sub, shear, &
-            &   slip0, rake0, c_depth, beg, dp, np, subfaults
    use regularization, only : slip_laplace, define_slip_field, modify_slip_field
    use static_data, only : static_synthetic, static_remove_subfault, &
                        &   static_modify_subfault, static_add_subfault
@@ -24,9 +21,27 @@ module annealing_static
    integer, parameter :: double = kind(1.d0)
    integer, private :: threads
    integer, parameter, private :: max_move=50, accept_max=5
+   real :: beg(max_subfaults2), dp(max_subfaults2)
+   integer :: np(max_subfaults2), segments, subfaults
+   real :: shear(max_subfaults), dxs, dys
+   integer :: nxs_sub(max_seg), nys_sub(max_seg) 
 
 
 contains
+
+
+   subroutine annealingstatic_set_fault_properties()
+   use model_parameters, only : get_shear, get_segments, get_subfaults, get_space
+   implicit none
+   real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
+   integer :: cum_subfaults(max_seg), nx_p, ny_p
+   real :: v_min, v_max, v_ref, time_ref(max_subfaults2)
+   real :: time_min(max_subfaults2), time_max(max_subfaults2)
+   call get_shear(shear)
+   call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call get_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
+   call get_space(time_min, time_max, time_ref, beg, dp, np)
+   end subroutine annealingstatic_set_fault_properties
 
 
    subroutine print_static_summary(slip, rake, static, insar, get_coeff, ramp)
