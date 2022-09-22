@@ -43,7 +43,7 @@ contains
    use model_parameters, only : get_shear, get_segments, &
    &  get_subfaults
    implicit none
-   integer :: subfaults, cum_subfaults(max_seg)
+   integer :: subfaults
    real :: v_min, v_max
    call get_shear(shear)
    call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
