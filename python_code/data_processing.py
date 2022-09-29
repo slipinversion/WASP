@@ -887,25 +887,56 @@ def select_process_strong(strong_files0, tensor_info, data_prop,
 
 
 def __convert_response_acc(resp_file):
-    """
+    """Modify SACPZ response to ensure output is in units of acceleration after
+    response removal.
     """
     with open(resp_file, 'r') as infile:
         lines = [line for line in infile]
-    indexes = [i for i, line in enumerate(lines) if 'ZEROS' in line.split()]
+
+    indexes0 = [i for i, line in enumerate(lines) if 'CONSTANT' in line.split()]
     index0 = 0
-    lines2 = []
-    for index in indexes:
-        lines2 = lines2 + lines[index0:index]
-        string, nzeroes = lines[index].split()
-        if nzeroes == '2':
-            lines2 = lines2 + ['ZEROS\t 0\n']
-            index0 = index + 3
-        if nzeroes == '3':
-            lines2 = lines2 + ['ZEROS\t 0\n']
-            index0 = index + 4
-        lines2 = lines2 + lines[index0:]
+    temp_resp_file = 'temp.txt'
+    lines3 = []
+    for index in indexes0:
+        lines1 = lines[index0:index + 1]
+        index0 = index
+        index2 = next(i for i, line in enumerate(lines1) if 'ZEROS' in line.split())
+        index3 = next(i for i, line in enumerate(lines1) if 'POLES' in line.split())
+        lines2 = lines1[:index2]
+        with open(temp_resp_file, 'w') as outfile:
+            for line in lines1:
+                outfile.write(line)
+        paz_dict, is_paz = __read_paz(temp_resp_file)
+        zeros = paz_dict['zeros']
+        zeros1 = [zero for zero in zeros if abs(zero - 0j) < 1e-10]
+        input_unit = [line for line in lines1 if 'INPUT UNIT' in line]
+        if len(input_unit) > 0:
+            input_unit = input_unit[0]
+            input_unit = input_unit.split()[-1]
+            input_unit = input_unit.lower()
+            if input_unit in ['m']:
+                nzeros = 2
+            elif input_unit in ['m/s']:
+                nzeros = 1
+            elif input_unit in ['m/s**2', 'm/s/s']:
+                nzeros = 0
+            else:
+                nzeros = len(zeros1)
+            zeros1 = zeros1[:nzeros]
+        for zero in zeros1:
+            zeros.remove(zero)
+        paz_dict['zeros'] = zeros
+        nzeros1 = len(zeros)
+        lines2 = lines2 + ['ZEROS\t {}\n'.format(nzeros1)]
+        for zero in zeros:
+            real = np.real(zero)
+            imag = np.imag(zero)
+            lines2 = lines2 + ['\t{:.4e}\t{:.4e}\n'.format(real, imag)]
+        lines2 = lines2 + lines1[index3:]
+        lines3 = lines3 + lines2
+
     with open(resp_file, 'w') as outfile:
-        for line in lines2:
+        for line in lines3:
             outfile.write(line)
     return resp_file
 
@@ -929,7 +960,6 @@ def __select_str_files(strong_files, tensor_info):
         st = read(sac)
         syn_len = 20 + 4*time_shift + 7*depth/50
         start, end = [st[0].stats.starttime, st[0].stats.endtime]
-        print(end - start, syn_len)
         if end - start < syn_len:
             continue
         if not __select_distance(tensor_info, station_lat, station_lon,
