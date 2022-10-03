@@ -156,7 +156,7 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     #_PlotRiseTime(segments, point_sources, solution)
     #_PlotRuptTime(segments, point_sources, solution)
     _PlotSlipDistribution(segments, point_sources, solution, autosize=autosize, max_val=max_val)
-    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, files_str=files_str, stations_gps=stations_gps, stations_cgps=stations_cgps, max_slip=max_val, legend_len=legend_len, scale=scale, limits=limits)
+#    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, files_str=files_str, stations_gps=stations_gps, stations_cgps=stations_cgps, max_slip=max_val, legend_len=legend_len, scale=scale, limits=limits)
     _PlotSlipTimes(segments, point_sources, solution)
 
 def plot_misfit(used_data_type, forward=False):
@@ -990,7 +990,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
 
 
 def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
-               insar_points, los='ascending'):
+               insar_points, scene, los='ascending'):
     """We plot slip map.
     """
     print('Creating InSAR plots')
@@ -1086,8 +1086,8 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
         i+=1
 
     fig.tight_layout()
-    plt.savefig('InSAR_{}_fit.png'.format(los), bbox_inches='tight')
-    plt.savefig('InSAR_{}_fit.ps'.format(los))
+    plt.savefig('InSAR_{}_fit_{}.png'.format(los, scene), bbox_inches='tight')
+    plt.savefig('InSAR_{}_fit_{}.ps'.format(los, scene))
     plt.close()
     return
 
@@ -1902,15 +1902,17 @@ if __name__ == '__main__':
         solution = get_outputs.read_solution_static_format(segments)
         insar_data = get_outputs.get_insar()
         if 'ascending' in insar_data:
-            insar_points = insar_data['ascending']['points']
-            _PlotInsar(
-                tensor_info, segments, point_sources, solution,
-                default_dirs, insar_points, los='ascending')
+            for scene in range(len(insar_data)):
+                insar_points = insar_data['ascending']['points']
+                _PlotInsar(
+                    tensor_info, segments, point_sources, solution,
+                    default_dirs, insar_points, scene, los='ascending')
         if 'descending' in insar_data:
-            insar_points = insar_data['descending']['points']
-            _PlotInsar(
-                tensor_info, segments, point_sources, solution,
-                default_dirs, insar_points, los='descending')
+            for scene in range(len(insar_data)):
+                insar_points = insar_data['descending'][scene]['points']
+                _PlotInsar(
+                    tensor_info, segments, point_sources, solution,
+                    default_dirs, insar_points, scene, los='descending')
     if args.downloads:
        dwnlds.write_CMTSOLUTION_file()
        if args.EventID:

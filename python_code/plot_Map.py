@@ -151,165 +151,6 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
             fault_trace = np.genfromtxt(faults[kfault])
             fig.plot(x=fault_trace[:,0],y=fault_trace[:,1],pen='2p,black')
             fig.plot(x=fault_trace[:,0],y=fault_trace[:,1],pen='1p,white')
-    ###########################
-    ### PLOT LOCAL STATIONS ###
-    ###########################
-
-    if files_str is not None:
-        print('...Plotting Strong Motion Stations')
-        for file in files_str:
-            name = file['name']
-            latp, lonp = file['location']
-            fig.plot(x=lonp, y=latp, style="i10p", color="white", pen="black")
-        ### ADD TO LEGEND ###
-        fig.plot(x=region[1], y=region[2],
-            xshift="a-130p", yshift="a-54p",
-            no_clip=True, style="i10p", color="white", pen="black")
-        fig.text(x=region[1], y=region[2], text="Accelerometer",
-            xshift="a-123p", yshift="a-55p", no_clip=True, justify="ML")
-
-    if stations_cgps is not None:
-        print('...Plotting cGPS Stations')
-        for file in stations_cgps:
-            name = file['name']
-            latp, lonp = file['location']
-            fig.plot(x=lonp, y=latp, style="t10p", color="navy", pen="black")
-        ### ADD TO LEGEND ###
-        fig.plot(x=region[1], y=region[2],
-            xshift="a-55p", yshift="a-56p",
-            no_clip=True, style="t10p", color="navy", pen="black")
-        fig.text(x=region[1], y=region[2], text="HR GNSS",
-            xshift="a-48p", yshift="a-55p", no_clip=True, justify="ML", offset=0/10)
-
-    if stations_gps is not None:
-        print('...Plotting Static GPS Stations')
-        for name, sta_lat, sta_lon, obs, syn, error in stations_gps2:
-            gps_z_obs, gps_n_obs, gps_e_obs = obs
-            gps_z_syn, gps_n_syn, gps_e_syn = syn
-            err_z, err_n, err_e = error
-
-            staticv_obs = pd.DataFrame(
-                 data={
-                     "x": [sta_lon],
-                     "y": [sta_lat],
-                     "east_velocity": [float(gps_e_obs)/max_obs],
-                     "north_velocity": [float(gps_n_obs)/max_obs],
-                     "east_sigma": [float(err_e)/max_obs],
-                     "north_sigma": [float(err_n)/max_obs],
-                     "correlation_EN": [0.0],
-                 }
-             )
-            v_obs = "0.3c+p0.5p,grey+e+h0.5+gblack"
-            # Plot thick white arrow behind, to get white outline on black arrow
-            fig.velo(
-                data=staticv_obs,
-                pen="0.05c,grey",
-                line="grey",
-                color="grey",
-                spec="e1/0",
-                vector=v_obs
-            )
-            fig.velo(
-                data=staticv_obs,
-                pen="0.03c,black",
-                line="BLACK",
-                color="BLACK",
-                spec="e1/0.34",
-                vector=v_obs
-            )
-
-            staticv_syn = pd.DataFrame(
-                  data={
-                      "x": [sta_lon],
-                      "y": [sta_lat],
-                      "east_velocity": [float(gps_e_syn)/max_obs],
-                      "north_velocity": [float(gps_n_syn)/max_obs],
-                      "east_sigma": [0.0],
-                      "north_sigma": [0.0],
-                      "correlation_EN": [0.0],
-                  }
-              )
-            v_syn = "0.3c+p0.5p,black+e+h0.5+gred"
-            # Plot thick black arrow behind, to get black outline on red arrow
-            fig.velo(
-                data=staticv_syn,
-                pen=".05c,black",
-                line="black",
-                color="black",
-                spec="e1/0",
-                vector=v_syn
-            )
-            #overlay thin red arrow
-            fig.velo(
-                data=staticv_syn,
-                pen=".03c,red",
-                line="red",
-                color="red",
-                spec="e1/0",
-                vector=v_syn
-            )
-        ### ADD TO LEGEND ###
-        fig.text(x=region[1], y=region[2], text="Observed GNSS",
-            xshift="a-133p", yshift="a-30p", no_clip=True, justify="ML")
-        fig.text(x=region[1], y=region[2], text="Synthetic  GNSS",
-            xshift="a-133p", yshift="a-40p", no_clip=True, justify="ML")
-        static_legend = pd.DataFrame(
-             data={
-                 "x": [region[1]],
-                 "y": [region[2]],
-                 "east_velocity": [legend_len/max_obs],
-                 "north_velocity": [0],
-                 "east_sigma": [legend_len/max_obs/10],
-                 "north_sigma": [legend_len/max_obs/10],
-                 "correlation_EN": [0],
-                 }
-             )
-        # Plot thick white arrow behind, to get white outline on black arrow
-
-        fig.velo(
-                data=static_legend,
-                pen="0.05c,grey",
-                line="grey",
-                color="grey",
-                spec="e1/0",
-                vector=v_obs,
-                xshift="a-45p", yshift="a-30p",
-                no_clip=True
-            )
-        fig.velo(
-                data=static_legend,
-                pen="0.03c,black",
-                line="BLACK",
-                color="BLACK",
-                spec="e1/0.34",
-                vector=v_obs,
-                xshift="a-45p", yshift="a-30p", 
-                no_clip=True
-            )
-        # Plot thick black arrow behind, to get black outline on red arrow
-        fig.velo(
-                data=static_legend,
-                pen=".05c,black",
-                line="black",
-                color="black",
-                spec="e1/0",
-                vector=v_syn,
-                xshift="a-45p", yshift="a-40p", 
-                no_clip=True
-            )
-        #overlay thin red arrow
-        fig.velo(
-                data=static_legend,
-                pen=".03c,red",
-                line="red",
-                color="red",
-                spec="e1/0",
-                vector=v_syn,
-                xshift="a-45p", yshift="a-40p", 
-                no_clip=True
-            )
-        fig.text(x=region[1], y=region[2], text=str(legend_len*10)+"+/-"+str(legend_len)+" mm",
-            xshift="a-60p", yshift="a-20p", no_clip=True, justify="ML")
 
     ###############################
     ### PLOT FINITE FAULT MODEL ###
@@ -415,7 +256,169 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
             hyp = segments[segment]['hypocenter']
             fig.plot(x=hyp['lon'], y=hyp['lat'], style='a7p', color="white", pen="black")
 
- 
+    ###########################
+    ### PLOT LOCAL STATIONS ###
+    ###########################
+
+    ### STRONG-MOTION ACCELEROMETER ###
+    if files_str is not None:
+        print('...Plotting Strong Motion Stations')
+        for file in files_str:
+            name = file['name']
+            latp, lonp = file['location']
+            fig.plot(x=lonp, y=latp, style="i10p", color="white", pen="black")
+        ### ADD TO LEGEND ###
+        fig.plot(x=region[1], y=region[2],
+            xshift="a-130p", yshift="a-54p",
+            no_clip=True, style="i10p", color="white", pen="black")
+        fig.text(x=region[1], y=region[2], text="Accelerometer",
+            xshift="a-123p", yshift="a-55p", no_clip=True, justify="ML")
+
+    ### HIGH-RATE GNSS ###
+    if stations_cgps is not None:
+        print('...Plotting cGPS Stations')
+        for file in stations_cgps:
+            name = file['name']
+            latp, lonp = file['location']
+            fig.plot(x=lonp, y=latp, style="t10p", color="navy", pen="black")
+        ### ADD TO LEGEND ###
+        fig.plot(x=region[1], y=region[2],
+            xshift="a-55p", yshift="a-56p",
+            no_clip=True, style="t10p", color="navy", pen="black")
+        fig.text(x=region[1], y=region[2], text="HR GNSS",
+            xshift="a-48p", yshift="a-55p", no_clip=True, justify="ML", offset=0/10)
+
+    ### STATIC GNSS ####
+    if stations_gps is not None:
+        print('...Plotting Static GPS Stations')
+        for name, sta_lat, sta_lon, obs, syn, error in stations_gps2:
+            gps_z_obs, gps_n_obs, gps_e_obs = obs
+            gps_z_syn, gps_n_syn, gps_e_syn = syn
+            err_z, err_n, err_e = error
+
+            staticv_obs = pd.DataFrame(
+                 data={
+                     "x": [sta_lon],
+                     "y": [sta_lat],
+                     "east_velocity": [float(gps_e_obs)/max_obs],
+                     "north_velocity": [float(gps_n_obs)/max_obs],
+                     "east_sigma": [float(err_e)/max_obs],
+                     "north_sigma": [float(err_n)/max_obs],
+                     "correlation_EN": [0.0],
+                 }
+             )
+            v_obs = "0.3c+p0.5p,grey+e+h0.5+gblack"
+            # Plot thick white arrow behind, to get white outline on black arrow
+            fig.velo(
+                data=staticv_obs,
+                pen="0.05c,grey",
+                line="grey",
+                color="grey",
+                spec="e1/0",
+                vector=v_obs
+            )
+            fig.velo(
+                data=staticv_obs,
+                pen="0.03c,black",
+                line="BLACK",
+                color="BLACK",
+                spec="e1/0.34",
+                vector=v_obs
+            )
+
+            staticv_syn = pd.DataFrame(
+                  data={
+                      "x": [sta_lon],
+                      "y": [sta_lat],
+                      "east_velocity": [float(gps_e_syn)/max_obs],
+                      "north_velocity": [float(gps_n_syn)/max_obs],
+                      "east_sigma": [0.0],
+                      "north_sigma": [0.0],
+                      "correlation_EN": [0.0],
+                  }
+              )
+            v_syn = "0.3c+p0.5p,black+e+h0.5+gred"
+            # Plot thick black arrow behind, to get black outline on red arrow
+            fig.velo(
+                data=staticv_syn,
+                pen=".05c,black",
+                line="black",
+                color="black",
+                spec="e1/0",
+                vector=v_syn
+            )
+            #overlay thin red arrow
+            fig.velo(
+                data=staticv_syn,
+                pen=".03c,red",
+                line="red",
+                color="red",
+                spec="e1/0",
+                vector=v_syn
+            ) 
+        ### ADD TO LEGEND ###
+        fig.text(x=region[1], y=region[2], text="Observed GNSS",
+            xshift="a-133p", yshift="a-30p", no_clip=True, justify="ML")
+        fig.text(x=region[1], y=region[2], text="Synthetic  GNSS",
+            xshift="a-133p", yshift="a-40p", no_clip=True, justify="ML")
+        static_legend = pd.DataFrame(
+             data={
+                 "x": [region[1]],
+                 "y": [region[2]],
+                 "east_velocity": [legend_len/max_obs],
+                 "north_velocity": [0],
+                 "east_sigma": [legend_len/max_obs/10],
+                 "north_sigma": [legend_len/max_obs/10],
+                 "correlation_EN": [0],
+                 }
+             )
+        # Plot thick white arrow behind, to get white outline on black arrow
+
+        fig.velo(
+                data=static_legend,
+                pen="0.05c,grey",
+                line="grey",
+                color="grey",
+                spec="e1/0",
+                vector=v_obs,
+                xshift="a-45p", yshift="a-30p",
+                no_clip=True
+            )
+        fig.velo(
+                data=static_legend,
+                pen="0.03c,black",
+                line="BLACK",
+                color="BLACK",
+                spec="e1/0.34",
+                vector=v_obs,
+                xshift="a-45p", yshift="a-30p",
+                no_clip=True
+            )
+        # Plot thick black arrow behind, to get black outline on red arrow
+        fig.velo(
+                data=static_legend,
+                pen=".05c,black",
+                line="black",
+                color="black",
+                spec="e1/0",
+                vector=v_syn,
+                xshift="a-45p", yshift="a-40p",
+                no_clip=True
+            )
+        #overlay thin red arrow
+        fig.velo(
+                data=static_legend,
+                pen=".03c,red",
+                line="red",
+                color="red",
+                spec="e1/0",
+                vector=v_syn,
+                xshift="a-45p", yshift="a-40p",
+                no_clip=True
+            )
+        fig.text(x=region[1], y=region[2], text=str(legend_len*10)+"+/-"+str(legend_len)+" mm",
+            xshift="a-60p", yshift="a-20p", no_clip=True, justify="ML")
+
 
     fig.savefig("PyGMT_Map.png")
 
