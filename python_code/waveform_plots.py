@@ -123,6 +123,8 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     axes2 = axes.ravel()
     for ax in axes2[len(files):]:
         ax.axis('off')
+    obs_waveforms = (waveform for waveform in obs_waveforms)
+    syn_waveforms = (waveform for waveform in syn_waveforms)
 
     axes2 = plot_waveforms(axes2, obs_times, obs_waveforms, color='black')
     axes2 = plot_waveforms(axes2, syn_times, syn_waveforms, color='red',
