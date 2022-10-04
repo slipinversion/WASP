@@ -134,7 +134,8 @@ def tele_surf_traces(files, tensor_info, data_prop):
     files = p_files + sh_files
     origin_time = tensor_info['date_origin']
     n0, n1 = data_prop['wavelet_scales']
-    wavelet_weight = wavelets_surf_tele(n0, n1)
+    surf_filter = data_prop['surf_filter']
+    wavelet_weight = wavelets_surf_tele(surf_filter, n0, n1)
     info_traces = []
     event_lat = tensor_info['lat']
     event_lon = tensor_info['lon']
@@ -755,15 +756,27 @@ def wavelets_body_waves(duration, filtro_tele, dt_tele, n_begin, n_end):
     return p_wavelet_weight, s_wavelet_weight
 
 
-def wavelets_surf_tele(n_begin, n_end):
+def wavelets_surf_tele(surf_filter, n_begin, n_end):
     """Automatic determination of weight of wavelet scales
 
+    :param surf_filter: filtering properties of surface wave data
     :param n_begin: minimum wavelet scale
     :param n_end: maximum wavelet scale
+    :type surf_filter: dict
     :type n_begin: int
     :type n_end: int
     """
-    wavelet_weight = ['0'] * 3 + ['2', '2', '2'] + ['0'] * 2
+    low_freq = surf_filter['freq2']
+    high_freq = surf_filter['freq3']
+    min_wavelet = int(np.log2(3 * 2**8 * 4.0 * low_freq)) + 1
+    max_wavelet = max(int(np.log2(3 * 2**10 * 4.0 * high_freq)), 1)
+#
+# largest frequency we can model with wavelets
+#
+    wavelet_weight = ['2'] * 10
+    wavelet_weight[:min_wavelet] = ['0'] * min_wavelet
+    wavelet_weight = wavelet_weight[:n_end]
+    wavelet_weight = wavelet_weight[:max_wavelet] + ['0'] * (n_end - max_wavelet)
     wavelet_weight = ' '.join(wavelet_weight[n_begin - 1:n_end])
     wavelet_weight = ''.join([wavelet_weight, '\n'])
     return wavelet_weight
