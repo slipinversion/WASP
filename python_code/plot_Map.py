@@ -267,6 +267,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
             name = file['name']
             latp, lonp = file['location']
             fig.plot(x=lonp, y=latp, style="i10p", color="white", pen="black")
+            fig.text(x=lonp, y=latp, text=name)
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
             xshift="a-130p", yshift="a-54p",
@@ -307,11 +308,11 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                      "correlation_EN": [0.0],
                  }
              )
-            v_obs = "0.3c+p0.5p,grey+e+h0.5+gblack"
+            v_obs = "0.3c+a45+p0.5p,grey+e+h0.5+gblack"
             # Plot thick white arrow behind, to get white outline on black arrow
             fig.velo(
                 data=staticv_obs,
-                pen="0.05c,grey",
+                pen="0.07c,grey",
                 line="grey",
                 color="grey",
                 spec="e1/0",
@@ -319,7 +320,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
             )
             fig.velo(
                 data=staticv_obs,
-                pen="0.03c,black",
+                pen="0.05c,black",
                 line="BLACK",
                 color="BLACK",
                 spec="e1/0.34",
@@ -376,7 +377,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
 
         fig.velo(
                 data=static_legend,
-                pen="0.05c,grey",
+                pen="0.07c,grey",
                 line="grey",
                 color="grey",
                 spec="e1/0",
@@ -386,7 +387,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
             )
         fig.velo(
                 data=static_legend,
-                pen="0.03c,black",
+                pen="0.05c,black",
                 line="BLACK",
                 color="BLACK",
                 spec="e1/0.34",
