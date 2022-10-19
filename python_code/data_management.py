@@ -72,7 +72,6 @@ def tele_body_traces(files, tensor_info, data_prop):
     files = p_files + sh_files
     origin_time = tensor_info['date_origin']
     headers = [SACTrace.read(file) for file in files]
-    streams = [read(file) for file in files]
     dt = headers[0].delta
     dt = round(dt, 1)
     n0, n1 = data_prop['wavelet_scales']
@@ -85,8 +84,10 @@ def tele_body_traces(files, tensor_info, data_prop):
     event_lon = tensor_info['lon']
     depth = tensor_info['depth']
     model = TauPyModel(model="ak135f_no_mud")
+    header = (header for header in headers)
 
-    for file, header, stream in zip(files, headers, streams):
+    for file, header in zip(files, headers):
+        stream = read(file)
         __failsafe(filter0, header)
         distance, azimuth, back_azimuth = mng._distazbaz(
             header.stla, header.stlo, event_lat, event_lon)
@@ -136,11 +137,11 @@ def tele_surf_traces(files, tensor_info, data_prop):
     surf_filter = data_prop['surf_filter']
     wavelet_weight = wavelets_surf_tele(surf_filter, n0, n1)
     info_traces = []
-    headers = [SACTrace.read(file) for file in files]
-    streams = [read(file) for file in files]
     event_lat = tensor_info['lat']
     event_lon = tensor_info['lon']
-    for file, header, stream in zip(files, headers, streams):
+    for file in files:
+        header = SACTrace.read(file)
+        stream = read(file)
         npts = header.npts
         starttime = stream[0].stats.starttime
         begin = origin_time - starttime
@@ -192,8 +193,8 @@ def strong_motion_traces(files, tensor_info, data_prop):
     headers = [SACTrace.read(file) for file in files]
     dt_strong = headers[0].delta
     dt_strong = round(dt_strong, 2)
-    values = [mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)
-              for header in headers]
+    fun1 = lambda header: mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)
+    values = map(fun1, headers)
     distances = [value[0] for value in values]
     zipped = zip(distances, headers)
     arrivals = [np.sqrt(dist**2 + depth**2) / 5 for dist in distances]
@@ -201,7 +202,8 @@ def strong_motion_traces(files, tensor_info, data_prop):
     duration = duration_strong_motion(
         distances, arrivals, tensor_info, dt_strong)
     n0, n1 = data_prop['wavelet_scales']
-    wavelet_weight = wavelets_strong_motion(duration, filter0, dt_strong, n0, n1)
+    wavelet_weight = wavelets_strong_motion(
+        duration, filter0, dt_strong, n0, n1)
     black_list = {
         'PB02': [
             'HNE',
@@ -217,12 +219,14 @@ def strong_motion_traces(files, tensor_info, data_prop):
 
     info_traces = []
     outlier_traces = []
-    headers = [SACTrace.read(file) for file in files]
     streams = [read(file) for file in files]
     weights = [1.0 for st, file in zip(streams, files)]
-    weights = [0 if header.kstnm in black_list\
-        and header.kcmpnm in black_list[header.kstnm] else weight\
-        for weight, header in zip(weights, headers)]
+    fun2 = lambda header:\
+        header.kstnm in black_list and header.kcmpnm in black_list[header.kstnm]
+    zipped = zip(weights, headers)
+    weights = (0 if fun2(header) else weight for weight, header in zipped)
+    streams = (st for st in streams)
+    headers = (header for header in headers)
 
     zipped = zip(files, headers, weights, streams, arrivals)
 
@@ -232,7 +236,7 @@ def strong_motion_traces(files, tensor_info, data_prop):
             header.stla, header.stlo, event_lat, event_lon)
         info = _dict_trace(
             file, header.kstnm, header.kcmpnm, azimuth, distance / 111.11,
-            dt_strong, duration, int(start / dt_strong), weight,
+            dt_strong, duration, int(start / dt_strong), float(weight),
             wavelet_weight, [], location=[header.stla, header.stlo])
         info_traces.append(info)
     with open('strong_motion_waves.json','w') as f:
@@ -270,23 +274,26 @@ def cgps_traces(files, tensor_info, data_prop):
     headers = [SACTrace.read(file) for file in files]
     dt_cgps = headers[0].delta
     dt_cgps = round(dt_cgps, 2)
-    values = [mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)\
-        for header in headers]
+    fun1 = lambda header: mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)
+    values = map(fun1, headers)
     distances = [value[0] for value in values]
     zipped = zip(distances, headers)
     arrivals = [np.sqrt(dist**2 + depth**2) / 5 for dist in distances]
-    duration = duration_strong_motion(distances, arrivals, tensor_info, dt_cgps)
+    duration = duration_strong_motion(
+        distances, arrivals, tensor_info, dt_cgps)
     filter0 = data_prop['strong_filter']
     n0, n1 = data_prop['wavelet_scales']
     wavelet_weight = wavelets_strong_motion(
         duration, filter0, dt_cgps, n0, n1, cgps=True)
     info_traces = []
     vertical = ['LXZ', 'LHZ', 'LYZ']
-    headers = [SACTrace.read(file) for file in files]
+    headers = (header for header in headers)
     streams = [read(file) for file in files]
-    channels = [st[0].stats.channel for st in streams]
-    weights = [1.2 if not channel in vertical else 0.6 for file, channel in\
-               zip(files, channels)]
+    channels = (st[0].stats.channel for st in streams)
+    is_horiz = lambda channel: channel not in vertical
+    zipped = zip(files, channels)
+    weights = (1.2 if is_horiz(channel) else 0.6 for file, channel in zipped)
+    streams = (st for st in streams)
 
     for file, header, stream, weight in zip(files, headers, streams, weights):
         start = origin_time - stream[0].stats.starttime
@@ -570,11 +577,11 @@ def __s2nr(sacfile, phase, signal_length):
 
 
 def __used_stations(jump, sacfiles, tensor_info):
-    sacheaders = [SACTrace.read(sac) for sac in sacfiles]
+    sacheaders = (SACTrace.read(sac) for sac in sacfiles)
     event_lat = tensor_info['lat']
     event_lon = tensor_info['lon']
-    values = [mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)\
-              for header in sacheaders]
+    fun1 = lambda header: mng._distazbaz(header.stla, header.stlo, event_lat, event_lon)
+    values = map(fun1, sacheaders)
     azimuths = [az for dis, az, baz in values]
     total = 0
     for az0 in range(0, 360, jump):
@@ -749,19 +756,19 @@ def wavelets_body_waves(duration, filtro_tele, dt_tele, n_begin, n_end):
     return p_wavelet_weight, s_wavelet_weight
 
 
-def wavelets_surf_tele(filtro_surf, n_begin, n_end):
+def wavelets_surf_tele(surf_filter, n_begin, n_end):
     """Automatic determination of weight of wavelet scales
 
-    :param filtro_surf: filtering properties for surface wave data
+    :param surf_filter: filtering properties of surface wave data
     :param n_begin: minimum wavelet scale
     :param n_end: maximum wavelet scale
-    :type filtro_surf: float
+    :type surf_filter: dict
     :type n_begin: int
     :type n_end: int
     """
-    low_freq = filtro_surf['freq2']
-    high_freq = filtro_surf['freq3']
-    min_wavelet = int(np.log2(3 * 2**8 * 4.0 * low_freq))
+    low_freq = surf_filter['freq2']
+    high_freq = surf_filter['freq3']
+    min_wavelet = int(np.log2(3 * 2**8 * 4.0 * low_freq)) + 1
     max_wavelet = max(int(np.log2(3 * 2**10 * 4.0 * high_freq)), 1)
 #
 # largest frequency we can model with wavelets
@@ -800,8 +807,8 @@ def wavelets_strong_motion(duration, filtro_strong, dt_strong, n_begin, n_end,
     :param n_end: maximum wavelet scale
     :param cgps: whether wavelet coefficients are for cGPS or strong motion data
     :type duration: float
-    :type filtro_strong: float
-    :type dt_strong: float
+    :type filtro_tele: float
+    :type dt_tele: float
     :type n_begin: int
     :type n_end: int
     :type cgps: bool, optional
