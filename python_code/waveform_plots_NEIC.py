@@ -129,7 +129,7 @@ def add_metadata(axes, **kwargs):
             if 'comps' in kwargs:
                if 'names' in kwargs:
                    for ax, comp, name in zip(axes, kwargs['comps'], kwargs['names']):
-                       if comp == 'HNE' or comp == 'LXE' or comp =='LYE':
+                       if comp == 'HNE' or comp == 'LXE' or comp =='LYE' or comp == 'BNE':
                            ax.text(-0.18, 0.5, name, ha='right', va='center', transform=ax.transAxes, rotation=90, fontweight='bold')
                for ax, comp in zip(axes, kwargs['comps']):
                    ax.text(-0.13, 0.5, comp, ha='right', va='center', transform=ax.transAxes, rotation=90)

@@ -31,6 +31,7 @@ def gf_retrieve(used_data_type, default_dirs):
     ch.setLevel(logging.ERROR)
     
     if 'tele_body' in used_data_type:
+        print('Computing teleseismic GFs')
         logger1 = ml.create_log(
             'body_wave_GF', os.path.join('logs', 'green_tele_log'))
         logger1.addHandler(ch)
@@ -41,6 +42,7 @@ def gf_retrieve(used_data_type, default_dirs):
         processes = processes + [p1]
         loggers = loggers + [logger1]
     if 'strong_motion' in used_data_type:
+        print('Computing strong motion GFs')
         logger2 = ml.create_log(
             'get_strong_motion_GF', os.path.join('logs', 'green_str_log'))
         logger2.addHandler(ch)
@@ -51,6 +53,7 @@ def gf_retrieve(used_data_type, default_dirs):
         processes = processes + [p2]
         loggers = loggers + [logger2]
     if 'cgps' in used_data_type:
+        print('Computing cGPS GFs')
         logger3 = ml.create_log(
             'get_cgps_GF', os.path.join('logs', 'green_cgps_log'))
         logger3.addHandler(ch)
@@ -62,6 +65,7 @@ def gf_retrieve(used_data_type, default_dirs):
         processes = processes + [p3]
         loggers = loggers + [logger3]
     if 'gps' in used_data_type:
+        print('Computing static GPS GFs')
         logger4 = ml.create_log(
             'GPS_GF', os.path.join('logs', 'green_gps_log'))
         logger4.addHandler(ch)
@@ -71,6 +75,7 @@ def gf_retrieve(used_data_type, default_dirs):
         processes = processes + [p4]
         loggers = loggers + [logger4]
     if 'insar' in used_data_type:
+        print('Computing InSAR GFs')
         logger5 = ml.create_log(
             'INSAR_GF', os.path.join('logs', 'green_insar_log'))
         logger5.addHandler(ch)
