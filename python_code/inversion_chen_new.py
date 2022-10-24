@@ -252,18 +252,20 @@ def _check_surf_GF(point_sources, used_data, logger=None):
 
 
 def modelling_new_data(tensor_info, data_type, default_dirs,
-                       data_folder, st_response=True):
+                       data_folder, segments_data, st_response=True):
     """Routine for manual finite fault modelling with new data types.
     
     :param tensor_info: dictionary with moment tensor properties
     :param data_type: list with data types to be used in modelling
     :param default_dirs: dictionary with default directories to be used
     :param data_folder: location of data used for modelling
+    :param segments_data: properties of fault segments and rise time
     :param st_response: whether to remove paz response of strong motion
     :type default_dirs: dict
     :type tensor_info: dict
     :type data_type: list
     :type data_folder: string
+    :type segments_data: dict
     :type st_response: bool, optional
     """
     sol_folder = os.getcwd()
@@ -287,15 +289,26 @@ def modelling_new_data(tensor_info, data_type, default_dirs,
     gf_bank_str = os.path.join(sol_folder, 'GF_strong')
     gf_bank_cgps = os.path.join(sol_folder, 'GF_cgps')
     get_gf_bank = default_dirs['strong_motion_gf_bank2']
+    segments = segments_data['segments']
+    rise_time = segments_data['rise_time']
+    connections = None
+    if 'connections' in segments_data:
+        connections = segments_data['connections']
+    point_sources = pf.point_sources_param(
+        segments, tensor_info, rise_time, connections=connections)
+    depths = [ps[:, :, :, :, 2] for ps in point_sources]
+    max_depths = [np.max(depth1.flatten()) for depth1 in depths]
+    max_depth = np.max(max_depths)
     if 'cgps' in data_type:
         green_dict = gf.fk_green_fun1(
-            data_prop, tensor_info, gf_bank_cgps, cgps=True)
+            data_prop, tensor_info, gf_bank_cgps, max_depth=max_depth, cgps=True)
         input_files.write_green_file(green_dict, cgps=True)
         with open(os.path.join('logs', 'GF_cgps_log'), "w") as out_gf_cgps:
             p1 = subprocess.Popen([get_gf_bank, 'cgps'], stdout=out_gf_cgps)
         p1.wait()
     if 'strong_motion' in data_type:
-        green_dict = gf.fk_green_fun1(data_prop, tensor_info, gf_bank_str)
+        green_dict = gf.fk_green_fun1(
+            data_prop, tensor_info, gf_bank_str, max_depth=max_depth)
         input_files.write_green_file(green_dict)
         with open(os.path.join('logs', 'GF_strong_log'), "w") as out_gf_strong:
             p2 = subprocess.Popen([get_gf_bank, ], stdout=out_gf_strong)
@@ -524,20 +537,6 @@ def set_directory_structure(tensor_info):
     os.mkdir(os.path.join(sol_folder2, 'plots', 'NP2'))
     os.chdir(sol_folder2)
     return
-
-
-# def adquisicion(tensor_info):
-#     """Get waveforms and convert them to SAC using obspy.
-#     """
-#     event_time = tensor_info['date_origin']
-#     event_lat = tensor_info['lat']
-#     event_lon = tensor_info['lon']
-#     depth = tensor_info['depth']
-#     data_type = ['tele']
-#     if -50 < event_lat < -18 and -75 < event_lon < -60\
-#     and event_time.year >= 2014:
-#         data_type = data_type + ['strong']
-#     acquisition(event_time, event_lat, event_lon, depth, data_type)
    
  
 def processing(tensor_info, data_type, data_prop, st_response=True):
@@ -877,7 +876,8 @@ if __name__ == '__main__':
         data_folder = args.data if args.data else None
         modelling_new_data(
             tensor_info, data_type, default_dirs,
-            data_folder, st_response=args.st_response)
+            data_folder, segments_data, 
+            st_response=args.st_response)
     if args.option == 'manual':
         if args.gcmt_tensor:
             cmt_file = args.gcmt_tensor
