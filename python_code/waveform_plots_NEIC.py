@@ -129,7 +129,8 @@ def add_metadata(axes, **kwargs):
             if 'comps' in kwargs:
                if 'names' in kwargs:
                    for ax, comp, name in zip(axes, kwargs['comps'], kwargs['names']):
-                       if comp == 'HNE' or comp == 'LXE' or comp =='LYE' or comp == 'BNE':
+                       #if comp == 'HNE' or comp == 'LXE' or comp =='LYE' or comp == 'BNE':
+                       if comp[-1] == 'E':
                            ax.text(-0.18, 0.5, name, ha='right', va='center', transform=ax.transAxes, rotation=90, fontweight='bold')
                for ax, comp in zip(axes, kwargs['comps']):
                    ax.text(-0.13, 0.5, comp, ha='right', va='center', transform=ax.transAxes, rotation=90)
@@ -169,7 +170,7 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     if type_str == 'cgps' or type_str == 'strong_motion':
         files = [file for file in files]
         print('Creating Waveform Fit Plot: ' + str(type_str))
-    files = sorted(files, key=lambda k: (k['azimuth'], k['component']))
+    files = sorted(files, key=lambda k: (k['distance'], k['component']))
     sampling = [file['dt'] for file in files]
     names = [file['name'] for file in files]
     azimuths = [file['azimuth'] for file in files]

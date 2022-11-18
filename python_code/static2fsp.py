@@ -280,7 +280,8 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
                 start_line = start_line + 9
                 total_moment_segment = sum(moment_fault)
                 total_magnitude_segment = (2./3) * (np.log10(total_moment_segment) - 16.1)
-                print(f"Segment {i_segment}: Mw{total_magnitude_segment}")
+                print('Segment {:d}: Mw{:.2f}'.format(i_segment,total_magnitude_segment))
+        print('Total Mag: Mw{:.2f}'.format(moment_mag))
 
 if __name__ == '__main__':
     import argparse

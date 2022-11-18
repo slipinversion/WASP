@@ -25,6 +25,7 @@ import glob
 from cartopy.io.img_tiles import Stamen
 from matplotlib.patches import Rectangle
 import pandas as pd
+from pyproj import Geod
 #from clawpack.geoclaw import dtopotools
 #
 # local modules
@@ -353,10 +354,10 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False, max
     rupt_time = solution['rupture_time']
     max_slip = [np.max(slip_seg.flatten()) for slip_seg in slip]
     max_slip = np.max(max_slip)
-    print('Max Slip of Solution: ' + str(max_slip) + ' cm')
+    print('Max Slip of Solution: {:.2f} cm'.format(max_slip))
     if max_val != None:
         max_slip = max_val
-    print('Max Slip for Plotting: ' + str(max_slip) + ' cm')
+    print('Max Slip for Plotting: {:.2f} cm'.format(max_slip))
     x_label = 'Distance Along Strike (km)'
     y_label = 'Distance Along Dip (km)'
     for i_segment, (segment, slip_seg, rake_seg, rupttime_seg, ps_seg)\
@@ -401,11 +402,10 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False, max
         grid_z = griddata(orig_grid,z.flatten(),new_grid, method='linear')
         grid_z_reshape = grid_z.reshape((np.shape(XCOLS)))
         ax.quiver(x, y, u, v, scale=20.0, width=0.001, color='0.5', clip_on=False)
-        #if i_segment == 0:
-        #    ax.plot(0, 0, 'w*', ms=15, markeredgewidth=1.5, markeredgecolor='k')
         ax.plot(0, 0, 'w*', ms=15, markeredgewidth=1.5, markeredgecolor='k')
-        ax, im = __several_axes(
-                grid_z_reshape, segment, ps_seg, ax, max_val=1., autosize=autosize)
+        #ax, im = __several_axes(
+        #        grid_z_reshape, segment, ps_seg, ax, max_val=1., autosize=autosize)
+        ax, im = __several_axes(z, segment, ps_seg, ax, max_val=1., autosize=autosize)
         plt.clabel(contplot, fmt = '%.0f', inline = True, fontsize=14, colors='k')
         cbar_ax = fig.add_axes([0.125, 0.15, 0.5, 0.07])
         sm = plt.cm.ScalarMappable(cmap=slipcpt,norm=plt.Normalize(vmin=0.,vmax=max_slip/100.))
@@ -781,7 +781,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
     import pygmt
     import numpy as np
     import collections
-
+    g = Geod(ellps='WGS84')
     ################################
     ### GET DESIRED PLOT REGION ####
     ################################
@@ -941,8 +941,9 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                  frame="x+lSlip (m)",
                  #box="+p2p,black+ggray80"
                  )
-
+    #################################
     ### PLOT AFTERSHOCKS OVER TOP ###
+    #################################
     aftershocks = glob.glob('*aftershock*')
     if len(aftershocks) > 0:
         for kafter in range(len(aftershocks)):
@@ -957,16 +958,32 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
     # outline the segments in black #
     #################################
     for segment in range(len(segments_lats)):
+        plane_info = segments[segment]
+        stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
+            = pl_mng.__unpack_plane_data(plane_info)
+        strike = plane_info['strike']
+        dip = plane_info['dip']
         depths = segments_deps[segment].flatten()
         min_lats_idx = np.where(segments_lats[segment].flatten()==min_lats[segment])[0][0]
         cornerA = [segments_lons[segment].flatten()[min_lats_idx], min_lats[segment], depths[min_lats_idx], 0]
+        #edge_lon, edge_lat, _ = g.fwd(cornerA[0], cornerA[1], strike, 1000*((0.5*delta_dip*np.cos(np.radians(dip)))**2 + ((0.5*delta_strike)**2))**0.5))
         min_lons_idx = np.where(segments_lons[segment].flatten()==min_lons[segment])[0][0]
         cornerB = [min_lons[segment], segments_lats[segment].flatten()[min_lons_idx], depths[min_lons_idx], 1]
         max_lats_idx = np.where(segments_lats[segment].flatten()==max_lats[segment])[0][-1]
         cornerC = [segments_lons[segment].flatten()[max_lats_idx], max_lats[segment], depths[max_lats_idx], 2]
         max_lons_idx = np.where(segments_lons[segment].flatten()==max_lons[segment])[0][-1]
         cornerD = [max_lons[segment], segments_lats[segment].flatten()[max_lons_idx], depths[max_lons_idx], 3]
+        # find outside corner of the subfault (rather than middle)
+        angle = np.degrees(np.arctan((delta_dip*np.cos(np.radians(dip)))/delta_strike))
+        corner_offset = 1000*(((0.5*delta_dip*np.cos(np.radians(dip)))**2+(0.5*delta_strike)**2)**0.5)
+        letter = ['A','B','C','D']
+#        cornerA[0], cornerA[1], _ = g.fwd(cornerA[0], cornerA[1], strike + angle, corner_offset)
+#        cornerB[0], cornerB[1], _ = g.fwd(cornerB[0], cornerB[1], strike - 180 - angle, corner_offset)
+#        cornerC[0], cornerC[1], _ = g.fwd(cornerC[0], cornerC[1], strike - 180 + angle, corner_offset)
+#        cornerD[0], cornerD[1], _ = g.fwd(cornerD[0], cornerD[1], strike - angle, corner_offset)
         corners = np.c_[cornerA, cornerB, cornerC, cornerD]
+#        for r in range(4):
+#            fig.text(x=corners[0,r], y=corners[1,r], text=letter[r])
         max_dep = max(corners[2,:])
         idx_max = np.where(np.array(corners[2,:]) == max_dep)[0][0]
         min1 = min2 = corners[:,idx_max]
@@ -976,14 +993,46 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 min1 = corners[:,i]
             elif corners[2,i] < min2[2] and collections.Counter(corners[:,i]) != collections.Counter(min1):
                 min2 = corners[:,i]
+#        az, baz, dist_m = g.inv(min1[0],min1[1],min2[0],min2[1])
+#        if (strike - az) < 10:
+#            updip_posstk = min2
+#            updip_negstk = min1
+#        else:
+#            updip_posstk = min1
+#            updip_negstk = min2
+#        updip_negstk[0], updip_negstk[1], _ = g.fwd(updip_negstk[0], updip_negstk[1], strike - 180 + angle, corner_offset)
+#        updip_posstk[0], updip_posstk[1], _ = g.fwd(updip_posstk[0], updip_posstk[1], strike - angle, corner_offset)
+#        updip = np.c_[updip_negstk, updip_posstk]
+#        for kcorner in range(4):
+#            az1, _, _ = g.inv(updip_negstk[0], updip_negstk[1], corners[0,kcorner], corners[1,kcorner])
+#            az2, _, _ = g.inv(updip_posstk[0], updip_posstk[1], corners[0,kcorner], corners[1,kcorner])
+#            print(kcorner, az1, (strike + 90))
+#            if az1 - (strike + 90 - 360) < 10:
+#                downdip_negstk = corners[:,kcorner]
+#                print('az1: ' + str(downdip_negstk))
+#            elif az2 - (strike + 90 - 360) < 10:
+#                downdip_posstk = corners[:,kcorner]
+#                print('az2: ' + str(downdip_posstk))
+#        downdip_negstk[0], downdip_negstk[1], _ = g.fwd(downdip_negstk[0], downdip_negstk[1], strike - 180 - angle, corner_offset)
+#        downdip_posstk[0], downdip_posstk[1], _ = g.fwd(downdip_posstk[0], downdip_posstk[1], strike + angle, corner_offset)
+#
+#        print(updip_negstk)
+#        print(updip_posstk)
+#        print(downdip_posstk)
+#        print(downdip_negstk)
 
+#        corners = np.c_[updip_negstk, updip_posstk, downdip_posstk, downdip_negstk, updip_negstk]
         updip = np.c_[min1,min2]
         corners = np.c_[corners,cornerA]
+#        for r in range(4):
+#            fig.text(x=corners[0,r], y=corners[1,r], text=letter[r])
 
         fig.plot(x=corners[0,:], y=corners[1,:], pen="1p,black")
         fig.plot(x=updip[0,:], y=updip[1,:], pen="1p,red")
 
-        #plot multiple segment hypocenters if any
+        ######################
+        # plot hypocenter(s) #
+        ######################
         fig.plot(x=lon0, y=lat0, style='a7p', color="white", pen="black")
         if 'hypocenter' in segments[segment]:
             hyp = segments[segment]['hypocenter']
@@ -999,8 +1048,14 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
         for file in files_str:
             name = file['name']
             latp, lonp = file['location']
-            fig.plot(x=lonp, y=latp, style="i10p", color="white", pen="black")
-            #fig.text(x=lonp, y=latp, text=name)
+            weight = file['trace_weight']
+            comp = file['component']
+            if comp[-1] == 'E':
+                if weight == 0 :
+                    fig.plot(x=lonp, y=latp, style="i7p", color="lightgrey", pen="black")
+                else:
+                    fig.plot(x=lonp, y=latp, style="i10p", color="white", pen="black")
+                fig.text(x=lonp, y=latp, text=name)
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
             xshift="a-130p", yshift="a-54p",
@@ -1014,8 +1069,14 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
         for file in stations_cgps:
             name = file['name']
             latp, lonp = file['location']
-            fig.plot(x=lonp, y=latp, style="t10p", color="navy", pen="black")
-            #fig.text(x=lonp, y=latp, text=name, justify="TR")
+            weight = file['trace_weight']
+            comp = file['component']
+            if comp[-1] == 'E':
+                if weight == 0:
+                    fig.plot(x=lonp, y=latp, style="t7p", color="lightsteelblue", pen="black")
+                else:
+                    fig.plot(x=lonp, y=latp, style="t10p", color="navy", pen="black")
+                #fig.text(x=lonp, y=latp, text=name, justify="TR")
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
             xshift="a-55p", yshift="a-56p",
@@ -1155,6 +1216,15 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
         fig.text(x=region[1], y=region[2], text=str(legend_len*10)+"+/-"+str(legend_len)+" mm",
             xshift="a-60p", yshift="a-20p", no_clip=True, justify="ML")
 
+    with fig.inset(position="jTR+w100p+o-50p", margin=0):
+        fig.coast(
+            region="g",
+            projection="G"+str(lon0)+"/"+str(lat0)+"/?",
+            land="gray",
+            water="white",
+            frame="g"
+        )
+        fig.plot(x=lon0, y=lat0, style='a7p', color="gold", pen="black")
 
     fig.savefig("Map.png")
 
@@ -1593,107 +1663,112 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     mr_seg = np.zeros(nmax)
     seismic_moment = 0
     seg_num = 0
-    for segment, slip_seg, trup_seg, trise_seg, tfall_seg, shear_seg,\
-    point_sources_seg in zip(segments, slip, trup, tl, tr, shear, point_sources):
-        dip_subfaults, stk_subfaults = np.shape(slip_seg)
-        moment_rate = np.zeros(nmax)
-        for iy in range(dip_subfaults):
-            for ix in range(stk_subfaults):
-                rupt_vel = segment['rupture_vel']
-                rise_time = np.zeros(nmax)
-                tfall = tfall_seg[iy, ix]
-                trise = trise_seg[iy, ix]
-                array1 = np.arange(0, trise, dt)
-                tmid = len(array1)
-                rise_time[:tmid]\
-                    = (1 - np.cos(np.pi * array1 / trise)) / (trise + tfall)
-                array2 = np.arange(0, tfall, dt)
-                tend = tmid + len(array2)
-                rise_time[tmid:tend]\
-                    = (1 + np.cos(np.pi * array2 / tfall)) / (tfall + trise)
-                duration = int(max(delta_strike, delta_dip) / dt / rupt_vel)
-                source_dur = np.ones(duration) / duration
-                start_index = max(0, int(trup_seg[iy, ix] / dt))
-#                source_dur[start_index:start_index + duration] = np.ones(duration)
-                product = slip_seg[iy, ix] * shear_seg[iy, ix] / 100 / 10
-                sub_rise_time = rise_time[:tend]
-                convolve = np.convolve(source_dur, sub_rise_time)
-                moment_rate[start_index:start_index + len(convolve)]\
-                = moment_rate[start_index:start_index + len(convolve)]\
-                + convolve * product
+    list = [item for sublist in tl for item in sublist]
+    flat_list = [item for sublist in list for item in sublist]
+    if all(flat_list) == 0:
+        print('This looks like a static solution. Skipping moment rate plot.')
+    else:
+        for segment, slip_seg, trup_seg, trise_seg, tfall_seg, shear_seg,\
+        point_sources_seg in zip(segments, slip, trup, tl, tr, shear, point_sources):
+            dip_subfaults, stk_subfaults = np.shape(slip_seg)
+            moment_rate = np.zeros(nmax)
+            for iy in range(dip_subfaults):
+                for ix in range(stk_subfaults):
+                    rupt_vel = segment['rupture_vel']
+                    rise_time = np.zeros(nmax)
+                    tfall = tfall_seg[iy, ix]
+                    trise = trise_seg[iy, ix]
+                    array1 = np.arange(0, trise, dt)
+                    tmid = len(array1)
+                    rise_time[:tmid]\
+                        = (1 - np.cos(np.pi * array1 / trise)) / (trise + tfall)
+                    array2 = np.arange(0, tfall, dt)
+                    tend = tmid + len(array2)
+                    rise_time[tmid:tend]\
+                        = (1 + np.cos(np.pi * array2 / tfall)) / (tfall + trise)
+                    duration = int(max(delta_strike, delta_dip) / dt / rupt_vel)
+                    source_dur = np.ones(duration) / duration
+                    start_index = max(0, int(trup_seg[iy, ix] / dt))
+    #                source_dur[start_index:start_index + duration] = np.ones(duration)
+                    product = slip_seg[iy, ix] * shear_seg[iy, ix] / 100 / 10
+                    sub_rise_time = rise_time[:tend]
+                    convolve = np.convolve(source_dur, sub_rise_time)
+                    moment_rate[start_index:start_index + len(convolve)]\
+                    = moment_rate[start_index:start_index + len(convolve)]\
+                    + convolve * product
 
-        seismic_moment = seismic_moment\
-            + np.sum((slip_seg / 100) * (shear_seg / 10)\
-                     * (delta_strike * 1000) * (delta_dip * 1000))
+            seismic_moment = seismic_moment\
+                + np.sum((slip_seg / 100) * (shear_seg / 10)\
+                         * (delta_strike * 1000) * (delta_dip * 1000))
 #
 # find moment rate function
 #
-        for i in range(nmax):
-            time = i * dt
-            mr[i] = mr[i]\
-                + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
-            mr_seg[i] = moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
-        t_seg = np.arange(nmax) * dt
-        with open(f'STF_{seg_num}.txt','w') as outsegf:
-            outsegf.write('dt: {}\n'.format(dt))
-            outsegf.write('Time[s]    Moment_Rate [Nm]\n')
-            for t, val in zip(t_seg,mr_seg):
-                outsegf.write('{:8.2f}\t\t{:8.4e}\n'.format(t, val))
-        seg_num+=1
-    time = np.arange(nmax) * dt
-    with open('STF.txt', 'w') as outf:
-        outf.write('dt: {}\n'.format(dt))
-        outf.write('Time[s]     Moment_Rate [Nm]\n')
-        for t, val in zip(time, mr):
-            outf.write('{:8.2f}\t\t{:8.4e}\n'.format(t, val))
+            for i in range(nmax):
+                time = i * dt
+                mr[i] = mr[i]\
+                    + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
+                mr_seg[i] = moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
+            t_seg = np.arange(nmax) * dt
+            with open(f'STF_{seg_num}.txt','w') as outsegf:
+                outsegf.write('dt: {}\n'.format(dt))
+                outsegf.write('Time[s]    Moment_Rate [Nm]\n')
+                for t, val in zip(t_seg,mr_seg):
+                    outsegf.write('{:8.2f}\t\t{:8.4e}\n'.format(t, val))
+            seg_num+=1
+        time = np.arange(nmax) * dt
+        with open('STF.txt', 'w') as outf:
+            outf.write('dt: {}\n'.format(dt))
+            outf.write('Time[s]     Moment_Rate [Nm]\n')
+            for t, val in zip(time, mr):
+                outf.write('{:8.2f}\t\t{:8.4e}\n'.format(t, val))
 
-    seismic_moment = np.trapz(mr, dx=0.01)
-    magnitude = 2.0 * (np.log10(seismic_moment * 10 ** 7) - 16.1) / 3.0
-    fig = plt.figure(figsize=(10,8))
-    plt.rc('axes', titlesize=16)
-    plt.rc('axes', labelsize=16)
-    plt.rc('xtick', labelsize=14)
-    plt.rc('ytick',labelsize=14)
-    plt.rc('font', size=16)
-    ax = fig.add_subplot(111)
-    ax.spines["bottom"].set_linewidth(3)
-    ax.spines["top"].set_linewidth(3)
-    ax.spines["left"].set_linewidth(3)
-    ax.spines["right"].set_linewidth(3)
+        seismic_moment = np.trapz(mr, dx=0.01)
+        magnitude = 2.0 * (np.log10(seismic_moment * 10 ** 7) - 16.1) / 3.0
+        fig = plt.figure(figsize=(10,8))
+        plt.rc('axes', titlesize=16)
+        plt.rc('axes', labelsize=16)
+        plt.rc('xtick', labelsize=14)
+        plt.rc('ytick',labelsize=14)
+        plt.rc('font', size=16)
+        ax = fig.add_subplot(111)
+        ax.spines["bottom"].set_linewidth(3)
+        ax.spines["top"].set_linewidth(3)
+        ax.spines["left"].set_linewidth(3)
+        ax.spines["right"].set_linewidth(3)
 
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel('Relative Moment Rate (Nm/s)')
-    rel_mr = mr/(max(mr))
-    plt.text(
-        0.99 * max(time), 0.95 * max(rel_mr),
-        'Max Mr: {:.2E} Nm/sec'.format(max(mr)), ha='right',fontweight='bold')
-    plt.text(
-        0.99 * max(time), 0.90 * max(rel_mr),
-        'M$_0$: {:.2E} Nm'.format(seismic_moment), ha='right',fontweight='bold')
-    plt.text(
-        0.99 * max(time), 0.85 * max(rel_mr), 'M$_w$: {:.2f}'.format(magnitude), ha='right',fontweight='bold')
-    plt.grid('on', ls='dotted')
-    #plt.minorticks_on()
-    plt.grid(which='minor',linestyle='dotted', color='0.5')
-    plt.grid(which='major',linestyle='dotted', color='0.5')
-    ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.2))
-    ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
-    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
-    ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
-    #ax.fill_between(time, rel_mr, color='0.9')
-    ax.plot(time, rel_mr, 'k', lw=2)
-    if mr_time == None:
-        tenth = np.ones(len(time))*0.1
-        idx = np.argwhere(np.diff(np.sign(rel_mr-tenth))).flatten()
-        ax.vlines(time[idx][-1],0,1,'r',linestyle='dashed',lw=2, dashes=(0,(5,3)))
-    else:
-        ax.vlines(mr_time,0,1,'r',linestyle='dashed',lw=2,dashes=(9,(5,3)))
-    ax.set_ylim([0,1])
-    ax.set_xlim([0,max(time)])
-    plt.savefig('MomentRate.png')#, bbox_inches='tight')
-    plt.savefig('MomentRate.ps')
-    plt.close()
-    return
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Relative Moment Rate (Nm/s)')
+        rel_mr = mr/(max(mr))
+        plt.text(
+            0.99 * max(time), 0.95 * max(rel_mr),
+            'Max Mr: {:.2E} Nm/sec'.format(max(mr)), ha='right',fontweight='bold')
+        plt.text(
+            0.99 * max(time), 0.90 * max(rel_mr),
+            'M$_0$: {:.2E} Nm'.format(seismic_moment), ha='right',fontweight='bold')
+        plt.text(
+            0.99 * max(time), 0.85 * max(rel_mr), 'M$_w$: {:.2f}'.format(magnitude), ha='right',fontweight='bold')
+        plt.grid('on', ls='dotted')
+        #plt.minorticks_on()
+        plt.grid(which='minor',linestyle='dotted', color='0.5')
+        plt.grid(which='major',linestyle='dotted', color='0.5')
+        ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.2))
+        ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
+        ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
+        ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
+        #ax.fill_between(time, rel_mr, color='0.9')
+        ax.plot(time, rel_mr, 'k', lw=2)
+        if mr_time == None:
+            tenth = np.ones(len(time))*0.1
+            idx = np.argwhere(np.diff(np.sign(rel_mr-tenth))).flatten()
+            ax.vlines(time[idx][-1],0,1,'r',linestyle='dashed',lw=2, dashes=(0,(5,3)))
+        else:
+            ax.vlines(mr_time,0,1,'r',linestyle='dashed',lw=2,dashes=(9,(5,3)))
+        ax.set_ylim([0,1])
+        ax.set_xlim([0,max(time)])
+        plt.savefig('MomentRate.png')#, bbox_inches='tight')
+        plt.savefig('MomentRate.ps')
+        plt.close()
+        return
 
 
 def _PlotSnapshotSlip(tensor_info, segments, point_sources, solution):

@@ -557,7 +557,8 @@ def processing(tensor_info, data_type, data_prop, st_response=True):
     strong_files = glob.glob('*.HN*SAC') + glob.glob('*.HL*SAC')\
                    + glob.glob('*.HN*sac') + glob.glob('*.HL*sac')\
                    + glob.glob('*.AH?.*')\
-                   + glob.glob('*_HN*sac') + glob.glob('*_HL*sac')
+                   + glob.glob('*_HN*sac') + glob.glob('*_HL*sac')\
+                   + glob.glob('*HG*sac')
     cgps_files = glob.glob('*L[HXY]*sac') + glob.glob('*L[HXY]*SAC')
     if 'tele_body' in data_type:
         proc.select_process_tele_body(tele_files, tensor_info, data_prop)
