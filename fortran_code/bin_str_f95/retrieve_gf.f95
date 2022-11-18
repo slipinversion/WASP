@@ -45,8 +45,8 @@ contains
    npt = 2 ** lnpt_gfs         ! careful!
   
    if (z_max .gt. dep_max) then
-      write(*, *)"Error: maximum depth of GF bank is ", dep_max, " but max. depth of source is ", z_max
-      write(*, *)"May need to recompute GF bank"
+      write(0, *)"Error: maximum depth of GF bank is ", dep_max, " but max. depth of source is ", z_max
+      write(0, *)"May need to recompute GF bank"
       stop
    endif
  
@@ -71,24 +71,24 @@ contains
 ! anticipate potential errors
 !                 
          if(abs(dt_c - dt_gfs) .gt. 1e-4)then
-            write(*, *)"Error: dt of GF bank file is ", dt_gfs, " but dt of data is ", dt_c
-            write(*, *)"May need to recompute GF bank"
+            write(0, *)"Error: dt of GF bank file is ", dt_gfs, " but dt of data is ", dt_c
+            write(0, *)"May need to recompute GF bank"
             stop
          endif
          if(abs(dis0 - grid_dist(k)) .gt. 1e-4)then
-            write(*, *)"Error: distance to source should be ", grid_dist(k), " but real distance is ", dis0
-            write(*, *)"Check size of gf bank"
-            write(*, *)"Check size of 'green_bank' variable"
-            write(*, *)"Check given range of distances and depths agrees with size of gf bank"
-            write(*, *)"You may need to recompute GF bank"
+            write(0, *)"Error: distance to source should be ", grid_dist(k), " but real distance is ", dis0
+            write(0, *)"Check size of gf bank"
+            write(0, *)"Check size of 'green_bank' variable"
+            write(0, *)"Check given range of distances and depths agrees with size of gf bank"
+            write(0, *)"You may need to recompute GF bank"
             stop
          endif
          if(abs(dep - grid_depth(iz)) .gt. 1e-4)then
-            write(*, *)"Error: depth of source should be ", grid_depth(iz), " but real depth is ", dis0
-            write(*, *)"Check size of gf bank"
-            write(*, *)"Check size of 'green_bank' variable"
-            write(*, *)"Check given range of distances and depths agrees with size of gf bank"
-            write(*, *)"You may need to recompute GF bank"
+            write(0, *)"Error: depth of source should be ", grid_depth(iz), " but real depth is ", dis0
+            write(0, *)"Check size of gf bank"
+            write(0, *)"Check size of 'green_bank' variable"
+            write(0, *)"Check given range of distances and depths agrees with size of gf bank"
+            write(0, *)"You may need to recompute GF bank"
             stop
          endif
       enddo

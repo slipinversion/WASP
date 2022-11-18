@@ -25,6 +25,7 @@ def gf_retrieve(used_data_type, default_dirs):
     
     processes = []
     loggers = []
+    data_types = []
     ch = logging.StreamHandler()
     formatter = logging.Formatter('%(levelname)s - %(message)s')
     ch.setFormatter(formatter)
@@ -41,6 +42,7 @@ def gf_retrieve(used_data_type, default_dirs):
         #     p1 = subprocess.Popen([green_fun_tele], stdout=out_tele)
         processes = processes + [p1]
         loggers = loggers + [logger1]
+        data_types = data_types + ['body waves']
     if 'strong_motion' in used_data_type:
         print('Computing strong motion GFs')
         logger2 = ml.create_log(
@@ -52,6 +54,7 @@ def gf_retrieve(used_data_type, default_dirs):
         #     p2 = subprocess.Popen([green_fun_str], stdout=out_strong)
         processes = processes + [p2]
         loggers = loggers + [logger2]
+        data_types = data_types + ['strong motion']
     if 'cgps' in used_data_type:
         print('Computing cGPS GFs')
         logger3 = ml.create_log(
@@ -64,6 +67,7 @@ def gf_retrieve(used_data_type, default_dirs):
             # p3 = subprocess.Popen([green_fun_str, 'cgps'], stdout=out_cgps)
         processes = processes + [p3]
         loggers = loggers + [logger3]
+        data_types = data_types + ['cgps']
     if 'gps' in used_data_type:
         print('Computing static GPS GFs')
         logger4 = ml.create_log(
@@ -74,6 +78,7 @@ def gf_retrieve(used_data_type, default_dirs):
             stderr=subprocess.PIPE)
         processes = processes + [p4]
         loggers = loggers + [logger4]
+        data_types = data_types + ['gps']
     if 'insar' in used_data_type:
         print('Computing InSAR GFs')
         logger5 = ml.create_log(
@@ -84,14 +89,19 @@ def gf_retrieve(used_data_type, default_dirs):
             stderr=subprocess.PIPE)
         processes = processes + [p5]
         loggers = loggers + [logger5]
+        data_types = data_types + ['insar']
 
     # [p.wait() for p in processes]
-    for p, log in zip(processes, loggers):
+    for p, log, data_type in zip(processes, loggers, data_types):
         out, err = p.communicate(timeout=50 * 60)
         log.info(out.decode('utf-8'))
         if err: log.error(err.decode('utf-8', 'ignore'))
         ml.close_log(log)
-
+        if err:
+            raise RuntimeError(
+                'Got following error while retrieving GF '\
+                'for {}:\n{}'.format(data_type, err)
+            )
     
     
 def fk_green_fun0(dt, tensor_info, default_dirs, gf_bank=None):
@@ -191,7 +201,7 @@ def fk_green_fun0(dt, tensor_info, default_dirs, gf_bank=None):
     return green_dict
 
 
-def fk_green_fun1(data_prop, tensor_info, location, cgps=False):
+def fk_green_fun1(data_prop, tensor_info, location, cgps=False, max_depth=None):
     """We write a file with important data for computing or retrieving strong
     motion Green functions.
     
@@ -199,18 +209,22 @@ def fk_green_fun1(data_prop, tensor_info, location, cgps=False):
     :param dt: sampling rate of data
     :param location: location of GF bank to be used.
     :param cgps: whether GF are of cgps data or not.
+    :param max_depth: maximum depth of point sources.
     :type tensor_info: dict
     :type tensor_info: float
     :type location: string
     :type cgps: bool, optional
+    :type max_depth: float, optional
     """
     sampling = data_prop['sampling']
     dt = sampling['dt_strong'] if not cgps else sampling['dt_cgps']
     depth = tensor_info['depth']
     time_shift = tensor_info['time_shift']
-    min_depth = max(1, depth - 100)
-    max_depth = max(30, 2 * depth)
-    max_depth = min(max_depth, depth + 60) + 5
+    min_depth = max(1, depth - 100) 
+    if not max_depth:
+        max_depth = max(30, 2 * depth)
+        max_depth = min(max_depth, depth + 60)
+    max_depth = max_depth + 5
     min_dist = 0
     max_dist = 600 if time_shift < 40 else 1000
     time_corr = 10 if not cgps else 25
