@@ -2362,7 +2362,7 @@ if __name__ == '__main__':
         insar_data = get_outputs.get_insar()
         if 'ascending' in insar_data:
             for scene in range(len(insar_data)):
-                insar_points = insar_data['ascending']['points']
+                insar_points = insar_data['ascending'][scene]['points']
                 _PlotInsar(
                     tensor_info, segments, point_sources, solution,
                     default_dirs, insar_points, scene, los='ascending')
