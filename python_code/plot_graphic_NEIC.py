@@ -40,7 +40,7 @@ from plot_maps_NEIC import plot_map, set_map_cartopy, plot_borders
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from static2fsp import static_to_fsp
-
+from static2srf import static_to_srf
 """
 Set colorbar for slip
 """
@@ -85,7 +85,7 @@ slipcpt = ListedColormap(slip_cpt)
 def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                  vel_model, default_dirs, autosize=False, mr_time=False, evID=None,
                  files_str=None, stations_gps=None, stations_cgps=None, max_val=None,
-                 legend_len=None, scale=None, limits=None):
+                 legend_len=None, scale=None, limits=None, separate_planes=False):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
 
@@ -154,7 +154,7 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
 
     """
     #_plot_vel_model(vel_model, point_sources)
-    _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=mr_time)
+    _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=mr_time, separate_planes=separate_planes)
     #_PlotRiseTime(segments, point_sources, solution)
     #_PlotRuptTime(segments, point_sources, solution)
     _PlotSlipDistribution(segments, point_sources, solution, autosize=autosize, max_val=max_val)
@@ -1639,7 +1639,7 @@ def __redefine_lat_lon(segments, point_sources):
     return segments_lats, segments_lons, segments_deps
 
 
-def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None):
+def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None, separate_planes=False):
     """We plot moment rate function
     """
     print('Creating Moment Rate Plot...')
@@ -1661,6 +1661,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     nmax = int((tmax/dt + 1))
     mr = np.zeros(nmax)
     mr_seg = np.zeros(nmax)
+    mr_seg_all = np.zeros((nmax, len(segments)))
     seismic_moment = 0
     seg_num = 0
     list = [item for sublist in tl for item in sublist]
@@ -1668,6 +1669,22 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
     if all(flat_list) == 0:
         print('This looks like a static solution. Skipping moment rate plot.')
     else:
+        ## Set up plot ##
+        fig = plt.figure(figsize=(10,8))
+        plt.rc('axes', titlesize=16)
+        plt.rc('axes', labelsize=16)
+        plt.rc('xtick', labelsize=14)
+        plt.rc('ytick',labelsize=14)
+        plt.rc('font', size=16)
+        ax = fig.add_subplot(111)
+        ax.spines["bottom"].set_linewidth(3)
+        ax.spines["top"].set_linewidth(3)
+        ax.spines["left"].set_linewidth(3)
+        ax.spines["right"].set_linewidth(3)
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Relative Moment Rate (Nm/s)')
+
+
         for segment, slip_seg, trup_seg, trise_seg, tfall_seg, shear_seg,\
         point_sources_seg in zip(segments, slip, trup, tl, tr, shear, point_sources):
             dip_subfaults, stk_subfaults = np.shape(slip_seg)
@@ -1708,6 +1725,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
                 mr[i] = mr[i]\
                     + moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
                 mr_seg[i] = moment_rate[i] * (delta_strike * 1000) * (delta_dip * 1000)
+                mr_seg_all[i,seg_num] = mr_seg[i]
             t_seg = np.arange(nmax) * dt
             with open(f'STF_{seg_num}.txt','w') as outsegf:
                 outsegf.write('dt: {}\n'.format(dt))
@@ -1724,20 +1742,6 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
 
         seismic_moment = np.trapz(mr, dx=0.01)
         magnitude = 2.0 * (np.log10(seismic_moment * 10 ** 7) - 16.1) / 3.0
-        fig = plt.figure(figsize=(10,8))
-        plt.rc('axes', titlesize=16)
-        plt.rc('axes', labelsize=16)
-        plt.rc('xtick', labelsize=14)
-        plt.rc('ytick',labelsize=14)
-        plt.rc('font', size=16)
-        ax = fig.add_subplot(111)
-        ax.spines["bottom"].set_linewidth(3)
-        ax.spines["top"].set_linewidth(3)
-        ax.spines["left"].set_linewidth(3)
-        ax.spines["right"].set_linewidth(3)
-
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Relative Moment Rate (Nm/s)')
         rel_mr = mr/(max(mr))
         plt.text(
             0.99 * max(time), 0.95 * max(rel_mr),
@@ -1756,7 +1760,13 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
         ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
         ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
         #ax.fill_between(time, rel_mr, color='0.9')
-        ax.plot(time, rel_mr, 'k', lw=2)
+        ax.plot(time, rel_mr, 'k', lw=2, label='Total')
+        ### Plot multiple planes separately? ###
+        if separate_planes == True:
+            print(np.shape(mr_seg_all)[1]) 
+            for seg in range(np.shape(mr_seg_all)[1]):           
+                ax.plot(time, mr_seg_all[:,seg]/max(mr),label='Segment '+str(seg))
+            plt.legend(loc='lower right')
         if mr_time == None:
             tenth = np.ones(len(time))*0.1
             idx = np.argwhere(np.diff(np.sign(rel_mr-tenth))).flatten()
@@ -2245,6 +2255,8 @@ if __name__ == '__main__':
                         help="choose whether Rupture plot needs to be scaled")
     parser.add_argument("-mr","--mrtime", default='0', type=float,
                         help="choose cutoff time for Moment Rate plot")
+    parser.add_argument("-separate","--separate_mr_planes",action="store_true",
+                        help="include STFs for each plane separately in moment rate plot")
     parser.add_argument("-shakemap","--shakemappolygon",action="store_true",
                         help="create shakemap_polygon.txt")
     parser.add_argument("-ev","--EventID", nargs='?', const='Not Provided', type=str,
@@ -2331,12 +2343,18 @@ if __name__ == '__main__':
             evID = args.EventID
         else:
             evID = None
+        if args.separate_mr_planes:
+            separate=True
+        else:
+            separate=False
+        static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution) 
+        static_to_srf(tensor_info, segments_data, used_data, vel_model, solution)
         plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                      vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID,
                      files_str=traces_info,stations_gps=stations_gps, stations_cgps=traces_info_cgps, 
-                     max_val=maxval, legend_len=legend_len, scale=scale, limits=limits)
+                     max_val=maxval, legend_len=legend_len, scale=scale, limits=limits, separate_planes=separate)
         static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)        
-
+        #static_to_srf(tensor_info, segments_data, used_data, vel_model, solution)
     if args.shakemappolygon:
         if args.EventID:
             evID = args.EventID
