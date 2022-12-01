@@ -13,6 +13,7 @@ import cartopy.crs as ccrs
 import cartopy.io.shapereader as shpreader
 import cartopy.feature as cf
 from obspy.imaging.beachball import beach
+from obspy.imaging.beachball import beachball
 import numpy as np
 import os
 import get_outputs
@@ -26,6 +27,7 @@ from cartopy.io.img_tiles import Stamen
 from matplotlib.patches import Rectangle
 import pandas as pd
 from pyproj import Geod
+from obspy.imaging.scripts import mopad
 #from clawpack.geoclaw import dtopotools
 #
 # local modules
@@ -40,7 +42,7 @@ from plot_maps_NEIC import plot_map, set_map_cartopy, plot_borders
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from static2fsp import static_to_fsp
-from static2srf import static_to_srf
+#from static2srf import static_to_srf
 """
 Set colorbar for slip
 """
@@ -59,28 +61,6 @@ slip_cpt[ad:rm,:][:,2] = b_s
 slip_cpt[:ad,:] = white_bit
 slipcpt = ListedColormap(slip_cpt)
 
-#cD = {'red': [[0.0, 1.0, 1.0],
-#  [0.13278008298755187, 1.0, 1.0],
-#  [0.34024896265560167, 0.0, 0.0],
-#  [0.4979253112033195, 0.0, 0.0],
-#  [0.6597510373443983, 1.0, 1.0],
-#  [0.8381742738589212, 1.0, 1.0],
-#  [1.0, 1.0, 1.0]],
-# 'green': [[0.0, 1.0, 1.0],
-#  [0.13278008298755187, 1.0, 1.0],
-#  [0.34024896265560167, 1.0, 1.0],
-#  [0.4979253112033195, 1.0, 1.0],
-#  [0.6597510373443983, 1.0, 1.0],
-#  [0.8381742738589212, 0.6666666666666666, 0.6666666666666666],
-#  [1.0, 0.0, 0.0]],
-# 'blue': [[0.0, 1.0, 1.0],
-#  [0.13278008298755187, 1.0, 1.0],
-#  [0.34024896265560167, 1.0, 1.0],
-#  [0.4979253112033195, 0.0, 0.0],
-#  [0.6597510373443983, 0.0, 0.0],
-#  [0.8381742738589212, 0.0, 0.0],
-#  [1.0, 0.0, 0.0]]}
-#slipcpt = matplotlib.colors.LinearSegmentedColormap('slipcpt',cD)
 
 def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                  vel_model, default_dirs, autosize=False, mr_time=False, evID=None,
@@ -1859,6 +1839,69 @@ def shakemap_polygon(segments, point_sources, solution, tensor_info, evID):
     txtout.write(corner_1+'\n')
     txtout.close()
 
+
+def calculate_cumulative_moment_tensor(directory=None):
+    print('Calculating Cumulative Moment Tensor...')
+
+    if directory == None:
+        directory = os.getcwd()
+
+    LAT=[]; LON=[]; DEP=[]; SLIP=[]; RAKE=[]; STRIKE=[]; DIP=[]; T_RUP=[]; T_RIS=[]; T_FAL=[]; MO=[]
+
+    sol = open(directory+'/Solucion.txt')
+    for line in sol:
+        if '#' in line: #HEADER LINES
+            continue
+        if len(np.array(line.split())) < 4: #FAULT BOUNDARY LINES
+            continue
+        else: #ACTUAL SUBFAULT DETAILS
+            lat, lon, dep, slip, rake, strike, dip, t_rup, t_ris, t_fal, mo = line.split()
+            # Make rake be -180 to 180 (not 0-360)
+            if float(rake) > 180:
+                rake = float(rake) - 360
+            LAT.append(float(lat)); LON.append(float(lon)); DEP.append(float(dep)); SLIP.append(float(slip)); 
+            RAKE.append(float(rake)); STRIKE.append(float(strike)); DIP.append(float(dip));
+            T_RUP.append(float(t_rup)); T_RIS.append(float(t_ris)); T_FAL.append(float(t_fal)); MO.append(float(mo))
+    sol.close()
+
+    SUBFAULTS = np.c_[LAT,LON,DEP,SLIP,RAKE,STRIKE,DIP,T_RUP,T_RIS,T_FAL,MO]
+    SUBFAULTS = SUBFAULTS[SUBFAULTS[:,7].argsort()]
+    LAT = SUBFAULTS[:,0]; LON = SUBFAULTS[:,1]; DEP = SUBFAULTS[:,2]; SLIP = SUBFAULTS[:,3];
+    RAKE = SUBFAULTS[:,4]; STRIKE = SUBFAULTS[:,5]; DIP = SUBFAULTS[:,6]; T_RUP = SUBFAULTS[:,7];
+    T_RIS = SUBFAULTS[:,8]; T_FAL = SUBFAULTS[:,9]; MO = SUBFAULTS[:,10]
+
+    Mrr = 0; Mtt = 0; Mpp = 0; Mrt = 0; Mrp = 0; Mtp = 0
+    for ksubf in range(len(SUBFAULTS)):
+        #print(STRIKE[ksubf], DIP[ksubf], RAKE[ksubf])
+        MT = mopad.MomentTensor([STRIKE[ksubf],DIP[ksubf],RAKE[ksubf]])
+        MT = np.array(MT.get_M())
+        MT = MT*MO[ksubf]
+        
+        Mrr = MT[0,0] + Mrr
+        Mtt = MT[1,1] + Mtt
+        Mpp = MT[2,2] + Mpp
+        Mrt = MT[0,1] + Mrt
+        Mrp = MT[0,2] + Mrp
+        Mtp = MT[1,2] + Mtp
+       
+    mt = [Mrr, Mtt, Mpp, Mrt, Mrp, Mtp] 
+
+    print(mt)
+
+
+
+    #fig = plt.figure(figsize=(7, 7))
+    fig = beachball(mt)#, width=3.0, zorder=1)
+    #ax = plt.gca()
+    #ax.add_collection(bb)
+    #ax.set_aspect('equal')
+    #fig.patch.set_visible(False)
+    #plt.gca().axis('off')
+    plt.savefig('Cumulative_Moment_Tensor.png')
+    plt.close()
+    return
+
+
 def plot_beachball(tensor_info, segments, files=None, phase=None):
     """Here we plot the beachball for the event. Optionally, we add the
     location of teleseismic data used in the FFM modelling.
@@ -2276,6 +2319,8 @@ if __name__ == '__main__':
     parser.add_argument("-limits","--map_limits", type=float, nargs=4,
                         help="Specify map limits [W,E,N,S] from edges of plotted features. eg: 0.5 0.5 0.5 0.5\
                         gives a 0.5 degree buffer on each side. Negative numbers will cut off plotted features.")
+    parser.add_argument("-MT", "--cumulative_moment_tensor", action="store_true",
+                        help="Calculate cumulative moment tensor of FFM")
     args = parser.parse_args()
     os.chdir(args.folder)
     used_data = []
@@ -2348,13 +2393,11 @@ if __name__ == '__main__':
         else:
             separate=False
         static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution) 
-        static_to_srf(tensor_info, segments_data, used_data, vel_model, solution)
+        #static_to_srf(tensor_info, segments_data, used_data, vel_model, solution)
         plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                      vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID,
                      files_str=traces_info,stations_gps=stations_gps, stations_cgps=traces_info_cgps, 
                      max_val=maxval, legend_len=legend_len, scale=scale, limits=limits, separate_planes=separate)
-        static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)        
-        #static_to_srf(tensor_info, segments_data, used_data, vel_model, solution)
     if args.shakemappolygon:
         if args.EventID:
             evID = args.EventID
@@ -2402,6 +2445,9 @@ if __name__ == '__main__':
        #static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution)
 
     plot_misfit(used_data)#, forward=True)
+
+    if args.cumulative_moment_tensor:
+        calculate_cumulative_moment_tensor()
 
     plot_files = glob.glob(os.path.join('plots', '*png'))
     #for plot_file in plot_files:
