@@ -383,9 +383,9 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False, max
         grid_z_reshape = grid_z.reshape((np.shape(XCOLS)))
         ax.quiver(x, y, u, v, scale=20.0, width=0.001, color='0.5', clip_on=False)
         ax.plot(0, 0, 'w*', ms=15, markeredgewidth=1.5, markeredgecolor='k')
-        #ax, im = __several_axes(
-        #        grid_z_reshape, segment, ps_seg, ax, max_val=1., autosize=autosize)
-        ax, im = __several_axes(z, segment, ps_seg, ax, max_val=1., autosize=autosize)
+        ax, im = __several_axes(
+                grid_z_reshape, segment, ps_seg, ax, max_val=1., autosize=autosize)
+        #ax, im = __several_axes(z, segment, ps_seg, ax, max_val=1., autosize=autosize)
         plt.clabel(contplot, fmt = '%.0f', inline = True, fontsize=14, colors='k')
         cbar_ax = fig.add_axes([0.125, 0.15, 0.5, 0.07])
         sm = plt.cm.ScalarMappable(cmap=slipcpt,norm=plt.Normalize(vmin=0.,vmax=max_slip/100.))
@@ -413,12 +413,13 @@ def _PlotSlipTimes(segments, point_sources, solution):
     rake = solution['rake']
     rupt_time = solution['rupture_time']
     rise_time = solution['trise']
+    fall_time = solution['tfall']
     max_slip = [np.max(slip_seg.flatten()) for slip_seg in slip]
     max_slip = np.max(max_slip)
     x_label = 'Distance Along Strike (km)'
     y_label = 'Dist Along Dip (km)'
-    for i_segment, (segment, slip_seg, rake_seg, rupttime_seg, risetime_seg, ps_seg)\
-    in enumerate(zip(segments, slip, rake, rupt_time, rise_time, point_sources)):
+    for i_segment, (segment, slip_seg, rake_seg, rupttime_seg, risetime_seg, falltime_seg, ps_seg)\
+    in enumerate(zip(segments, slip, rake, rupt_time, rise_time, fall_time, point_sources)):
         max_slip_seg = np.max(slip_seg.flatten())
         u = slip_seg * np.cos(rake_seg * np.pi / 180.0) / max_slip_seg
         v = slip_seg * np.sin(rake_seg * np.pi / 180.0) / max_slip_seg
@@ -539,15 +540,16 @@ def _PlotSlipTimes(segments, point_sources, solution):
             ax3.plot(0, 0, 'w*', ms=15, markeredgewidth=1.5, markeredgecolor='k')
        # ax3, im = __several_axes(
        #         grid_risetime_reshape, segment, ps_seg, ax3, autosize=False, cmap='magma_r')
+        slip_duration = risetime_seg + falltime_seg
         ax3, im = __several_axes(
-                risetime_seg, segment, ps_seg, ax3, autosize=False, cmap='cividis_r')
+                slip_duration, segment, ps_seg, ax3, autosize=False, cmap='cividis_r')
         plt.clabel(contplot, fmt = '%.0f', inline = True, fontsize=11, colors='k')
         cbar_ax3 = fig.add_axes([0.85, 0.115, 0.03, 0.2])
-        sm = plt.cm.ScalarMappable(cmap='cividis_r',norm=plt.Normalize(vmin=0.,vmax=max(risetime_seg.flatten())))
+        sm = plt.cm.ScalarMappable(cmap='cividis_r',norm=plt.Normalize(vmin=0.,vmax=max(slip_duration.flatten())))
         cb = fig.colorbar(sm, cax=cbar_ax3, orientation='vertical')
         cb.outline.set_linewidth(3)
         cb.set_label('Slip Duration (s)',fontsize=16)
-        mean_rise = np.mean(risetime_seg[idx10])
+        mean_rise = np.mean(slip_duration[idx10])
         ax3.text(0, -.04, 'Average* Slip Duration (Rise Time): '+"{:.2f}".format(mean_rise)+' s',
                  fontsize=13,fontweight='bold', transform=ax3.transAxes, va='top', ha='left')
         ax3.text(0,-0.12, '*Includes subfaults with >5% maximum slip',
@@ -1840,63 +1842,79 @@ def shakemap_polygon(segments, point_sources, solution, tensor_info, evID):
     txtout.close()
 
 
-def calculate_cumulative_moment_tensor(directory=None):
+def calculate_cumulative_moment_tensor(solution, directory=None):
+    from pyrocko import moment_tensor as pmt
+    from pyrocko import plot
+    from pyrocko.plot import beachball
     print('Calculating Cumulative Moment Tensor...')
 
-    if directory == None:
-        directory = os.getcwd()
+    segments_data = json.load(open('segments_data.json'))
+    segments = segments_data['segments']
 
-    LAT=[]; LON=[]; DEP=[]; SLIP=[]; RAKE=[]; STRIKE=[]; DIP=[]; T_RUP=[]; T_RIS=[]; T_FAL=[]; MO=[]
+    slip = solution['slip']
+    rake = solution['rake']
+    rupture_time = solution['rupture_time']
+    trise = solution['trise']
+    tfall = solution['tfall']
+    lat = solution['lat']
+    lon = solution['lon']
+    depth = solution['depth']
+    moment = solution['moment']
 
-    sol = open(directory+'/Solucion.txt')
-    for line in sol:
-        if '#' in line: #HEADER LINES
-            continue
-        if len(np.array(line.split())) < 4: #FAULT BOUNDARY LINES
-            continue
-        else: #ACTUAL SUBFAULT DETAILS
-            lat, lon, dep, slip, rake, strike, dip, t_rup, t_ris, t_fal, mo = line.split()
-            # Make rake be -180 to 180 (not 0-360)
-            if float(rake) > 180:
-                rake = float(rake) - 360
-            LAT.append(float(lat)); LON.append(float(lon)); DEP.append(float(dep)); SLIP.append(float(slip)); 
-            RAKE.append(float(rake)); STRIKE.append(float(strike)); DIP.append(float(dip));
-            T_RUP.append(float(t_rup)); T_RIS.append(float(t_ris)); T_FAL.append(float(t_fal)); MO.append(float(mo))
-    sol.close()
+    num_seg = len(solution['slip'])
 
-    SUBFAULTS = np.c_[LAT,LON,DEP,SLIP,RAKE,STRIKE,DIP,T_RUP,T_RIS,T_FAL,MO]
-    SUBFAULTS = SUBFAULTS[SUBFAULTS[:,7].argsort()]
-    LAT = SUBFAULTS[:,0]; LON = SUBFAULTS[:,1]; DEP = SUBFAULTS[:,2]; SLIP = SUBFAULTS[:,3];
-    RAKE = SUBFAULTS[:,4]; STRIKE = SUBFAULTS[:,5]; DIP = SUBFAULTS[:,6]; T_RUP = SUBFAULTS[:,7];
-    T_RIS = SUBFAULTS[:,8]; T_FAL = SUBFAULTS[:,9]; MO = SUBFAULTS[:,10]
-
-    Mrr = 0; Mtt = 0; Mpp = 0; Mrt = 0; Mrp = 0; Mtp = 0
-    for ksubf in range(len(SUBFAULTS)):
-        #print(STRIKE[ksubf], DIP[ksubf], RAKE[ksubf])
-        MT = mopad.MomentTensor([STRIKE[ksubf],DIP[ksubf],RAKE[ksubf]])
-        MT = np.array(MT.get_M())
-        MT = MT*MO[ksubf]
-        
-        Mrr = MT[0,0] + Mrr
-        Mtt = MT[1,1] + Mtt
-        Mpp = MT[2,2] + Mpp
-        Mrt = MT[0,1] + Mrt
-        Mrp = MT[0,2] + Mrp
-        Mtp = MT[1,2] + Mtp
-       
-    mt = [Mrr, Mtt, Mpp, Mrt, Mrp, Mtp] 
-
-    print(mt)
+    Mm6 = [0, 0, 0, 0, 0, 0]
+    total_moment = 0
+    fig = plt.figure(figsize=(num_seg+2., 2.),dpi=300)
+    fig.subplots_adjust(left=0., right=1., bottom=0., top=1.)
 
 
+    for kseg in range(num_seg):
+        axes = fig.add_subplot(1, num_seg+1,kseg+1)
+        axes.set_axis_off()
+        strk = segments[kseg]['strike']
+        dip = segments[kseg]['dip']
+        Mm6_seg = [0, 0, 0, 0, 0, 0]
+        seg_moment = sum(moment[kseg].flatten())
+        seg_Mw = (2./3)*(np.log10(seg_moment*1e-7)-9.1)
+        total_moment+=seg_moment
+        print(seg_moment)
+        for subfault in range(len(slip[kseg].flatten())):
+            Mmt_seg = pmt.MomentTensor(strike=strk, dip=dip, rake=rake[kseg].flatten()[subfault],
+                      scalar_moment=moment[kseg].flatten()[subfault])
+            Mm6_seg = [Mm6_seg[0]+Mmt_seg.mnn, Mm6_seg[1]+Mmt_seg.mee, Mm6_seg[2]+Mmt_seg.mdd,
+                       Mm6_seg[3]+Mmt_seg.mne, Mm6_seg[4]+Mmt_seg.mnd, Mm6_seg[5]+Mmt_seg.med] 
+        beachball.plot_beachball_mpl(
+            pmt.as_mt(Mm6_seg),
+            axes,
+            size=60,
+            position=(0.5,0.5),
+            beachball_type='deviatoric',
+            color_t=plot.mpl_color('blue'),
+            linewidth=1.0)
+        Mm6 = [Mm6[0]+Mm6_seg[0], Mm6[1]+Mm6_seg[1], Mm6[2]+Mm6_seg[2], Mm6[3]+Mm6_seg[3], Mm6[4]+Mm6_seg[4], Mm6[5]+Mm6_seg[5]]
+        print(Mm6)
+        axes.text(0.1, 0.8, 'Segment '+str(kseg)+'\n Mw'+'{:0.2f}'.format(seg_Mw))
+        if kseg < num_seg - 1:
+            axes.text(1.05,0.5,'+')
+        else:
+            axes.text(1.05,0.5,'=')
 
-    #fig = plt.figure(figsize=(7, 7))
-    fig = beachball(mt)#, width=3.0, zorder=1)
-    #ax = plt.gca()
-    #ax.add_collection(bb)
-    #ax.set_aspect('equal')
-    #fig.patch.set_visible(False)
-    #plt.gca().axis('off')
+    axes = fig.add_subplot(1, num_seg+1, num_seg+1)
+    #axes.set_xlim(0., 4.)
+    #axes.set_ylim(0.,4.)
+    axes.set_axis_off()
+    beachball.plot_beachball_mpl(
+        pmt.as_mt(Mm6),
+        axes,
+        size=60,
+        position=(0.5,0.5),
+        beachball_type='deviatoric',
+        color_t=plot.mpl_color('blue'),
+        linewidth=1.0)
+    total_Mw = (2./3)*(np.log10(total_moment*1e-7)-9.1)
+    axes.text(0.1, 0.8, 'Total MT \n Mw'+'{:0.2f}'.format(total_Mw))
+
     plt.savefig('Cumulative_Moment_Tensor.png')
     plt.close()
     return
@@ -2447,7 +2465,7 @@ if __name__ == '__main__':
     plot_misfit(used_data)#, forward=True)
 
     if args.cumulative_moment_tensor:
-        calculate_cumulative_moment_tensor()
+        calculate_cumulative_moment_tensor(solution)
 
     plot_files = glob.glob(os.path.join('plots', '*png'))
     #for plot_file in plot_files:
