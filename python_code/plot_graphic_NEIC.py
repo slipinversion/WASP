@@ -42,7 +42,7 @@ from plot_maps_NEIC import plot_map, set_map_cartopy, plot_borders
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from static2fsp import static_to_fsp
-#from static2srf import static_to_srf
+from static2srf import static_to_srf
 """
 Set colorbar for slip
 """
@@ -2339,6 +2339,7 @@ if __name__ == '__main__':
                         gives a 0.5 degree buffer on each side. Negative numbers will cut off plotted features.")
     parser.add_argument("-MT", "--cumulative_moment_tensor", action="store_true",
                         help="Calculate cumulative moment tensor of FFM")
+    parser.add_argument("-srf", "--srf_format", action="store_true", help="Make SRF format file")
     args = parser.parse_args()
     os.chdir(args.folder)
     used_data = []
@@ -2346,6 +2347,7 @@ if __name__ == '__main__':
     used_data = used_data + ['cgps'] if args.cgps else used_data
     used_data = used_data + ['tele_body'] if args.tele else used_data
     used_data = used_data + ['surf_tele'] if args.surface else used_data
+    used_data = used_data + ['gps'] if args.gps else used_data
     default_dirs = mng.default_dirs()
     if args.gcmt_tensor:
         cmt_file = args.gcmt_tensor
@@ -2416,6 +2418,9 @@ if __name__ == '__main__':
                      vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID,
                      files_str=traces_info,stations_gps=stations_gps, stations_cgps=traces_info_cgps, 
                      max_val=maxval, legend_len=legend_len, scale=scale, limits=limits, separate_planes=separate)
+    if args.srf_format:
+        vel_model = json.load(open('velmodel_data.json'))
+        static_to_srf(tensor_info, segments_data, used_data, vel_model, solution)
     if args.shakemappolygon:
         if args.EventID:
             evID = args.EventID
