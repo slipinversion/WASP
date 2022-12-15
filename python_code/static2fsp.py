@@ -101,24 +101,70 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     delta_rise = rise_time['delta_rise']
     windows = rise_time['windows']
 
-    quantity_strong = 0
+    ##########################################################
+    ### COUNT UP HOW MANY OF EACH OBSERVATION TYPE WE USED ###
+    ##########################################################
+    quantity_strong = 0; strong_phimx = 0; strong_r = 0
     if 'strong_motion' in used_data:
-        strong_data = json.load(open('strong_motion_waves.json'))
-        quantity_strong = len(strong_data)
-    quantity_gps = 0
+        strong_data = pd.read_json('strong_motion_waves.json')
+        quantity_strong = int(len(strong_data)/3) #divide by 3 for number of stations rather than number of channels
+        strong_r = min(strong_data['distance'])
+        strong_az = np.sort(strong_data['azimuth'].values.tolist())
+        strong_az = np.append(strong_az, strong_az[0]+360)
+        strong_phimx = max(np.diff(strong_az))
+    quantity_cgps = 0; cgps_phimx = 0; cgps_r = 0
+    if 'cgps' in used_data:
+        cgps_data = pd.read_json('cgps_waves.json')
+        quantity_cgps = int(len(cgps_data)/3)
+        cgps_r = min(cgps_data['distance'])
+        cgps_az = np.sort(cgps_data['azimuth'].values.tolist())
+        cgps_az = np.append(cgps_az, cgps_az[0]+360)
+        cgps_phimx = max(np.diff(cgps_az))
+    quantity_gps = 0; gps_phimx = 0; gps_r = 0
     if 'gps' in used_data:
-        gps_data = json.load(open('static_data.json'))
+        gps_data = pd.read_json('static_data.json')
         quantity_gps = len(gps_data)
-    quantity_tele = 0
+        gps_r = min(gps_data['distance'])
+        gps_az = np.sort(gps_data['azimuth'].values.tolist())
+        gps_az = np.append(gps_az, gps_az[0]+360)
+        gps_phimx = max(np.diff(gps_az))
+    quantity_tele = 0; tele_phimx = 0; tele_r = 0
     if 'tele_body' in used_data:
-        tele_data = json.load(open('tele_waves.json'))
+        tele_data = pd.read_json('tele_waves.json')
         quantity_tele = len(tele_data)
-    quantity_surf = 0
+        tele_r = min(tele_data['distance'])
+        tele_az = np.sort(tele_data['azimuth'].values.tolist())
+        tele_az = np.append(tele_az, tele_az[0]+360)
+        tele_phimx = max(np.diff(tele_az))
+    quantity_surf = 0; surf_phimx = 0; surf_r = 0
     if 'surf_tele' in used_data:
-        surf_data = json.load(open('surf_waves.json'))
+        surf_data = pd.read_json('surf_waves.json')
         quantity_surf = len(surf_data)
+        surf_r = min(surf_data['distance'])
+        surf_az = np.sort(surf_data['azimuth'].values.tolist())
+        surf_az = np.append(surf_az, surf_az[0]+360)
+        surf_phimx = max(np.diff(surf_az))
+    quantity_insar_scenes = 0; quantity_insar_points = 0; insar_r = 0
+    if 'insar' in used_data:
+        insar_data = pd.read_json('insar_data.json')
+        if 'ascending' in insar_data:
+            asc_insar = len(insar_data['ascending'])
+            quantity_insar_scenes += asc_insar
+        if 'descending' in insar_data:
+            desc_insar = len(insar_data['descending'])
+            quantity_insar_scenes += desc_insar
+        with open('insar_data.txt') as f:
+            first_line = f.readline().strip('\n')
+            quantity_insar_points = int(first_line)
+    quantity_dart = 0; dart_phimx = 0; dart_r = 0
+    if 'dart' in used_data:
+        dart_data = pd.read_json('dart_data.json')
+        quantity_dart = len(dart_data)
+        dart_r = min(dart_data['distance'])
+        dart_az = np.sort(dart_data['azimuth'].values.tolist())
+        dart_az = np.append(dart_az, dart_az[0]+360)
+        dart_phimx = max(np.diff(dart_az))
 
-    n_layers = len(vel_model['dens'])
     p_vel = [float(v) for v in vel_model['p_vel']]
     s_vel = [float(v) for v in vel_model['s_vel']]
     dens = [float(v) for v in vel_model['dens']]
@@ -166,16 +212,26 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
                 min_rise + delta_rise, delta_rise))
         outfile.write('% SVF  : Asymetriccosine    '\
             '(type of slip-velocity function used)\n')
-        outfile.write('%\n% Data : SGM TELE TRIL LEVEL GPS INSAR SURF OTHER\n')
-        outfile.write('% Data : {} {} 0 0 {} 0 {} '\
-            '0\n'.format(quantity_strong, quantity_tele, quantity_gps,
-                         quantity_surf))
-        outfile.write('% Data : {} {} 0 0 {} 0 {} '\
-            '0\n'.format(quantity_strong, quantity_tele, quantity_gps,
-                         quantity_surf))
-        outfile.write('% Data : {} {} 0 0 {} 0 {} '\
-            '0\n'.format(quantity_strong, quantity_tele, quantity_gps,
-                         quantity_surf))
+
+        outfile.write('#\n# Data :\tBODY\tSURF\tSTRONG\tcGPS\tGPS\tInSAR\tDART\tTRIL\tLEVEL\tOTHER\n')
+        outfile.write('# NoS  :\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t0\t0\t0\n'.format(\
+            quantity_tele, quantity_surf, quantity_strong, quantity_cgps, quantity_gps,
+            quantity_insar_points, quantity_dart))
+        outfile.write('# PHImx :\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:d}\t{:.2f}\t0.0\t0.0\t0.0\n'.format(\
+            tele_phimx, surf_phimx, strong_phimx, cgps_phimx, gps_phimx, quantity_insar_scenes, dart_phimx))
+        outfile.write('# Rmin :\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t--\t{:.2f}\t0.0\t0.0\t0.0\n'.format(\
+            tele_r, surf_r, strong_r, cgps_r, gps_r, insar_r, dart_r))
+
+#        outfile.write('%\n% Data : SGM TELE TRIL LEVEL GPS INSAR SURF OTHER\n')
+#        outfile.write('% Data : {} {} 0 0 {} 0 {} '\
+#            '0\n'.format(quantity_strong, quantity_tele, quantity_gps,
+#                         quantity_surf))
+#        outfile.write('% Data : {} {} 0 0 {} 0 {} '\
+#            '0\n'.format(quantity_strong, quantity_tele, quantity_gps,
+#                         quantity_surf))
+#        outfile.write('% Data : {} {} 0 0 {} 0 {} '\
+#            '0\n'.format(quantity_strong, quantity_tele, quantity_gps,
+#                         quantity_surf))
         outfile.write('%\n%{}{}\n'.format(string, string))
         outfile.write('%\n% VELOCITY-DENSITY STRUCTURE\n')
         outfile.write('% No. of layers = {}\n'.format(n_layers))
