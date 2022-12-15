@@ -319,6 +319,9 @@ def static_data(tensor_info, unit='m'):
     :type tensor_info: dict
     :type unit: string, optional
     """
+
+    event_lat = tensor_info['lat']
+    event_lon = tensor_info['lon']
     info_traces = []
     if not os.path.isfile('cgps_waves.json') and not os.path.isfile('gps_data'):
         return
@@ -394,8 +397,10 @@ def static_data(tensor_info, unit='m'):
             weights[0] = 0.5
             observed = [str(obs) for obs in observed]
             weights = [str(w) for w in weights]
+            distance, azimuth, back_azimuth = mng._distazbaz(
+            lat, lon, event_lat, event_lon)
             info = _dict_trace(
-                [], name, [], [], [], [], 1, 10, weights,
+                [], name, ['Z,N,E'], azimuth, distance / 111.11, [], 1, 10, weights,
                 [], [], observed_trace=observed, location=[lat, lon])
             info['data_error'] = error
             info_traces.append(info)
