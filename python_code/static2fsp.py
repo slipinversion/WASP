@@ -12,7 +12,7 @@ import datetime
 import os
 import seismic_tensor as tensor
 import fault_plane as pf
-
+import pandas as pd
 
 def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
     """Write FSP file with the solution of FFM modelling from file Solucion.txt
@@ -165,6 +165,7 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
         dart_az = np.append(dart_az, dart_az[0]+360)
         dart_phimx = max(np.diff(dart_az))
 
+    n_layers = len(vel_model['dens'])
     p_vel = [float(v) for v in vel_model['p_vel']]
     s_vel = [float(v) for v in vel_model['s_vel']]
     dens = [float(v) for v in vel_model['dens']]
