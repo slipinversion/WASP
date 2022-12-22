@@ -214,13 +214,13 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
         outfile.write('% SVF  : Asymetriccosine    '\
             '(type of slip-velocity function used)\n')
 
-        outfile.write('#\n# Data :\tBODY\tSURF\tSTRONG\tcGPS\tGPS\tInSAR\tDART\tTRIL\tLEVEL\tOTHER\n')
-        outfile.write('# NoS  :\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t0\t0\t0\n'.format(\
+        outfile.write('%\n% Data :\tBODY\tSURF\tSTRONG\tcGPS\tGPS\tInSAR\tDART\tTRIL\tLEVEL\tOTHER\n')
+        outfile.write('% NoS  :\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t0\t0\t0\n'.format(\
             quantity_tele, quantity_surf, quantity_strong, quantity_cgps, quantity_gps,
             quantity_insar_points, quantity_dart))
-        outfile.write('# PHImx :\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:d}\t{:.2f}\t0.0\t0.0\t0.0\n'.format(\
+        outfile.write('% PHImx :\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:d}\t{:.2f}\t0.0\t0.0\t0.0\n'.format(\
             tele_phimx, surf_phimx, strong_phimx, cgps_phimx, gps_phimx, quantity_insar_scenes, dart_phimx))
-        outfile.write('# Rmin :\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t--\t{:.2f}\t0.0\t0.0\t0.0\n'.format(\
+        outfile.write('% Rmin :\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t--\t{:.2f}\t0.0\t0.0\t0.0\n'.format(\
             tele_r, surf_r, strong_r, cgps_r, gps_r, insar_r, dart_r))
 
 #        outfile.write('%\n% Data : SGM TELE TRIL LEVEL GPS INSAR SURF OTHER\n')
