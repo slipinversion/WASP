@@ -282,6 +282,8 @@ def cgps_traces(files, tensor_info, data_prop):
     duration = duration_strong_motion(
         distances, arrivals, tensor_info, dt_cgps)
     filter0 = data_prop['strong_filter']
+    if 'cgps_filter' in data_prop:
+        filter0 = data_prop['cgps_filter']
     n0, n1 = data_prop['wavelet_scales']
     wavelet_weight = wavelets_strong_motion(
         duration, filter0, dt_cgps, n0, n1, cgps=True)

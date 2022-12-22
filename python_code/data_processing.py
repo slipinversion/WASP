@@ -724,13 +724,15 @@ def new_process_cgps(tensor_info, stations_str, data_prop, logger=None):
     :type logger: logging, optional
     """
     start = tensor_info['date_origin']
-    filtro_strong = data_prop['strong_filter']
+    filtro_cgps = data_prop['strong_filter']
+    if 'cgps_filter' in data_prop:
+        filtro_cgps = data_prop['cgps_filter']
     lat_ep = tensor_info['lat']
     lon_ep = tensor_info['lon']
     sampling = data_prop['sampling']
     dt_cgps = sampling['dt_cgps']
 
-    high_freq = min(filtro_strong['high_freq'], 0.5)
+    high_freq = min(filtro_cgps['high_freq'], 0.5)
 
     for sac in stations_str:
         st = read(sac)
@@ -751,7 +753,7 @@ def new_process_cgps(tensor_info, stations_str, data_prop, logger=None):
         sacheader.o = start - start_time
         sacheader.write(sac, byteorder='little')
 
-    _filter_decimate(stations_str, filtro_strong, dt_cgps, corners=4, passes=2,
+    _filter_decimate(stations_str, filtro_cgps, dt_cgps, corners=4, passes=2,
                      decimate=False, filter0='lowpass', logger=logger)
     return
 

@@ -508,6 +508,8 @@ def input_chen_cgps(tensor_info, data_prop):
     event_lon = tensor_info['lon']
     depth = tensor_info['depth']
     filtro = data_prop['strong_filter']
+    if 'cgps_filter' in data_prop:
+        filtro = data_prop['cgps_filter']
     dt_cgps = traces_info[0]['dt']
     dt_cgps = round(dt_cgps, 2)
     low_freq = filtro['low_freq']
@@ -515,7 +517,7 @@ def input_chen_cgps(tensor_info, data_prop):
 
     nsta = len(traces_info)
 
-    with open('filtro_strong.txt', 'w') as outfile:
+    with open('filtro_cgps.txt', 'w') as outfile:
         outfile.write('Corners: {} {}'.format(low_freq, high_freq))
 
     io_vd = 0
@@ -883,6 +885,9 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
     """
     dt = files[0]['dt']
     filtro_strong = data_prop['strong_filter']
+    filtro_cgps = data_prop['strong_filter']
+    if 'cgps_filter' in data_prop:
+        filtro_cgps = data_prop['cgps_filter']
     filtro_tele = data_prop['tele_filter']
     nyq = 0.5 / dt if not data_type == 'gps' else 10000
     if data_type == 'strong_motion':
@@ -902,7 +907,7 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
         obser_file = 'waveforms_cgps.txt'
         std_shift = 0.5
         low_freq = 0
-        high_freq = filtro_strong['high_freq']
+        high_freq = filtro_cgps['high_freq']
         corners = [high_freq / nyq]
         filters = ['lowpass']
         orders = [4]
@@ -912,8 +917,8 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
         obser_file = 'waveforms_body.txt'
         std_shift = 0.5
         high_freq = 1.0
-        low_freq = filtro_strong['low_freq']
-        high_freq = filtro_strong['high_freq']
+        low_freq = filtro_tele['low_freq']
+        high_freq = filtro_tele['high_freq']
         corners = [low_freq / nyq, high_freq / nyq]
         filters = ['highpass', 'lowpass']
         orders = [2, 2]

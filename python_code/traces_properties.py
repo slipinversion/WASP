@@ -97,7 +97,7 @@ def filtro_surf(tensor_info):
     return filtro
 
 
-def filtro_strong(tensor_info):
+def filtro_strong(tensor_info, cgps=False):
     """Automatic settings for filter of strong motion data.
     
     :param tensor_info: dictionary with moment tensor information
@@ -118,10 +118,12 @@ def filtro_strong(tensor_info):
     min_freq = max(min_freq, 1 / 100)
     
     max_freq = 0.125# if tensor_info['time_shift'] > 10 else 0.25
+    if cgps:
+        max_freq = 0.3
     max_freq = max_freq if tensor_info['depth'] < 300 else 0.05
     filtro = {
-            'low_freq': min_freq,
-            'high_freq': max_freq
+        'low_freq': min_freq,
+        'high_freq': max_freq
     }
     return filtro
 
@@ -137,19 +139,21 @@ def properties_json(tensor_info, dt_cgps):
     dict2 = filtro_tele(tensor_info)
     dict3 = filtro_surf(tensor_info)
     dict4 = filtro_strong(tensor_info)
+    dict5 = filtro_strong(tensor_info, cgps=True)
     scales = wavelet_scales(tensor_info)
-    dict5 = {
-            'sampling': dict1,
-            'tele_filter': dict2,
-            'surf_filter': dict3,
-            'strong_filter': dict4,
-            'wavelet_scales': scales
+    dict6 = {
+        'sampling': dict1,
+        'tele_filter': dict2,
+        'surf_filter': dict3,
+        'strong_filter': dict4,
+        'cgps_filter': dict5,
+        'wavelet_scales': scales
     }
     with open('sampling_filter.json', 'w') as f:
          json.dump(
-                 dict5, f, sort_keys=True, indent=4, separators=(',', ': '),
-                 ensure_ascii=False)
-    return dict5
+             dict6, f, sort_keys=True, indent=4, separators=(',', ': '),
+             ensure_ascii=False)
+    return dict6
     
     
 def wavelet_scales(tensor_info):
