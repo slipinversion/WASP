@@ -14,7 +14,7 @@ program get_strong_motion
    use bpfilter, only : bandpassfilter
    use rad_pattern, only : rad_coef
    implicit none
-   character(len=100) :: vel_model, gf_file, gf_bank, wave_file, stat_file
+   character(len=100) :: vel_model, gf_file, gf_bank, filter_file, wave_file, stat_file
    character(len=70) :: string1, input
    character(len=10) :: sta_name(200)
    character(len=12) :: filename
@@ -53,7 +53,7 @@ program get_strong_motion
 
    real :: dip_sub(max_seg), stk_sub(max_seg)
    real :: c_depth
-   logical :: disp
+   logical :: disp, is_file
 
    call getarg(1, input)
    disp = (input.eq.'cgps')
@@ -92,9 +92,13 @@ program get_strong_motion
    enddo
    close(22)
 
-   open(1, file='filtro_strong.txt', status='old')
+   filter_file = 'filtro_strong.txt'
+   inquire( file = 'filtro_cgps.txt', exist = is_file )
+   if (is_file .and. disp) filter_file = 'filtro_cgps.txt'
+   open(1, file=filter_file, status='old')
    read(1,*)string1, low_freq, high_freq
    close(1)
+   write(*,*)high_freq
    if (disp) low_freq = 0.0
 !
 !	Load vel. model into memory
