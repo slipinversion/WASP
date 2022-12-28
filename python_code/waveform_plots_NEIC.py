@@ -18,8 +18,9 @@ plt.rc('font', size=12)
 def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, color='blue', custom=None):
     """
     """
-    #nPlot=0
+    nPlot=0
     for ax, time, waveform, weight in zip(axes, times, waveforms, weights):
+        nPlot+=1
         if weight == 0.0:
             ax.plot(time, waveform, color=color, linewidth=2, linestyle='dashed')
         else:
@@ -71,7 +72,6 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
                 ax.text(1.2*min_time,0.2*max(abs(min_val),max_val),'T',ha='right',va='bottom')
             #if type_str == 'cgps' or type_str == 'strong_motion':
             #    ax.text(1.4*min_time, 0.2*max(abs(min_val),max_val),None,ha='right',va='bottom')
-                #nPlot+=1
         if custom == 'syn':
             max_val = np.maximum(abs(min(waveform)),max(waveform))
             tmin, tmax = ax.get_xlim()
@@ -110,6 +110,8 @@ def plot_waveforms(axes, times, waveforms, weights, type_str=None, comp=None, co
             #     ticker.NullLocator())
             #ax.xaxis.set_minor_locator(
             #     ticker.MultipleLocator(500))
+        if nPlot > len(weights) - 3:
+            ax.set_xlabel('Time After OT (s)')
         ax.grid(axis='x',which='both',linestyle='dotted', color='0.5')
     return axes
 
@@ -129,7 +131,6 @@ def add_metadata(axes, **kwargs):
             if 'comps' in kwargs:
                if 'names' in kwargs:
                    for ax, comp, name in zip(axes, kwargs['comps'], kwargs['names']):
-                       #if comp == 'HNE' or comp == 'LXE' or comp =='LYE' or comp == 'BNE':
                        if comp[-1] == 'E':
                            ax.text(-0.18, 0.5, name, ha='right', va='center', transform=ax.transAxes, rotation=90, fontweight='bold')
                for ax, comp in zip(axes, kwargs['comps']):
