@@ -65,7 +65,7 @@ slipcpt = ListedColormap(slip_cpt)
 def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                  vel_model, default_dirs, autosize=False, mr_time=False, evID=None,
                  files_str=None, stations_gps=None, stations_cgps=None, max_val=None,
-                 legend_len=None, scale=None, limits=None, separate_planes=False):
+                 legend_len=None, scale=None, limits=None, separate_planes=False, label_stations=False):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
 
@@ -138,7 +138,7 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     #_PlotRiseTime(segments, point_sources, solution)
     #_PlotRuptTime(segments, point_sources, solution)
     _PlotSlipDistribution(segments, point_sources, solution, autosize=autosize, max_val=max_val)
-    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, files_str=files_str, stations_gps=stations_gps, stations_cgps=stations_cgps, max_slip=max_val, legend_len=legend_len, scale=scale, limits=limits)
+    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, files_str=files_str, stations_gps=stations_gps, stations_cgps=stations_cgps, max_slip=max_val, legend_len=legend_len, scale=scale, limits=limits, label_stations=label_stations)
     _PlotSlipTimes(segments, point_sources, solution)
 
 def plot_misfit(used_data_type, forward=False):
@@ -378,15 +378,32 @@ def _PlotSlipDistribution(segments, point_sources, solution, autosize=False, max
         new_grid = np.transpose(np.array([XCOLS.flatten(),YROWS.flatten()]))
         grid_rupttime = griddata(orig_grid, rupttime_seg.flatten(), new_grid, method='linear')
         grid_rupttime_reshape = grid_rupttime.reshape((np.shape(XCOLS)))
-        contplot = ax.contour(XCOLS, YROWS, grid_rupttime_reshape, colors='0.75', linestyles='dashed', levels = range(10,500,10), linewidths=1.0)
+        contplot = ax.contour(XCOLS, YROWS, grid_rupttime_reshape, colors='0.75', linestyles='dashed', levels = range(10,800,10), linewidths=1.0)
+        plt.clabel(contplot, fmt = '%.0f', inline = True, fontsize=14, colors='k')
         grid_z = griddata(orig_grid,z.flatten(),new_grid, method='linear')
         grid_z_reshape = grid_z.reshape((np.shape(XCOLS)))
-        ax.quiver(x, y, u, v, scale=20.0, width=0.001, color='0.5', clip_on=False)
+        #contplot2 = ax.contour(XCOLS, YROWS, grid_z_reshape, colors='r', linestyles='dashed', levels = [0.5], linewidths=1.0)
+        #contplot2 = ax.contour(xcols, yrows, z, colors='r', linestyles='dashed', levels = [0.5], linewidths=1.0)
+        #plt.clabel(contplot2, fmt = '%.1f', inline = True, fontsize=14, colors='k')
+        #print(np.shape(contplot2.collections))
+        #for item in contplot2.collections:
+        #    print(np.shape(item.get_paths()))
+        #    for i in item.get_paths():
+        #        #plt.plot(i.vertices[:,0],i.vertices[:,1])
+        #        xmin=min(i.vertices[:,0])
+        #        xmax=max(i.vertices[:,0])
+        #        ymin=min(i.vertices[:,1])
+        #        ymax=max(i.vertices[:,1])
+        #        plt.plot([xmin,xmin,xmax,xmax,xmin],[ymin,ymax,ymax,ymin,ymin])
+#                print(i.vertices)
+#                x = v[:,0]
+#                y = v[:,1]
+#                #print(x,y)
+        ax.quiver(x, y, u, v, scale=20.0, width=0.002, color='0.5', clip_on=False)
         ax.plot(0, 0, 'w*', ms=15, markeredgewidth=1.5, markeredgecolor='k')
         ax, im = __several_axes(
                 grid_z_reshape, segment, ps_seg, ax, max_val=1., autosize=autosize)
-        #ax, im = __several_axes(z, segment, ps_seg, ax, max_val=1., autosize=autosize)
-        plt.clabel(contplot, fmt = '%.0f', inline = True, fontsize=14, colors='k')
+#        ax, im = __several_axes(z, segment, ps_seg, ax, max_val=1., autosize=autosize)
         cbar_ax = fig.add_axes([0.125, 0.15, 0.5, 0.07])
         sm = plt.cm.ScalarMappable(cmap=slipcpt,norm=plt.Normalize(vmin=0.,vmax=max_slip/100.))
         cb = fig.colorbar(sm, cax=cbar_ax, orientation='horizontal')
@@ -758,7 +775,7 @@ def _PlotSlipDist_Compare(segments, point_sources, input_model,
 
 def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, convex_hulls=[],
             files_str=None, stations_gps=None, stations_cgps=None, option='Solucion.txt',
-            max_slip=None, legend_len=None, scale=None, limits=[None,None,None,None]):
+            max_slip=None, legend_len=None, scale=None, limits=[None,None,None,None], label_stations=False):
 
     import pygmt
     import numpy as np
@@ -850,7 +867,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
     fig.colorbar(yshift='a-10p',
                  xshift='a-5p',
                  position="n0.05/-0.1+jTL+w100p/8%+h",
-                 frame="x+lTopography (km)",
+                 frame="x+lElevation (km)",
                  #box="+p2p,black+ggray80",
                  scale=0.001
                  )
@@ -1037,7 +1054,8 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                     fig.plot(x=lonp, y=latp, style="i7p", color="lightgrey", pen="black")
                 else:
                     fig.plot(x=lonp, y=latp, style="i10p", color="white", pen="black")
-                fig.text(x=lonp, y=latp, text=name)
+                if label_stations==True:
+                    fig.text(x=lonp, y=latp, text=name)
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
             xshift="a-130p", yshift="a-54p",
@@ -1058,7 +1076,8 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                     fig.plot(x=lonp, y=latp, style="t7p", color="lightsteelblue", pen="black")
                 else:
                     fig.plot(x=lonp, y=latp, style="t10p", color="navy", pen="black")
-                #fig.text(x=lonp, y=latp, text=name, justify="TR")
+                if label_stations==True:                
+                    fig.text(x=lonp, y=latp, text=name, justify="TR")
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
             xshift="a-55p", yshift="a-56p",
@@ -1073,8 +1092,8 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
             gps_z_obs, gps_n_obs, gps_e_obs = obs
             gps_z_syn, gps_n_syn, gps_e_syn = syn
             err_z, err_n, err_e = error
-
-            #fig.text(x=sta_lon, y=sta_lat, text=name, justify="TR")
+            if label_stations==True:
+                fig.text(x=sta_lon, y=sta_lat, text=name, justify="TR")
             staticv_obs = pd.DataFrame(
                  data={
                      "x": [sta_lon],
@@ -1739,9 +1758,10 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
         plt.grid(which='major',linestyle='dotted', color='0.5')
         ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.2))
         ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
-        ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
+        #ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
         ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
-        #ax.fill_between(time, rel_mr, color='0.9')
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=10, min_n_ticks=5))
+        ax.fill_between(time, rel_mr, color='0.9')
         ax.plot(time, rel_mr, 'k', lw=2, label='Total')
         ### Plot multiple planes separately? ###
         if separate_planes == True:
@@ -1758,7 +1778,7 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
         ax.set_ylim([0,1])
         ax.set_xlim([0,max(time)])
         plt.savefig('MomentRate.png')#, bbox_inches='tight')
-        plt.savefig('MomentRate.ps')
+        #plt.savefig('MomentRate.ps')
         plt.close()
         return
 
@@ -2318,6 +2338,8 @@ if __name__ == '__main__':
                         help="choose cutoff time for Moment Rate plot")
     parser.add_argument("-separate","--separate_mr_planes",action="store_true",
                         help="include STFs for each plane separately in moment rate plot")
+    parser.add_argument("-label","--label_stations",action="store_true",
+                        help="Label local station IDs on map (applies to strong, cgps, gps)")
     parser.add_argument("-shakemap","--shakemappolygon",action="store_true",
                         help="create shakemap_polygon.txt")
     parser.add_argument("-ev","--EventID", nargs='?', const='Not Provided', type=str,
@@ -2412,12 +2434,17 @@ if __name__ == '__main__':
             separate=True
         else:
             separate=False
+        if args.label_stations:
+            label_stations=True
+        else:
+            label_stations=False
         static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution) 
         #static_to_srf(tensor_info, segments_data, used_data, vel_model, solution)
         plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                      vel_model, default_dirs, autosize=autosize, mr_time=mr_time, evID=evID,
                      files_str=traces_info,stations_gps=stations_gps, stations_cgps=traces_info_cgps, 
-                     max_val=maxval, legend_len=legend_len, scale=scale, limits=limits, separate_planes=separate)
+                     max_val=maxval, legend_len=legend_len, scale=scale, limits=limits,
+                     separate_planes=separate, label_stations=label_stations)
     if args.srf_format:
         vel_model = json.load(open('velmodel_data.json'))
         static_to_srf(tensor_info, segments_data, used_data, vel_model, solution)
