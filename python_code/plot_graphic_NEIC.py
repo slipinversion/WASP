@@ -199,13 +199,10 @@ def plot_misfit(used_data_type, forward=False):
     return
 
 
-def _plot_vel_model(velmodel, point_sources):
+def _plot_vel_model(velmodel):
     """We plot the seismic velocity model as a function of depth
     """
     print('Creating Velocity Model Plot...')
-    max_depth = [max(ps_segment[:, :, :, :, 2].flatten())\
-        for ps_segment in point_sources]
-    max_depth = max(max_depth)
     p_vel = np.array(velmodel['p_vel']).astype(np.float)
     sh_vel = np.array(velmodel['s_vel']).astype(np.float)
     thick = np.array(velmodel['thick']).astype(np.float)
@@ -214,7 +211,7 @@ def _plot_vel_model(velmodel, point_sources):
 
     depths[1:] = np.cumsum(thick)
     depths = np.array([depth for depth in depths if depth < 70])
-    depths = np.append([depths], [70])#[max_depth])
+    depths = np.append([depths], [70]))
     plt.plot((p_vel[0], p_vel[0]), (depths[0], depths[1]), 'b-', label='P')
     plt.plot((sh_vel[0], sh_vel[0]), (depths[0], depths[1]), 'r-', label='SH')
     j = len(depths) - 2
@@ -229,7 +226,7 @@ def _plot_vel_model(velmodel, point_sources):
     plt.plot((p_vel[j], p_vel[j]), (depths[j], depths[j + 1]), 'b-')
     plt.plot((sh_vel[j], sh_vel[j]), (depths[j], depths[j + 1]), 'r-')
 
-    plt.title('Crust model for north of Chile')#'Body wave velocity model')
+    plt.title('Crust model')
     plt.xlabel('Body wave velocity $(km/s)$')
     plt.ylabel('Depth $(km)$')
     plt.legend(loc='upper right')
@@ -1058,10 +1055,10 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                     fig.text(x=lonp, y=latp, text=name)
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
-            xshift="a-130p", yshift="a-54p",
+            xshift="a-135p", yshift="a-66p",
             no_clip=True, style="i10p", color="white", pen="black")
         fig.text(x=region[1], y=region[2], text="Accelerometer",
-            xshift="a-123p", yshift="a-55p", no_clip=True, justify="ML")
+            xshift="a-128p", yshift="a-67p", no_clip=True, justify="ML")
 
     ### HIGH-RATE GNSS ###
     if stations_cgps is not None:
@@ -1080,10 +1077,10 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                     fig.text(x=lonp, y=latp, text=name, justify="TR")
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
-            xshift="a-55p", yshift="a-56p",
+            xshift="a-55p", yshift="a-68p",
             no_clip=True, style="t10p", color="navy", pen="black")
         fig.text(x=region[1], y=region[2], text="HR GNSS",
-            xshift="a-48p", yshift="a-55p", no_clip=True, justify="ML", offset=0/10)
+            xshift="a-48p", yshift="a-67p", no_clip=True, justify="ML", offset=0/10)
 
     ### STATIC GNSS ####
     if stations_gps is not None:
@@ -1156,9 +1153,9 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
             )
         ### ADD TO LEGEND ###
         fig.text(x=region[1], y=region[2], text="Observed GNSS",
-            xshift="a-133p", yshift="a-30p", no_clip=True, justify="ML")
+            xshift="a-133p", yshift="a-42p", no_clip=True, justify="ML")
         fig.text(x=region[1], y=region[2], text="Synthetic  GNSS",
-            xshift="a-133p", yshift="a-40p", no_clip=True, justify="ML")
+            xshift="a-133p", yshift="a-52p", no_clip=True, justify="ML")
         static_legend = pd.DataFrame(
              data={
                  "x": [region[1]],
@@ -1179,7 +1176,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 color="grey",
                 spec="e1/0",
                 vector=v_obs,
-                xshift="a-45p", yshift="a-30p",
+                xshift="a-45p", yshift="a-42p",
                 no_clip=True
             )
         fig.velo(
@@ -1189,7 +1186,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 color="BLACK",
                 spec="e1/0.34",
                 vector=v_obs,
-                xshift="a-45p", yshift="a-30p",
+                xshift="a-45p", yshift="a-42p",
                 no_clip=True
             )
         # Plot thick black arrow behind, to get black outline on red arrow
@@ -1200,7 +1197,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 color="black",
                 spec="e1/0",
                 vector=v_syn,
-                xshift="a-45p", yshift="a-40p",
+                xshift="a-45p", yshift="a-52p",
                 no_clip=True
             )
         #overlay thin red arrow
@@ -1211,11 +1208,11 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 color="red",
                 spec="e1/0",
                 vector=v_syn,
-                xshift="a-45p", yshift="a-40p",
+                xshift="a-45p", yshift="a-52p",
                 no_clip=True
             )
         fig.text(x=region[1], y=region[2], text=str(legend_len*10)+"+/-"+str(legend_len)+" mm",
-            xshift="a-60p", yshift="a-20p", no_clip=True, justify="ML")
+            xshift="a-60p", yshift="a-32p", no_clip=True, justify="ML")
 
     with fig.inset(position="jTR+w100p+o-50p", margin=0):
         fig.coast(
