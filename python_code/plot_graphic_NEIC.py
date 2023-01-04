@@ -211,7 +211,7 @@ def _plot_vel_model(velmodel):
 
     depths[1:] = np.cumsum(thick)
     depths = np.array([depth for depth in depths if depth < 70])
-    depths = np.append([depths], [70]))
+    depths = np.append([depths], [70])
     plt.plot((p_vel[0], p_vel[0]), (depths[0], depths[1]), 'b-', label='P')
     plt.plot((sh_vel[0], sh_vel[0]), (depths[0], depths[1]), 'r-', label='SH')
     j = len(depths) - 2
