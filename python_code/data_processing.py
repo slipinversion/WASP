@@ -944,6 +944,7 @@ def __select_str_files(strong_files, tensor_info):
     depth = tensor_info['depth']
     strong_files2 = []
     distance = 2 if time_shift < 50 else 4
+    syn_len = 20 + 4*time_shift + 7*depth/50
 
     for sac in strong_files:
         select_stat = True
@@ -952,7 +953,6 @@ def __select_str_files(strong_files, tensor_info):
         station_lon = sacfile.stlo
 
         st = read(sac)
-        syn_len = 20 + 4*time_shift + 7*depth/50
         start, end = [st[0].stats.starttime, st[0].stats.endtime]
         if end - start < syn_len:
             continue
