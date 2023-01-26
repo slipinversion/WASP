@@ -1,0 +1,59 @@
+[
+    {
+        "max_center_slip": 7100,
+        "max_left_slip": 7100,
+        "max_lower_slip": 7100,
+        "max_right_slip": 7100,
+        "max_slip_delta": 7100,
+        "max_upper_slip": 7100,
+        "min_slip": 0,
+        "rake_max": 108.46963419917267,
+        "rake_min": 68.46963419917267,
+        "rake_step": 21,
+        "regularization": {
+            "neighbour_down": {"segment": 3, "subfault": 1},
+            "neighbour_left": null,
+            "neighbour_right": null,
+            "neighbour_up": {"segment": 2, "subfault": 6}
+        },
+        "slip_step": 51
+    },
+    {
+        "max_center_slip": 7100,
+        "max_left_slip": 7100,
+        "max_lower_slip": 7100,
+        "max_right_slip": 7100,
+        "max_slip_delta": 7100,
+        "max_upper_slip": 7100,
+        "min_slip": 0,
+        "rake_max": 108.46963419917267,
+        "rake_min": 68.46963419917267,
+        "rake_step": 21,
+        "regularization": {
+            "neighbour_down": {"segment": 1, "subfault": 1},
+            "neighbour_left": null,
+            "neighbour_right": null,
+            "neighbour_up": null
+        },
+        "slip_step": 51
+    },
+    {
+        "max_center_slip": 7100,
+        "max_left_slip": 7100,
+        "max_lower_slip": 7100,
+        "max_right_slip": 7100,
+        "max_slip_delta": 7100,
+        "max_upper_slip": 7100,
+        "min_slip": 0,
+        "rake_max": 108.46963419917267,
+        "rake_min": 68.46963419917267,
+        "rake_step": 21,
+        "regularization": {
+            "neighbour_down": null,
+            "neighbour_left": null,
+            "neighbour_right": null,
+            "neighbour_up": {"segment": 1, "subfault": 5}
+        },
+        "slip_step": 51
+    }
+]
