@@ -9,7 +9,7 @@ from glob import glob
 import pyproj
 import os
 import shutil
-#from okada_wrapper import dc3dwrapper
+from okada_wrapper import dc3dwrapper
 import matplotlib.pyplot as plt
 import json
 from collections import Counter
