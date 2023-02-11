@@ -28,13 +28,13 @@ def __read_planes_info():
     segments, rise_time = __get_planes_json()
     n_segments = len(segments)
 
-    with open('Fault.time', 'r') as subfaults_file:
+    with open('fault&rise_time.txt', 'r') as subfaults_file:
         lines = [line.split() for line in subfaults_file]
 
     strike_ps = int(lines[1][3])
     dip_ps = int(lines[1][4])
 
-    with open('Fault.pos', 'r') as point_sources_file:
+    with open('fault&rise_time.txt', 'r') as point_sources_file:
         lines2 = [line.split() for line in point_sources_file]
 #
 # read Fault.pos later
