@@ -285,6 +285,7 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
             outfile.write('%{}{}\n'.format(string, string))
             start_line = 10
             for i_segment, fault_segment_data in enumerate(zipped2):
+                plane_info = segments[i_segment]
                 segment = fault_segment_data[0]
                 ps_seg = fault_segment_data[1]
                 lat_fault = fault_segment_data[2].flatten()

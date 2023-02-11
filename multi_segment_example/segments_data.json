@@ -1,0 +1,77 @@
+{
+    "rise_time": {
+        "delta_rise": 1.5,
+        "min_rise": 1.5,
+        "windows": 12
+    },
+    "segments": [
+        {
+            "delay_segment": 0,
+            "delta_dip": 16.6,
+            "delta_strike": 25,
+            "dip": 15,
+            "dip_subfaults": 5,
+            "hyp_dip": 3,
+            "hyp_stk": 11,
+            "neighbours": [],
+            "rake": 88.5,
+            "rupture_vel": 2.5,
+            "stk_subfaults": 25,
+            "strike": 198
+        },
+        {
+            "delay_segment": 0,
+            "delta_dip": 16.6,
+            "delta_strike": 25,
+            "dip": 8,
+            "dip_subfaults": 5,
+            "hyp_dip": 8,
+            "hyp_stk": 11,
+            "neighbours": [],
+            "rake": 88.5,
+            "rupture_vel": 2.5,
+            "stk_subfaults": 25,
+            "strike": 198
+        },
+        {
+            "delay_segment": 0,
+            "delta_dip": 16.6,
+            "delta_strike": 25,
+            "dip": 21,
+            "dip_subfaults": 3,
+            "hyp_dip": -1,
+            "hyp_stk": 11,
+            "neighbours": [],
+            "rake": 88.5,
+            "rupture_vel": 2.5,
+            "stk_subfaults": 25,
+            "strike": 198
+        }
+    ],
+    "connections": [
+        {
+            "segment1": 1,
+            "segment1_subfault": [
+                1,
+                1
+            ],
+            "segment2": 2,
+            "segment2_subfault": [
+                1,
+                6
+            ]
+        },
+        {
+            "segment1": 1,
+            "segment1_subfault": [
+                1,
+                6
+            ],
+            "segment2": 3,
+            "segment2_subfault": [
+                1,
+                1
+            ]
+        }
+    ]
+}
