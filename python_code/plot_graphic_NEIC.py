@@ -65,7 +65,8 @@ slipcpt = ListedColormap(slip_cpt)
 def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
                  vel_model, default_dirs, autosize=False, mr_time=False, evID=None,
                  files_str=None, stations_gps=None, stations_cgps=None, max_val=None,
-                 legend_len=None, scale=None, limits=None, separate_planes=False, label_stations=False):
+                 legend_len=None, scale=None, limits=None, separate_planes=False,
+                 label_stations=False, use_waveforms=False):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
 
@@ -133,6 +134,7 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
         and Event_mult.in is consistent.
 
     """
+    segments = segments_data['segments']
     #_plot_vel_model(vel_model, point_sources)
     _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=mr_time, separate_planes=separate_planes)
     #_PlotRiseTime(segments, point_sources, solution)
@@ -861,10 +863,23 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
     projection = "M15c"
     map_scale = "g"+str(region[0])+"/"+str(region[2])+"+c17.40+w"+map_scale_len+"+ar+l+jBL+o0.5/0.5+f"
 
-    pygmt.config(MAP_FRAME_TYPE="plain")
+    pygmt.config(MAP_FRAME_TYPE="plain",
+                 MAP_FRAME_AXES="WSen",
+                 FORMAT_GEO_OUT = "F",
+                 FORMAT_GEO_MAP = "ddd:mm:ss",
+                 FONT_ANNOT_PRIMARY = "10p,Helvetica,black",
+                 FONT_ANNOT_SECONDARY = "12p,Helvetica,black",
+                 FONT_HEADING = "30p,Helvetica,black",
+                 FONT_LABEL = "14p,Helvetica,black",
+                 FONT_LOGO = "6p,Helvetica,black",
+                 FONT_SUBTITLE = "16p,Helvetica,black",
+                 FONT_TAG = "18p,Helvetica,black",
+                 FONT_TITLE = "22p,Helvetica,black",
+                 MAP_ANNOT_OFFSET_PRIMARY = "3p"
+                 )
     fig.basemap(region=region, projection=projection, frame=["WSne", "afg"])
     fig.grdimage(grid=grid, cmap="oleron", shading=True, transparency=20)
-    fig.colorbar(yshift='a-10p',
+    fig.colorbar(yshift='a15p',
                  xshift='a-5p',
                  position="n0.05/-0.1+jTL+w100p/8%+h",
                  frame="x+lElevation (km)",
@@ -934,7 +949,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
              color=slips/100.
              )
 
-    fig.colorbar(yshift='a-10p',
+    fig.colorbar(yshift='a15p',
                  xshift='a135p',
                  position="n0.05/-0.1+jTL+w100p/8%+h",
                  frame="x+lSlip (m)",
@@ -1055,13 +1070,13 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 else:
                     fig.plot(x=lonp, y=latp, style="i10p", color="white", pen="black")
                 if label_stations==True:
-                    fig.text(x=lonp, y=latp, text=name)
+                    fig.text(x=lonp, y=latp, text=name, justify="BL")
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
-            xshift="a-130p", yshift="a-54p",
+            xshift="a-135p", yshift="a-66p",
             no_clip=True, style="i10p", color="white", pen="black")
         fig.text(x=region[1], y=region[2], text="Accelerometer",
-            xshift="a-123p", yshift="a-55p", no_clip=True, justify="ML")
+            xshift="a-128p", yshift="a-67p", no_clip=True, justify="ML")
 
     ### HIGH-RATE GNSS ###
     if stations_cgps is not None:
@@ -1080,10 +1095,10 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                     fig.text(x=lonp, y=latp, text=name, justify="TR")
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
-            xshift="a-55p", yshift="a-56p",
+            xshift="a-55p", yshift="a-68p",
             no_clip=True, style="t10p", color="navy", pen="black")
         fig.text(x=region[1], y=region[2], text="HR GNSS",
-            xshift="a-48p", yshift="a-55p", no_clip=True, justify="ML", offset=0/10)
+            xshift="a-48p", yshift="a-67p", no_clip=True, justify="ML", offset=0/13)
 
     ### STATIC GNSS ####
     if stations_gps is not None:
@@ -1156,9 +1171,9 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
             )
         ### ADD TO LEGEND ###
         fig.text(x=region[1], y=region[2], text="Observed GNSS",
-            xshift="a-133p", yshift="a-30p", no_clip=True, justify="ML")
+            xshift="a-133p", yshift="a-42p", no_clip=True, justify="ML")
         fig.text(x=region[1], y=region[2], text="Synthetic  GNSS",
-            xshift="a-133p", yshift="a-40p", no_clip=True, justify="ML")
+            xshift="a-133p", yshift="a-52p", no_clip=True, justify="ML")
         static_legend = pd.DataFrame(
              data={
                  "x": [region[1]],
@@ -1179,7 +1194,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 color="grey",
                 spec="e1/0",
                 vector=v_obs,
-                xshift="a-45p", yshift="a-30p",
+                xshift="a-45p", yshift="a-42p",
                 no_clip=True
             )
         fig.velo(
@@ -1189,7 +1204,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 color="BLACK",
                 spec="e1/0.34",
                 vector=v_obs,
-                xshift="a-45p", yshift="a-30p",
+                xshift="a-45p", yshift="a-42p",
                 no_clip=True
             )
         # Plot thick black arrow behind, to get black outline on red arrow
@@ -1200,7 +1215,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 color="black",
                 spec="e1/0",
                 vector=v_syn,
-                xshift="a-45p", yshift="a-40p",
+                xshift="a-45p", yshift="a-52p",
                 no_clip=True
             )
         #overlay thin red arrow
@@ -1211,11 +1226,11 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 color="red",
                 spec="e1/0",
                 vector=v_syn,
-                xshift="a-45p", yshift="a-40p",
+                xshift="a-45p", yshift="a-52p",
                 no_clip=True
             )
         fig.text(x=region[1], y=region[2], text=str(legend_len*10)+"+/-"+str(legend_len)+" mm",
-            xshift="a-60p", yshift="a-20p", no_clip=True, justify="ML")
+            xshift="a-60p", yshift="a-32p", no_clip=True, justify="ML")
 
     with fig.inset(position="jTR+w100p+o-50p", margin=0):
         fig.coast(
@@ -1761,7 +1776,8 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
         #ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
         ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
         ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=10, min_n_ticks=5))
-        ax.fill_between(time, rel_mr, color='0.9')
+#        print(len(time))
+#        ax.fill_between(time, np.zeros(len(time)), rel_mr, color='0.9')
         ax.plot(time, rel_mr, 'k', lw=2, label='Total')
         ### Plot multiple planes separately? ###
         if separate_planes == True:
@@ -1898,7 +1914,6 @@ def calculate_cumulative_moment_tensor(solution, directory=None):
         seg_moment = sum(moment[kseg].flatten())
         seg_Mw = (2./3)*(np.log10(seg_moment*1e-7)-9.1)
         total_moment+=seg_moment
-        print(seg_moment)
         for subfault in range(len(slip[kseg].flatten())):
             Mmt_seg = pmt.MomentTensor(strike=strk, dip=dip, rake=rake[kseg].flatten()[subfault],
                       scalar_moment=moment[kseg].flatten()[subfault])
@@ -1913,8 +1928,11 @@ def calculate_cumulative_moment_tensor(solution, directory=None):
             color_t=plot.mpl_color('blue'),
             linewidth=1.0)
         Mm6 = [Mm6[0]+Mm6_seg[0], Mm6[1]+Mm6_seg[1], Mm6[2]+Mm6_seg[2], Mm6[3]+Mm6_seg[3], Mm6[4]+Mm6_seg[4], Mm6[5]+Mm6_seg[5]]
-        print(Mm6)
+        #print(Mm6)
+        (s1, d1, r1), (s2, d2, r2) = Mmt_seg.both_strike_dip_rake()
         axes.text(0.1, 0.8, 'Segment '+str(kseg)+'\n Mw'+'{:0.2f}'.format(seg_Mw))
+        axes.text(0.1, 0.1, 's1/d1/r1: %d, %d, %d' % (s1, d1, r1), fontsize=5)
+        axes.text(0.1, 0.05, 's2/d2/r2: %d, %d, %d' % (s2, d2, r2), fontsize=5)
         if kseg < num_seg - 1:
             axes.text(1.05,0.5,'+')
         else:
@@ -1934,6 +1952,9 @@ def calculate_cumulative_moment_tensor(solution, directory=None):
         linewidth=1.0)
     total_Mw = (2./3)*(np.log10(total_moment*1e-7)-9.1)
     axes.text(0.1, 0.8, 'Total MT \n Mw'+'{:0.2f}'.format(total_Mw))
+    (s1, d1, r1), (s2, d2, r2) = pmt.as_mt(Mm6).both_strike_dip_rake()
+    axes.text(0.1, 0.1, 's1/d1/r1: %d, %d, %d' % (s1, d1, r1), fontsize=5)
+    axes.text(0.1, 0.05, 's2/d2/r2: %d, %d, %d' % (s2, d2, r2), fontsize=5)
 
     plt.savefig('Cumulative_Moment_Tensor.png')
     plt.close()

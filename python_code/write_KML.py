@@ -445,7 +445,7 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     else:
         tensor_info = tensor.get_tensor()
-    segments, rise_time, point_sources = pl_mng.__read_planes_info() # Loads point sources and segments information
+#    segments, rise_time, point_sources = pl_mng.__read_planes_info() # Loads point sources and segments information
     segments_data = json.load(open('segments_data.json'))
     segments = segments_data['segments']
     rise_time = segments_data['rise_time']
