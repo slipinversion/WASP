@@ -171,7 +171,7 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     if type_str == 'cgps' or type_str == 'strong_motion':
         files = [file for file in files]
         print('Creating Waveform Fit Plot: ' + str(type_str))
-    files = sorted(files, key=lambda k: (k['distance'], k['component']))
+    files = sorted(files, key=lambda k: (k['azimuth'], k['component']))
     sampling = [file['dt'] for file in files]
     names = [file['name'] for file in files]
     azimuths = [file['azimuth'] for file in files]
