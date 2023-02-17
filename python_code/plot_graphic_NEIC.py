@@ -136,7 +136,7 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     """
     segments = segments_data['segments']
     #_plot_vel_model(vel_model, point_sources)
-    _plot_vel_model(vel_model)
+#    _plot_vel_model(vel_model)
     _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=mr_time, separate_planes=separate_planes)
     #_PlotRiseTime(segments, point_sources, solution)
     #_PlotRuptTime(segments, point_sources, solution)
@@ -969,14 +969,6 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
     fig.basemap(region=region, projection=projection, frame="ag1", map_scale=map_scale)
     fig.coast(resolution="h", shorelines=True)
 
-    faults = glob.glob('*.fault')
-    if len(faults) > 0:
-        for kfault in range(len(faults)):
-            print('...Adding fault trace from: '+str(faults[kfault]))
-            fault_trace = np.genfromtxt(faults[kfault])
-            fig.plot(x=fault_trace[:,0],y=fault_trace[:,1],pen='2p,black')
-            fig.plot(x=fault_trace[:,0],y=fault_trace[:,1],pen='1p,white')
-
     ###############################
     ### PLOT FINITE FAULT MODEL ###
     ###############################
@@ -1126,9 +1118,9 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
         # plot hypocenter(s) #
         ######################
         fig.plot(x=lon0, y=lat0, style='a7p', color="white", pen="black")
-        if 'hypocenter' in segments[segment]:
-            hyp = segments[segment]['hypocenter']
-            fig.plot(x=hyp['lon'], y=hyp['lat'], style='a7p', color="white", pen="black")
+#        if 'hypocenter' in segments[segment]:
+#            hyp = segments[segment]['hypocenter']
+#            fig.plot(x=hyp['lon'], y=hyp['lat'], style='a7p', color="white", pen="black")
 
     ###########################
     ### PLOT LOCAL STATIONS ###
@@ -1148,7 +1140,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 else:
                     fig.plot(x=lonp, y=latp, style="i10p", color="white", pen="black")
                 if label_stations==True:
-                    fig.text(x=lonp, y=latp, text=name, justify="BL")
+                    fig.text(x=lonp, y=latp, text=name, justify="ML", font="7p")
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
             xshift="a-135p", yshift="a-66p",
@@ -1170,7 +1162,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
                 else:
                     fig.plot(x=lonp, y=latp, style="t10p", color="navy", pen="black")
                 if label_stations==True:                
-                    fig.text(x=lonp, y=latp, text=name, justify="TR")
+                    fig.text(x=lonp, y=latp, text=name, justify="TR", font="7p")
         ### ADD TO LEGEND ###
         fig.plot(x=region[1], y=region[2],
             xshift="a-55p", yshift="a-68p",
@@ -1186,7 +1178,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
             gps_z_syn, gps_n_syn, gps_e_syn = syn
             err_z, err_n, err_e = error
             if label_stations==True:
-                fig.text(x=sta_lon, y=sta_lat, text=name, justify="TR")
+                fig.text(x=sta_lon, y=sta_lat, text=name, justify="TR", font="7p")
             staticv_obs = pd.DataFrame(
                  data={
                      "x": [sta_lon],
@@ -1310,6 +1302,20 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
         fig.text(x=region[1], y=region[2], text=str(legend_len*10)+"+/-"+str(legend_len)+" mm",
             xshift="a-60p", yshift="a-32p", no_clip=True, justify="ML")
 
+    ##################################
+    ### PLOT FAULT TRACES OVER TOP ###
+    ##################################
+    faults = glob.glob('*.fault')
+    if len(faults) > 0:
+        for kfault in range(len(faults)):
+            print('...Adding fault trace from: '+str(faults[kfault]))
+            fault_trace = np.genfromtxt(faults[kfault])
+            fig.plot(x=fault_trace[:,0],y=fault_trace[:,1],pen='1p,black')
+            fig.plot(x=fault_trace[:,0],y=fault_trace[:,1],pen='0.5p,grey')
+
+    ###################
+    ### INSET GLOBE ###
+    ###################
     with fig.inset(position="jTR+w100p+o-50p", margin=0):
         fig.coast(
             region="g",
@@ -1541,6 +1547,7 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
                insar_points, scene, los='ascending'):
     """We plot slip map.
     """
+    import collections
     print('Creating InSAR plots')
     plane_info = segments[0]
     stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
@@ -1562,22 +1569,22 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
     margin = 1.3 * (stk_subfaults * delta_strike) / 111.19
     lat0 = tensor_info['lat']
     lon0 = tensor_info['lon']
-    tectonic = '{}.shp'.format(default_dirs['trench_graphics'])
-    dictn = {
-        'projection': ccrs.PlateCarree(),
-        'facecolor': '#eafff5'
-    }
+#    tectonic = '{}.shp'.format(default_dirs['trench_graphics'])
+#    dictn = {
+#        'projection': ccrs.PlateCarree(),
+#        'facecolor': '#eafff5'
+#    }
 
-    fig, axes = plt.subplots(2, 3, figsize=(30, 15), subplot_kw=dictn)
-    tiler = Stamen('terrain-background')
-    tectonic = cf.ShapelyFeature(
-        shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
-        edgecolor='white', facecolor="None", lw=2)
-    shpfilename = shpreader.natural_earth(
-        resolution='10m', category='cultural', name='admin_0_countries')
-    countries = cf.ShapelyFeature(
-        shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
-        edgecolor='black', facecolor='None')
+    fig, axes = plt.subplots(2, 3, figsize=(30, 15))#, subplot_kw=dictn)
+#    tiler = Stamen('terrain-background')
+#    tectonic = cf.ShapelyFeature(
+#        shpreader.Reader(tectonic).geometries(), ccrs.PlateCarree(),
+#        edgecolor='white', facecolor="None", lw=2)
+#    shpfilename = shpreader.natural_earth(
+#        resolution='10m', category='cultural', name='admin_0_countries')
+#    countries = cf.ShapelyFeature(
+#        shpreader.Reader(shpfilename).geometries(), ccrs.PlateCarree(),
+#        edgecolor='black', facecolor='None')
 
     max_diff = -1
     min_diff = 1
@@ -1608,8 +1615,8 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
     i=0
     for value, title, label, row, col in zipped:
         print(axes[row][col])
-        axes[row][col].spines['geo'].set_linewidth(1)
-        axes[row][col].add_image(tiler,10)
+#        axes[row][col].spines['geo'].set_linewidth(1)
+#        axes[row][col].add_image(tiler,10)
         axes[row][col].set_title(title, fontdict={'fontsize': 20})
         max_abs = np.max(np.abs(value))
         #vmin = -max_abs# if not title == 'Misfit' else -40
@@ -1617,14 +1624,15 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
         norm = colors.TwoSlopeNorm(vmin=min_obs_abs, vcenter=0, vmax=max_obs_abs)
         cs = axes[row][col].scatter(
             lons, lats, zorder=4, c=value, cmap='bwr',
-            norm=norm, transform=ccrs.PlateCarree())
-        ax = set_map_cartopy(
-            axes[row][col], margins, tectonic=tectonic, countries=countries, faults=True, aftershocks=False)
+            norm=norm)#, transform=ccrs.PlateCarree())
+        ax = axes[row][col]
+#        ax = set_map_cartopy(
+#            axes[row][col], margins, tectonic=tectonic, countries=countries, faults=True, aftershocks=False)
         ax.plot(
-            lon0, lat0, 'k*', markersize=10,
-            transform=ccrs.PlateCarree(), zorder=4)
-        ax = plot_borders(
-            ax, segments_lats, segments_lons, transform=dictn['projection'])
+            lon0, lat0, 'k*', markersize=10)#,
+            #transform=ccrs.PlateCarree(), zorder=4)
+#        ax = plot_borders(
+#            ax, segments_lats, segments_lons, transform=dictn['projection'])
         cbar = fig.colorbar(cs, ax=ax, orientation="horizontal")
         cbar.outline.set_linewidth(2)
         cbar.set_label(label, fontsize=20)
@@ -1632,6 +1640,42 @@ def _PlotInsar(tensor_info, segments, point_sources, solution, default_dirs,
         cbar.ax.xaxis.set_label_position('top')
         ax.set_aspect('auto', adjustable=None)
         i+=1
+
+        #################################
+        # outline the segments in black #
+        #################################
+        for segment in range(len(segments_lats)):
+            plane_info = segments[segment]
+            stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
+                = pl_mng.__unpack_plane_data(plane_info)
+            strike = plane_info['strike']
+            dip = plane_info['dip']
+            depths = segments_deps[segment].flatten()
+            min_lats_idx = np.where(segments_lats[segment].flatten()==min_lats[segment])[0][0]
+            cornerA = [segments_lons[segment].flatten()[min_lats_idx], min_lats[segment], depths[min_lats_idx], 0]
+            min_lons_idx = np.where(segments_lons[segment].flatten()==min_lons[segment])[0][0]
+            cornerB = [min_lons[segment], segments_lats[segment].flatten()[min_lons_idx], depths[min_lons_idx], 1]
+            max_lats_idx = np.where(segments_lats[segment].flatten()==max_lats[segment])[0][-1]
+            cornerC = [segments_lons[segment].flatten()[max_lats_idx], max_lats[segment], depths[max_lats_idx], 2]
+            max_lons_idx = np.where(segments_lons[segment].flatten()==max_lons[segment])[0][-1]
+            cornerD = [max_lons[segment], segments_lats[segment].flatten()[max_lons_idx], depths[max_lons_idx], 3]
+            corners = np.c_[cornerA, cornerB, cornerC, cornerD]
+            max_dep = max(corners[2,:])
+            idx_max = np.where(np.array(corners[2,:]) == max_dep)[0][0]
+            min1 = min2 = corners[:,idx_max]
+            for i in range(len(corners)):
+                if corners[2,i] < min1[2]:
+                    min2 = min1
+                    min1 = corners[:,i]
+                elif corners[2,i] < min2[2] and collections.Counter(corners[:,i]) != collections.Counter(min1):
+                    min2 = corners[:,i]
+
+            updip = np.c_[min1,min2]
+            corners = np.c_[corners,cornerA]
+
+            ax.plot(corners[0,:], corners[1,:], "k",zorder=10)
+            ax.plot(updip[0,:], updip[1,:], "r",zorder=10)
+
 
     fig.tight_layout()
     plt.savefig('InSAR_{}_fit_{}.png'.format(los, scene), bbox_inches='tight')
@@ -1846,20 +1890,10 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
         plt.text(
             0.99 * max(time), 0.85 * max(rel_mr), 'M$_w$: {:.2f}'.format(magnitude), ha='right',fontweight='bold')
         plt.grid('on', ls='dotted')
-        #plt.minorticks_on()
-        plt.grid(which='minor',linestyle='dotted', color='0.5')
-        plt.grid(which='major',linestyle='dotted', color='0.5')
-        ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.2))
-        ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
-        #ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
-        ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
-        ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=10, min_n_ticks=5))
-#        print(len(time))
-#        ax.fill_between(time, np.zeros(len(time)), rel_mr, color='0.9')
+        ax.fill_between(time, rel_mr, color='0.9')
         ax.plot(time, rel_mr, 'k', lw=2, label='Total')
         ### Plot multiple planes separately? ###
         if separate_planes == True:
-            print(np.shape(mr_seg_all)[1]) 
             for seg in range(np.shape(mr_seg_all)[1]):           
                 ax.plot(time, mr_seg_all[:,seg]/max(mr),label='Segment '+str(seg))
             plt.legend(loc='lower right')
@@ -1871,6 +1905,12 @@ def _plot_moment_rate_function(segments_data, shear, point_sources, mr_time=None
             ax.vlines(mr_time,0,1,'r',linestyle='dashed',lw=2,dashes=(9,(5,3)))
         ax.set_ylim([0,1])
         ax.set_xlim([0,max(time)])
+        plt.grid(which='minor',linestyle='dotted', color='0.5')
+        plt.grid(which='major',linestyle='dotted', color='0.5')
+        ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.2))
+        ax.yaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(0.1))
+        ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(20))
+        ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(10))
         plt.savefig('MomentRate.png')#, bbox_inches='tight')
         #plt.savefig('MomentRate.ps')
         plt.close()
@@ -2004,12 +2044,12 @@ def calculate_cumulative_moment_tensor(solution, directory=None):
             axes,
             size=60,
             position=(0.5,0.5),
-            beachball_type='deviatoric',
+            beachball_type='full',
             color_t=plot.mpl_color('blue'),
             linewidth=1.0)
         Mm6 = [Mm6[0]+Mm6_seg[0], Mm6[1]+Mm6_seg[1], Mm6[2]+Mm6_seg[2], Mm6[3]+Mm6_seg[3], Mm6[4]+Mm6_seg[4], Mm6[5]+Mm6_seg[5]]
         #print(Mm6)
-        (s1, d1, r1), (s2, d2, r2) = Mmt_seg.both_strike_dip_rake()
+        (s1, d1, r1), (s2, d2, r2) = pmt.as_mt(Mm6_seg).both_strike_dip_rake()
         axes.text(0.1, 0.8, 'Segment '+str(kseg)+'\n Mw'+'{:0.2f}'.format(seg_Mw))
         axes.text(0.1, 0.1, 's1/d1/r1: %d, %d, %d' % (s1, d1, r1), fontsize=5)
         axes.text(0.1, 0.05, 's2/d2/r2: %d, %d, %d' % (s2, d2, r2), fontsize=5)
@@ -2027,7 +2067,7 @@ def calculate_cumulative_moment_tensor(solution, directory=None):
         axes,
         size=60,
         position=(0.5,0.5),
-        beachball_type='deviatoric',
+        beachball_type='full',
         color_t=plot.mpl_color('blue'),
         linewidth=1.0)
     total_Mw = (2./3)*(np.log10(total_moment*1e-7)-9.1)
@@ -2573,13 +2613,14 @@ if __name__ == '__main__':
         solution = get_outputs.read_solution_static_format(segments)
         insar_data = get_outputs.get_insar()
         if 'ascending' in insar_data:
-            for scene in range(len(insar_data)):
+            for scene in range(len(insar_data['ascending'])):
+                print(scene)
                 insar_points = insar_data['ascending'][scene]['points']
                 _PlotInsar(
                     tensor_info, segments, point_sources, solution,
                     default_dirs, insar_points, scene, los='ascending')
         if 'descending' in insar_data:
-            for scene in range(len(insar_data)):
+            for scene in range(len(insar_data['descending'])):
                 insar_points = insar_data['descending'][scene]['points']
                 _PlotInsar(
                     tensor_info, segments, point_sources, solution,
