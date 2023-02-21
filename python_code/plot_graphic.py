@@ -32,7 +32,7 @@ from plot_maps import plot_map, set_map_cartopy, plot_borders
 
 
 def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
-                 vel_model, default_dirs, use_waveforms=True):
+                 vel_model, default_dirs, use_waveforms=True, event=None):
     """Main routine. Allows to coordinate execution of different plotting
     routines.
 
@@ -99,11 +99,11 @@ def plot_ffm_sol(tensor_info, segments_data, point_sources, shear, solution,
     segments = segments_data['segments']
     _plot_vel_model(vel_model, point_sources)
     if use_waveforms:
-        _plot_moment_rate_function(segments_data, shear, point_sources)
+        _plot_moment_rate_function(segments_data, shear, point_sources, event=event)
         _PlotRiseTime(segments, point_sources, solution)
         _PlotRuptTime(segments, point_sources, solution)
     _PlotSlipDistribution(segments, point_sources, solution)
-    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs)
+    _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, event=event)
 
 
 def plot_beachballs(segments, data_type):
@@ -124,7 +124,7 @@ def plot_beachballs(segments, data_type):
         plot_beachball(segments, files=traces_info, phase='SH')
 
 
-def plot_misfit(used_data_type, forward=False):
+def plot_misfit(used_data_type, forward=False, event=None):
     """Plot misfit of observed and synthetic data
 
     :param used_data_type: list with data types used in modelling
@@ -132,6 +132,7 @@ def plot_misfit(used_data_type, forward=False):
     :type used_data_type: list
     :type forward: bool, optional
     """
+    from many_events import select_waveforms_event
     if 'tele_body' in used_data_type:
         if not os.path.isfile('tele_waves.json'):
             raise FileNotFoundError(
@@ -139,10 +140,12 @@ def plot_misfit(used_data_type, forward=False):
         traces_info = json.load(open('tele_waves.json'))
         traces_info = get_outputs.get_data_dict(
             traces_info, syn_file='synthetics_body.txt')
+        if event:
+            traces_info = select_waveforms_event(traces_info, event)
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(
-                traces_info, components, 'tele_body')
+                traces_info, components, 'tele_body', event=event)
     if 'surf_tele' in used_data_type:
         if not os.path.isfile('surf_waves.json'):
             raise FileNotFoundError(
@@ -150,10 +153,12 @@ def plot_misfit(used_data_type, forward=False):
         traces_info = json.load(open('surf_waves.json'))
         traces_info = get_outputs.get_data_dict(
             traces_info, syn_file='synthetics_surf.txt', margin=0)
+        if event:
+            traces_info = select_waveforms_event(traces_info, event)
         values = [['BHZ'], ['SH']]
         for components in values:
             plot_waveform_fits(
-                traces_info, components, 'surf_tele')
+                traces_info, components, 'surf_tele', event=event)
     if 'strong_motion' in used_data_type:
         if not os.path.isfile('strong_motion_waves.json'):
             raise FileNotFoundError(
@@ -162,10 +167,12 @@ def plot_misfit(used_data_type, forward=False):
         traces_info = json.load(open('strong_motion_waves.json'))
         traces_info = get_outputs.get_data_dict(
             traces_info, syn_file='synthetics_strong.txt')
+        if event:
+            traces_info = select_waveforms_event(traces_info, event)
         values = [['HLZ', 'HNZ'], ['HLE', 'HNE'], ['HLN', 'HNN']]
         for components in values:
             plot_waveform_fits(
-                traces_info, components, 'strong_motion')
+                traces_info, components, 'strong_motion', event=event)
     if 'cgps' in used_data_type:
         if not os.path.isfile('cgps_waves.json'):
             raise FileNotFoundError(
@@ -173,6 +180,8 @@ def plot_misfit(used_data_type, forward=False):
         traces_info = json.load(open('cgps_waves.json'))
         traces_info = get_outputs.get_data_dict(
             traces_info, syn_file='synthetics_cgps.txt')
+        if event:
+            traces_info = select_waveforms_event(traces_info, event)
         values = [
             ['LXZ', 'LHZ', 'LYZ'],
             ['LXE', 'LHE', 'LYE'],
@@ -180,7 +189,7 @@ def plot_misfit(used_data_type, forward=False):
         ]
         for components in values:
             plot_waveform_fits(
-                traces_info, components, 'cgps')
+                traces_info, components, 'cgps', event=event)
     return
 
 
@@ -444,7 +453,7 @@ def _PlotSlipDist_Compare(segments, point_sources, input_model,
 
 
 def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
-             files_str=None, stations_gps=None, max_slip=None):
+             files_str=None, stations_gps=None, max_slip=None, event=None):
     """We plot slip map.
 
     :param tensor_info: dictionary with moment tensor information
@@ -468,10 +477,19 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     stk_subfaults, dip_subfaults, delta_strike, delta_dip, hyp_stk, hyp_dip\
         = pl_mng.__unpack_plane_data(plane_info)
     slip = solution['slip']
+    
+    point_sources2 = point_sources.copy()
+    segments2 = segments.copy()
+    if event is not None:
+        zipped = zip(segments, slip)
+        slip = [slip_seg for segment, slip_seg in zipped if segment['event']==event]
+        zipped = zip(segments, point_sources)
+        point_sources2 = [ps_seg for segment, ps_seg in zipped if segment['event']==event]
+        segments2 = [segment for segment in segments if segment['event']==event]
 #
 # accurate plot coordinates
 #
-    segments_lats, segments_lons = __redefine_lat_lon(segments, point_sources)
+    segments_lats, segments_lons = __redefine_lat_lon(segments2, point_sources2)
     min_lats = [np.min(segment_lat.flatten()) for segment_lat in segments_lats]
     max_lats = [np.max(segment_lat.flatten()) for segment_lat in segments_lats]
     min_lons = [np.min(segment_lon.flatten()) for segment_lon in segments_lons]
@@ -601,7 +619,10 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs,
     cbar.set_label('Slip (cm)', size=15)
     cbar.ax.yaxis.set_ticks_position('left')
     ax.set_aspect('auto', adjustable=None)
-    plt.savefig('Map.png', bbox_inches='tight')
+    plot_name = 'Map'
+    if event is not None:
+        plot_name = '{}_event{}'.format(plot_name, event)
+    plt.savefig(plot_name, bbox_inches='tight')
     plt.close()
     return
 
@@ -806,7 +827,7 @@ def __redefine_lat_lon(segments, point_sources):
     return segments_lats, segments_lons
 
 
-def _plot_moment_rate_function(segments_data, shear, point_sources):
+def _plot_moment_rate_function(segments_data, shear, point_sources, event=None):
     r"""We plot moment rate function
     """
     print('Creating Moment Rate Plot...')
@@ -829,8 +850,28 @@ def _plot_moment_rate_function(segments_data, shear, point_sources):
     mr = np.zeros(nmax)
     seismic_moment = 0
 
+    shear2 = shear.copy()
+    point_sources2 = point_sources.copy()
+    segments2 = segments.copy()
+    if event is not None:
+        zipped = zip(segments, slip)
+        slip = [slip_seg for segment, slip_seg in zipped if segment['event']==event]
+        zipped = zip(segments, trup)
+        trup = [trup_seg for segment, trup_seg in zipped if segment['event']==event]
+        zipped = zip(segments, tl)
+        tl = [trise_seg for segment, trise_seg in zipped if segment['event']==event]
+        zipped = zip(segments, tr)
+        tr = [tfall_seg for segment, tfall_seg in zipped if segment['event']==event]
+        zipped = zip(segments, shear)
+        shear2 = [shear_seg for segment, shear_seg in zipped if segment['event']==event]
+        zipped = zip(segments, point_sources)
+        point_sources2 = [ps_seg for segment, ps_seg in zipped if segment['event']==event]
+        segments2 = [segment for segment in segments if segment['event']==event]
+
+    zipped = zip(segments2, slip, trup, tl, tr, shear2, point_sources2)
+
     for segment, slip_seg, trup_seg, trise_seg, tfall_seg, shear_seg,\
-    point_sources_seg in zip(segments, slip, trup, tl, tr, shear, point_sources):
+    point_sources_seg in zipped:
         dip_subfaults, stk_subfaults = np.shape(slip_seg)
         moment_rate = np.zeros(nmax)
         for iy in range(dip_subfaults):
@@ -888,7 +929,10 @@ def _plot_moment_rate_function(segments_data, shear, point_sources):
         '$M_w$: {:.2f}'.format(magnitude))
     plt.grid('on')
     plt.fill_between(time, mr)
-    plt.savefig('MomentRate.png', bbox_inches='tight')
+    plot_name = 'MomentRate'
+    if event is not None:
+        plot_name = '{}_event{}'.format(plot_name, event)
+    plt.savefig(plot_name, bbox_inches='tight')
     plt.close()
     return
 
@@ -1111,11 +1155,18 @@ if __name__ == '__main__':
         help="plot FFM solution slip maps, rise time")
     parser.add_argument(
         "-bb", "--beachballs", action="store_true", help="plot beachballs")
+    parser.add_argument(
+        "-me", "--many_events", action="store_true", help="plots for many events")
     args = parser.parse_args()
     os.chdir(args.folder)
     if args.gcmt_tensor:
         args.gcmt_tensor = os.path.abspath(args.gcmt_tensor)
     used_data = mp.get_used_data(args)
+    use_waveforms = False
+    use_waveforms = use_waveforms if not 'strong_motion' in used_data else True
+    use_waveforms = use_waveforms if not 'cgps' in used_data else True
+    use_waveforms = use_waveforms if not 'tele_body' in used_data else True
+    use_waveforms = use_waveforms if not 'surf_tele' in used_data else True
     default_dirs = mng.default_dirs()
     if args.gcmt_tensor:
         cmt_file = args.gcmt_tensor
@@ -1139,7 +1190,16 @@ if __name__ == '__main__':
         shear = pf.shear_modulous(point_sources, velmodel=vel_model)
         plot_ffm_sol(
             tensor_info, segments_data, point_sources, shear,
-            solution, vel_model, default_dirs)
+            solution, vel_model, default_dirs, use_waveforms=use_waveforms)
+        if args.many_events:
+            plot_ffm_sol(
+                tensor_info, segments_data, point_sources, shear,
+                solution, vel_model, default_dirs,
+                event=1, use_waveforms=use_waveforms)
+            plot_ffm_sol(
+                tensor_info, segments_data, point_sources, shear,
+                solution, vel_model, default_dirs,
+                event=2, use_waveforms=use_waveforms)
 
     traces_info, stations_gps = [None, None]
     if args.gps:
@@ -1159,6 +1219,9 @@ if __name__ == '__main__':
         _PlotComparisonMap(
             tensor_info, segments, point_sources, input_model, solution)
     if args.insar:
+        solution = get_outputs.read_solution_static_format(segments)
+        _PlotMap(
+            tensor_info, segments, point_sources, solution, default_dirs)
         insar_data = get_outputs.get_insar()
         if 'ascending' in insar_data:
             asc_properties = insar_data['ascending']
@@ -1178,6 +1241,9 @@ if __name__ == '__main__':
     if args.beachballs:
         plot_beachballs(segments, used_data)
     plot_misfit(used_data)#, forward=True)
+    if args.many_events:
+        plot_misfit(used_data, event=1)
+        plot_misfit(used_data, event=2)
     plot_files = glob.glob(os.path.join('plots', '*png'))
     for plot_file in plot_files:
         os.remove(plot_file)

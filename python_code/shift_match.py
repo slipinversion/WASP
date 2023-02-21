@@ -13,6 +13,7 @@ from obspy import read
 import matplotlib.pyplot as plt
 import seismic_tensor as tensor
 from waveform_plots import plot_waveforms
+from many_events import select_waveforms_event
 
 
 def shift_match(data_type, plot=False, method='full', zero_start=True):
@@ -100,17 +101,13 @@ def shift_match(data_type, plot=False, method='full', zero_start=True):
         if zero_start:
             stream[0].data = stream[0].data - new_baseline
             stream.write(file['file'], format='SAC', byteorder=0)
-
-    with open(json_file,'w') as f:
-         json.dump(
-             files, f, sort_keys=True, indent=4,
-             separators=(',', ': '), ensure_ascii=False)
-    return
+    return files
 
 
-def shift_match2(data_type, plot=False, method='full', zero_start=True):
-    """We shift regional synthetic data which satisfies pareto-optimal
-    cross-correlation with observed data, for a given station.
+def shift_match2(data_type, plot=False, method='full', zero_start=True, event=None):
+    """We shift synthetic data to maximize cross-correlation with observed data.
+    This can hadle the case when one needs to shift wavefomrs both in displacement
+    and velocity at the same time.
 
     :param data_type: list of data types to be used in modelling.
     :param plot: whether to plot results of waveform shift
@@ -128,17 +125,20 @@ def shift_match2(data_type, plot=False, method='full', zero_start=True):
     if data_type == 'surf':
         json_file = 'surf_waves.json'
     files = json.load(open(json_file))
-    plot_folder = 'tele_shift' if data_type == 'tele' else 'strong_shift'\
-        if data_type == 'strong' else 'surf_shift' if data_type == 'surf'\
-        else 'cgps_shift'
-    if not os.path.isdir(plot_folder):
-        os.mkdir(plot_folder)
     synthetics_file = 'synthetics_body.txt' if data_type == 'tele' else 'synthetics_strong.txt'\
         if data_type == 'strong' else 'synthetics_surf.txt' if data_type == 'surf'\
         else 'synm.cgps'
 
     dt = float(files[0]['dt'])
+    plot_folder = 'tele_shift' if data_type == 'tele' else 'strong_shift'\
+        if data_type == 'strong' else 'surf_shift' if data_type == 'surf'\
+        else 'cgps_shift'
     files = get_outputs.get_data_dict(files, syn_file=synthetics_file)
+    if event is not None:
+        files = select_waveforms_event(files, event)
+        plot_folder = '{}_event{}'.format(plot_folder, event)
+    if not os.path.isdir(plot_folder):
+        os.mkdir(plot_folder)
     used_channels = []
     for file in files:
         name = file['name']
@@ -238,15 +238,10 @@ def shift_match2(data_type, plot=False, method='full', zero_start=True):
             new_baseline = stream[0].data[start + tr_shift]
             stream[0].data = stream[0].data - new_baseline
             stream.write(file['file'], format='SAC', byteorder=0)
-
-    with open(json_file,'w') as f:
-         json.dump(
-             files, f, sort_keys=True, indent=4,
-             separators=(',', ': '), ensure_ascii=False)
-    return
+    return files
 
 
-def shift_match_regional(data_type, plot=False, method='full', zero_start=True):
+def shift_match_regional(data_type, plot=False, method='full', zero_start=True, event=None):
     """We shift regional synthetic data which satisfies pareto-optimal
     cross-correlation with observed data, for a given station.
 
@@ -262,14 +257,17 @@ def shift_match_regional(data_type, plot=False, method='full', zero_start=True):
     if data_type == 'cgps':
         json_file = 'cgps_waves.json'
     files = json.load(open(json_file))
-    plot_folder = 'strong_shift' if data_type == 'strong' else 'cgps_shift'
-    if not os.path.isdir(plot_folder):
-        os.mkdir(plot_folder)
     synthetics_file = 'synthetics_strong.txt'\
     if data_type == 'strong' else 'synthetics_cgps.txt'
 
     dt = float(files[0]['dt'])
+    plot_folder = 'strong_shift' if data_type == 'strong' else 'cgps_shift'
     files = get_outputs.get_data_dict(files, syn_file=synthetics_file)
+    if event is not None:
+        files = select_waveforms_event(files, event)
+        plot_folder = '{}_event{}'.format(plot_folder, event)
+    if not os.path.isdir(plot_folder):
+        os.mkdir(plot_folder)
     stations = [file['name'] for file in files]
     stations = list(set(stations))
     for station in stations:
@@ -345,12 +343,24 @@ def shift_match_regional(data_type, plot=False, method='full', zero_start=True):
                 new_baseline = stream[0].data[start + tr_shift]
                 stream[0].data = stream[0].data - new_baseline
                 stream.write(file['file'], format='SAC', byteorder=0)
+    return files
 
+
+def save_waveforms(data_type, files):
+    """
+    """
+    if data_type == 'tele':
+        json_file = 'tele_waves.json'
+    if data_type == 'strong':
+        json_file = 'strong_motion_waves.json'
+    if data_type == 'cgps':
+        json_file = 'cgps_waves.json'
+    if data_type == 'surf':
+        json_file = 'surf_waves.json'
     with open(json_file,'w') as f:
          json.dump(
              files, f, sort_keys=True, indent=4,
              separators=(',', ': '), ensure_ascii=False)
-    return
 
 
 def get_observed(file_dict, start, length, margin=10, zero_start=False):
@@ -531,6 +541,8 @@ if __name__ == '__main__':
                         help="plot or not results of shift")
     parser.add_argument("-gcmt", "--gcmt_tensor",
                         help="location of GCMT moment tensor file")
+    parser.add_argument(
+        "-me", "--many_events", action="store_true", help="plots for many events")
     args = parser.parse_args()
     os.chdir(args.folder)
     if args.gcmt_tensor:
@@ -538,10 +550,21 @@ if __name__ == '__main__':
         tensor_info = tensor.get_tensor(cmt_file=cmt_file)
     if args.option == 'match':
         plot = False if not args.plot else True
-        if args.type in ['tele', 'surf']:
-            shift_match2(args.type, plot=plot)
+        if not args.many_events:
+            if args.type in ['tele', 'surf']:
+                files = shift_match2(args.type, plot=plot)
+            else:
+                files = shift_match_regional(args.type, plot=plot)
         else:
-            shift_match_regional(args.type, plot=plot)
+            if args.type in ['tele', 'surf']:
+                files1 = shift_match2(args.type, plot=plot, event=1)
+                files2 = shift_match2(args.type, plot=plot, event=2)
+                files = files1 + files2
+            else:
+                files1 = shift_match_regional(args.type, plot=plot, event=1)
+                files2 = shift_match_regional(args.type, plot=plot, event=2)
+                files = files1 + files2
+        save_waveforms(args.type, files)
     else:
         _print_arrival(tensor_info)
 
