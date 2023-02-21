@@ -20,28 +20,33 @@ module static_data
    real :: obse(n_stations, 3), weight(n_stations, 3)
    character(len=6) :: sta_name(n_stations)
    integer :: subfaults, segments, nxs_sub(max_seg), nys_sub(max_seg)
+   logical :: subfault_in_event(max_subfaults, 10)
+   integer :: event_sta(n_stations)
   
 
 contains
 
 
    subroutine staticdata_set_fault_parameters()
-   use model_parameters, only : get_segments
+   use model_parameters, only : get_segments, get_events_segments
    implicit none
    real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
    integer :: cum_subfaults(max_seg)
+   logical :: segment_in_event(max_seg, 10)
    call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
+   call get_events_segments(segment_in_event, subfault_in_event)
    end subroutine staticdata_set_fault_parameters
    
 
-   subroutine initial_gps(slip, rake)
+   subroutine initial_gps(slip, rake, many_events)
    implicit none
    integer k, j, segment, channel, no, i
-   integer iys, ixs, n_tt, subfault
+   integer iys, ixs, n_tt, subfault, event
    real slip(:), rake(:)
    real :: cosal, sinal, angle
    real*8 :: disp
-   logical is_file
+   logical is_file, is_file2, many_events
+   character(len=30) :: event_file, string1, string2
 !
    inquire( file = 'static_data.txt', exist = is_file )
    if (is_file) then 
@@ -56,11 +61,22 @@ contains
          end do
       end do
       max_gps = maxval(abs(obse(:, :)))
-      close(9) 
+      close(9)
+
+      event_file = 'static_events.txt'
+      inquire(file = event_file, exist = is_file)
+      if (is_file) then
+         open(12, file=event_file, status='old')
+         do i=1,n_chan
+            read(12,*)string1, string2, event_sta(i)
+         enddo
+         close(12)    
+      endif
 
       open(33, file='Green_static_subfault.txt', status='old')
       read(33,*) n_tt
       do channel = 1, n_chan
+         if (many_events) event = event_sta(channel)
          read(33,*)
          subfault = 0
          do segment = 1, segments
@@ -68,6 +84,9 @@ contains
             do j = 1, nys_sub(segment)*nxs_sub(segment)
                subfault = subfault + 1
                read(33,*)(green(channel, k, subfault), k = 1, 6)
+               if (subfault_in_event(subfault, event) .eqv. .False.) then
+                  green(channel, :, subfault) = 0.0
+               endif
             enddo
          end do
       end do

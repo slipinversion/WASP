@@ -12,7 +12,7 @@ module insar_data
 
    use constants, only : max_subf, max_seg, max_subfaults, dpi
    implicit none
-   integer, parameter, private :: max_points = 2500
+   integer, parameter, private :: max_points = 9000
    integer, private :: tracks, points
    integer :: ramp_length
    integer :: point_tracks(6)
