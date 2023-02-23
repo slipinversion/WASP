@@ -1326,6 +1326,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
         )
         fig.plot(x=lon0, y=lat0, style='a7p', color="gold", pen="black")
 
+    fig.savefig("Map.eps")
     fig.savefig("Map.png")
 
 def _PlotMap_Old(tensor_info, segments, point_sources, solution, default_dirs,
