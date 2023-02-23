@@ -14,9 +14,9 @@ module retrieve_gf
    use rad_pattern, only : rad_coef
    use geodesics, only : distaz
    use get_stations_data, only : get_properties, disp_or_vel, &
-          & idata, mmm, llove
+          & idata, mmm, llove, get_event_sta
    implicit none
-   integer, parameter :: nnsta_tele = 80
+   integer, parameter :: nnsta_tele = 150
    complex, allocatable :: green_dip(:, :, :), green_stk(:, :, :)
 !   complex, allocatable :: green_dip2(:, :, :), green_stk2(:, :, :)
    integer :: segments, nxs_sub(max_seg), nys_sub(max_seg), nx_p, ny_p
@@ -24,7 +24,9 @@ module retrieve_gf
    real :: dip(max_seg), strike(max_seg), delay_seg(max_seg)
    real :: shear(max_subfaults)
    real :: dxs, dys, v_ref, dt_channel(max_stations)
-   integer :: lnpt, nlen, jmin, jmax, max_freq, channels
+   integer :: lnpt, nlen, jmin, jmax, max_freq, channels, event_sta(max_stations)
+   logical :: segment_in_event(max_seg, 10)
+   logical :: subfault_in_event(max_subfaults, 10)
    character(len=15) :: sta_name(max_stations)
    character(len=3) :: component(max_stations)
    
@@ -36,26 +38,28 @@ contains
    implicit none
    call get_properties(sta_name, component, dt_channel, channels)
    call get_data_param(lnpt, jmin, jmax, nlen, max_freq)
+   call get_event_sta(event_sta)
    end subroutine retrievegf_set_data_properties
 
 
    subroutine retrievegf_set_fault_parameters()
    use model_parameters, only : get_shear, get_segments, &
-   &  get_subfaults
+   &  get_subfaults, get_events_segments
    implicit none
    integer :: subfaults
    real :: v_min, v_max
    call get_shear(shear)
    call get_segments(nxs_sub, nys_sub, dip, strike, delay_seg, segments, subfaults, cum_subfaults)
    call get_subfaults(dxs, dys, nx_p, ny_p, v_min, v_max, v_ref)
+   call get_events_segments(segment_in_event, subfault_in_event)
    end subroutine retrievegf_set_fault_parameters
 
 
-   subroutine get_gf(strong, cgps, body, surf, dart)
+   subroutine get_gf(strong, cgps, body, surf, dart, many_events)
    implicit none
 !
    integer ll_in, ll_out
-   logical :: strong, cgps, body, surf, dart
+   logical :: strong, cgps, body, surf, dart, many_events
    allocate(green_dip(npuse, max_stations, max_subfaults))
    allocate(green_stk(npuse, max_stations, max_subfaults))
 
@@ -66,19 +70,19 @@ contains
    ll_in = 0
    ll_out = 0
    if (strong) then
-      call get_strong_motion_gf(ll_in, ll_out)
+      call get_strong_motion_gf(ll_in, ll_out, many_events)
       ll_in = ll_out
    end if
    if (cgps) then
-      call get_cgps_gf(ll_in, ll_out)
+      call get_cgps_gf(ll_in, ll_out, many_events)
       ll_in = ll_out
    end if
    if (body) then
-      call get_body_waves_gf(ll_in, ll_out)
+      call get_body_waves_gf(ll_in, ll_out, many_events)
       ll_in = ll_out
    end if
    if (surf) then
-      call get_surface_waves_gf(ll_in, ll_out)
+      call get_surface_waves_gf(ll_in, ll_out, many_events)
       ll_in = ll_out
    end if
 !   if (dart) then
@@ -88,16 +92,18 @@ contains
    end subroutine get_gf
 
    
-   subroutine get_strong_motion_gf(ll_in, ll_out)
+   subroutine get_strong_motion_gf(ll_in, ll_out, many_events)
    implicit none
    integer :: ll_in, ll_out, io_v_d, ll_g, ll, &
    &  io_chan, i, segment, channel, channel_max, n_chan, &
-   &  ixs, iys
+   &  ixs, iys, event
    real :: omega, block, dt, df, dt_sample, w, tlen
    complex :: z0, z
    character(len=80) filename
    character(len=3) comp!component(max_stations), comp
    character(len=1) channel2!component(max_stations), comp
+   character(len=2) event2!component(max_stations), comp
+   logical :: many_events
    
    write(*,*)'Store strong motion GF in memory...'
    z0 = cmplx(0.0, 0.0)
@@ -135,9 +141,7 @@ contains
       ll_g = io_chan+ll_in
       comp = component(ll_g)
       channel2 = comp(3:3)
-      if (channel2 .eq. 'Z') filename = trim(sta_name(ll_g))//'1'
-      if (channel2 .eq. 'N') filename = trim(sta_name(ll_g))//'2'
-      if (channel2 .eq. 'E') filename = trim(sta_name(ll_g))//'3'
+      filename = trim(sta_name(ll_g))//'.'//comp
       filename = trim(filename)
 
       open(12, file=filename, status='old', access='direct',recl=block_stg)
@@ -145,7 +149,7 @@ contains
 !
 !       Here, we read the green functions and derivate them
 !
-      ll_g = ll_in+io_chan
+      if (many_events) event = event_sta(ll_g)
       do segment = 1, segments
          do iys = 1, nys_sub(segment)
             do ixs = 1, nxs_sub(segment)
@@ -163,25 +167,31 @@ contains
                   green_dip(i, ll_g, ll) = green_dip(i, ll_g, ll)*z*block
                   green_stk(i, ll_g, ll) = green_stk(i, ll_g, ll)*z*block
                end do
+               if ((many_events) .and. (segment_in_event(segment, event) .eqv. .False.)) then
+                  green_dip(:max_freq, ll_g, ll) = 0.0
+                  green_stk(:max_freq, ll_g, ll) = 0.0
+               endif
             end do
          end do
-      end do
+      enddo
       close(12)
    end do      
    ll_out = ll_in+n_chan
    end subroutine get_strong_motion_gf
 
    
-   subroutine get_cgps_gf(ll_in, ll_out)
+   subroutine get_cgps_gf(ll_in, ll_out, many_events)
    implicit none
    integer ll_in, ll_out, ll_g, ll, &
    &  io_chan, i, segment, channel, &
-   &  channel_max, n_chan, ixs, iys!, jmin, jmax, max_freq
+   &  channel_max, n_chan, ixs, iys, event!, jmin, jmax, max_freq
    real omega, block, dt, df, dt_sample, w, low_freq, tlen
    complex z0, z
    character(len=80) filename
    character(len=3) comp
    character(len=1) channel2
+   character(len=2) event2!component(max_stations), comp
+   logical :: many_events
 
    write(*,*)'Store cGPS GF in memory...'
    z0 = cmplx(0.0, 0.0)
@@ -220,9 +230,7 @@ contains
       ll_g = io_chan+ll_in
       comp = component(ll_g)
       channel2 = comp(3:3)
-      if (channel2 .eq. 'Z') filename = trim(sta_name(ll_g))//'.cgps.1'
-      if (channel2 .eq. 'N') filename = trim(sta_name(ll_g))//'.cgps.2'
-      if (channel2 .eq. 'E') filename = trim(sta_name(ll_g))//'.cgps.3'
+      filename = trim(sta_name(ll_g))//'.'//comp
       filename = trim(filename)
 
       open(12, file=filename, status='old', access='direct', recl=block_stg)
@@ -231,41 +239,44 @@ contains
 !       Here, we read the green functions and derivate them
 !
       ll_g = ll_in+io_chan
+      if (many_events) event = event_sta(ll_g)
       do segment = 1, segments
          do iys = 1, nys_sub(segment)
             do ixs = 1, nxs_sub(segment)
                ll = ll+1
-               read(12, rec = ll)(green_dip(i, ll_g, ll), i = 1, max_freq),(green_stk(i, ll_g, ll), i = 1, max_freq)
+               read(12, rec = ll) &
+               & (green_dip(i, ll_g, ll), i = 1, max_freq),(green_stk(i, ll_g, ll), i = 1, max_freq)
                do i = 1, max_freq
+!
+! we eventually shift synthetics in time, in case the fault plane used has a delay
+!
                   omega = twopi*(i-1)*df
-                  w = -omega*delay_seg(segment) ! we shift synthetics in time by delay_seg(segment) seconds
+                  w = -omega*delay_seg(segment)
                   z = cmplx(0.0, w)
                   z = cexp(z)
                   green_dip(i, ll_g, ll) = green_dip(i, ll_g, ll)*z*block
                   green_stk(i, ll_g, ll) = green_stk(i, ll_g, ll)*z*block
                end do
+               if ((many_events) .and. (segment_in_event(segment, event) .eqv. .False.)) then
+                  green_dip(:max_freq, ll_g, ll) = 0.0
+                  green_stk(:max_freq, ll_g, ll) = 0.0
+               endif
             end do
          end do
-      end do
+      enddo
       close(12)
    end do
    ll_out = ll_in+n_chan
    end subroutine get_cgps_gf
 
 
-   subroutine get_body_waves_gf(ll_in, ll_out)
+   subroutine get_body_waves_gf(ll_in, ll_out, many_events)
    implicit none
    integer nstaon, channel, ll_g, k, nsta, n_chan, subfault, psource, &
    &  love, ll, segment, iys, iyp, io_seg, iys_c, iy_c, jf, i, ipy, npxy, &
    &  nkxy, nxs_c, nys_c, nxp_c, nyp_c, ll_s, kxy, ixs, kpxy, ixp, & 
-!, iud(max_stations_tele), &
-!   &  idata(max_stations_tele), nos(max_stations_tele), llove(max_stations_tele), mmm(max_stations_tele), &
-   &  ll_in, ll_out
+   &  ll_in, ll_out, event
    real dt, df, ddelt, time, block, w, tlen!, &
-!   &  earth_angle(max_stations_tele), hcru(max_stations_tele), &
-!   &  disp_or_vel(max_stations_tele), rang(max_stations_tele), az(max_stations_tele), &
-!   &  ttvl(max_stations_tele), &
-!   &  lat_sta(max_stations_tele), lon_sta(max_stations_tele)
    real, allocatable :: tdel(:,:,:,:)
    complex :: z, z0, wsyn(wave_pts)
    complex :: kahan_y1(wave_pts2), kahan_t1(wave_pts2), kahan_c1(wave_pts2)
@@ -273,10 +284,8 @@ contains
    complex, allocatable :: green_dip0(:,:,:,:,:)
    complex, allocatable :: green_stk0(:,:,:,:,:)
 !
-!   character(len=5) earth(max_stations_tele)
-!   character(len=14) fname(max_stations_tele)
-!   character(len=6) stname(max_stations_tele), sttyp(max_stations_tele)
    character(len=14) fname4, fname6
+   logical :: many_events
    allocate(green_dip0(npuse, max_dip_psources, max_dip_subfaults, max_seg, nnsta_tele))
    allocate(green_stk0(npuse, max_dip_psources, max_dip_subfaults, max_seg, nnsta_tele))
    allocate(tdel(max_psources, max_subf, max_seg, nnsta_tele))
@@ -320,56 +329,56 @@ contains
       open(12, file=fname4, status='old', access='direct', recl=block_far)
       open(32, file=fname6, status='old', access='direct', recl=ltde)
       LL = 0
+      if (many_events) event = event_sta(ll_g)
       do segment = 1, segments
-         if (segment .le. 10) then
-            do iys = 1, nys_sub(segment)
-               do IPY = 1, ny_p
-                  LL = LL+1
-                  read(12, rec = LL) io_seg, iys_c, iy_c, JF, DT, DF, &
+         do iys = 1, nys_sub(segment)
+            do IPY = 1, ny_p
+               LL = LL+1
+               read(12, rec = LL) io_seg, iys_c, iy_c, JF, DT, DF, &
      &  (green_dip0(i, ipy, iys, segment, channel), i = 1, 2*max_freq)
-                  LL = LL+1
-                  read(12, rec = LL) io_seg, iys_c, iy_c, JF, LNPT, NLEN, &
+               LL = LL+1
+               read(12, rec = LL) io_seg, iys_c, iy_c, JF, LNPT, NLEN, &
      &  (green_stk0(i, ipy, iys, segment, channel), I = 1, 2*max_freq)
 !
 !       Sanity checks
 !
-                  if ((io_seg.ne.segment) .or. (iys_c.ne.iys) .or. (iy_c.ne.ipy)) then
-                     write(*,*)'io_seg vs segment: ', io_seg,segment
-                     write(*,*)'iys_c, iys: ', iys_c,iys
-                     write(*,*)'iy_c, ipy: ', iy_c,ipy
-                     write(*,*)"Green function is not matched with fault model"
-                     stop
-                  end if
-                  do i = 1, 2*max_freq
-                     green_dip0(i, ipy, iys, segment, channel) = &
-                     & block*green_dip0(i, ipy, iys, segment, channel)
-                     green_stk0(i, ipy, iys, segment, channel) = &
-                     & block*green_stk0(i, ipy, iys, segment, channel)
-                  end do
+               if ((io_seg.ne.segment) .or. (iys_c.ne.iys) .or. (iy_c.ne.ipy)) then
+                  write(*,*)'io_seg vs segment: ', io_seg,segment
+                  write(*,*)'iys_c, iys: ', iys_c,iys
+                  write(*,*)'iy_c, ipy: ', iy_c,ipy
+                  write(*,*)"Green function is not matched with fault model"
+                  stop
+               end if
+               do i = 1, 2*max_freq
+                  green_dip0(i, ipy, iys, segment, channel) = &
+                  & block*green_dip0(i, ipy, iys, segment, channel)
+                  green_stk0(i, ipy, iys, segment, channel) = &
+                  & block*green_stk0(i, ipy, iys, segment, channel)
                end do
             end do
-            nkxy = nxs_sub(segment)*nys_sub(segment)
-            read(32, rec = segment) nxs_c, nys_c, nxp_c, nyp_c, &
+         end do
+         nkxy = nxs_sub(segment)*nys_sub(segment)
+         read(32, rec = segment) nxs_c, nys_c, nxp_c, nyp_c, &
      &  ((tdel(k, ll_s, segment, channel), k = 1, npxy), ll_s = 1, nkxy)
-            if ((nxs_c.ne.nxs_sub(segment)) .or. (nys_c.ne.nys_sub(segment)) &
-     &      .or.(nxp_c.ne.nx_p) .or. (nyp_c.ne.ny_p)) then
-                write(*,*)'nxs',nxs_c,nxs_sub(segment)
-                write(*,*)'nys',nys_c,nys_sub(segment)
-                write(*,*)'nxp',nxp_c,nx_p
-                write(*,*)'nyp',nyp_c,ny_p
-                write(*,'(a)')'Mismatch in amount of point sources or subfaults &
-                &between the specified in Fault.time, and those used in the &
-                &green functions.'
-                stop
-             end if
-          else
-             npxy = nx_p*ny_p
-             nkxy = nxs_sub(segment)*nys_sub(segment)
-             do iys = 1, nys_sub(segment)
-                do ipy = 1, ny_p
-                   do i = 1, 2*max_freq
-                      green_dip0(i, ipy, iys, segment, channel) = z0
-                      green_stk0(i, ipy, iys, segment, channel) = z0
+         if ((nxs_c.ne.nxs_sub(segment)) .or. (nys_c.ne.nys_sub(segment)) &
+     &   .or.(nxp_c.ne.nx_p) .or. (nyp_c.ne.ny_p)) then
+            write(*,*)'nxs',nxs_c,nxs_sub(segment)
+            write(*,*)'nys',nys_c,nys_sub(segment)
+            write(*,*)'nxp',nxp_c,nx_p
+            write(*,*)'nyp',nyp_c,ny_p
+            write(*,'(a)')'Mismatch in amount of point sources or subfaults &
+            &between the specified in Fault.time, and those used in the &
+            &green functions.'
+            stop
+         end if
+         if (many_events .and. (segment_in_event(segment, event) .eqv. .False.)) then
+            npxy = nx_p*ny_p
+            nkxy = nxs_sub(segment)*nys_sub(segment)
+            do iys = 1, nys_sub(segment)
+               do ipy = 1, ny_p
+                  do i = 1, 2*max_freq
+                     green_dip0(i, ipy, iys, segment, channel) = z0
+                     green_stk0(i, ipy, iys, segment, channel) = z0
                   end do
                end do
             end do
@@ -378,7 +387,7 @@ contains
                   tdel(psource, ll_s, segment, channel) = 0.0
                end do
             end do
-         end if
+         endif
       end do
       close(12)
       close(32)
@@ -455,11 +464,11 @@ contains
    end subroutine get_body_waves_gf
 
 
-   subroutine get_surface_waves_gf(ll_in, ll_out)
+   subroutine get_surface_waves_gf(ll_in, ll_out, many_events)
    implicit none
    integer ll_in, ll_out, nf1, nf2, nf3, nf4, no, subfault, psource, &
    &  npp, ix, iy, segment_subfault, j, ll_g, ll, io_chan, i, k, io_mod(max_stations), &
-   &  segment, channel, i_ch, channel_max, n_chan, &
+   &  segment, channel, i_ch, channel_max, n_chan, event, &
    &  iys, ixs, io_up(max_stations), io_ew(max_stations), io_ns(max_stations)
 
    real*8 :: dip_segment, theta, dis, az, baz, rad_c, coef_v(2, 3), coef_r(2, 5)
@@ -475,6 +484,7 @@ contains
    character(len=250) modes
    character(len=100) surf_gf_bank
    character(len=6) sta_name1
+   logical :: many_events
 
    write(*,*)'Store long period surface waves GF in memory...'
    z0 = cmplx(0.0, 0.0)
@@ -631,6 +641,7 @@ contains
 
                   io_chan = io_chan+1
                   ll_g = io_chan+ll_in
+                  if (many_events) event = event_sta(ll_g)
                   call rad_coef(dip_segment, theta, az, rad_c, coef_v, coef_r)
                   do i = 1, max_freq
                      www = cmplx(0.0, 0.0)
@@ -646,13 +657,23 @@ contains
                            wss = wss+coef_r(2, j)*green_s(i, j)
                         end do
                      end if
-                     if (i .le. max_freq .and. segment .le. 10) then
-                        green_stk(i, ll_g, subfault) = wss*filter(i)*sour_sub(i)*shear_subfault
-                        green_dip(i, ll_g, subfault) = www*filter(i)*sour_sub(i)*shear_subfault
+                     if (many_events) then
+                        if (i .le. max_freq .and. segment_in_event(segment, event)) then
+                           green_stk(i, ll_g, subfault) = wss*filter(i)*sour_sub(i)*shear_subfault
+                           green_dip(i, ll_g, subfault) = www*filter(i)*sour_sub(i)*shear_subfault
+                        else
+                           green_dip(i, ll_g, subfault) = cmplx(0.0, 0.0)
+                           green_stk(i, ll_g, subfault) = cmplx(0.0, 0.0)
+                        end if
                      else
-                        green_dip(i, ll_g, subfault) = cmplx(0.0, 0.0)
-                        green_stk(i, ll_g, subfault) = cmplx(0.0, 0.0)
-                     end if
+                        if (i .le. max_freq .and. segment .le. 10) then
+                           green_stk(i, ll_g, subfault) = wss*filter(i)*sour_sub(i)*shear_subfault
+                           green_dip(i, ll_g, subfault) = www*filter(i)*sour_sub(i)*shear_subfault
+                        else
+                           green_dip(i, ll_g, subfault) = cmplx(0.0, 0.0)
+                           green_stk(i, ll_g, subfault) = cmplx(0.0, 0.0)
+                        end if
+                     endif
                   end do
                end do
             end do

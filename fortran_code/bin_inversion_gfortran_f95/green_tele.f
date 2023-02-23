@@ -52,7 +52,7 @@ c
        COMMON/SOURECTYPE/IDTS
        DIMENSION fau_mod(Max_seg,NNXY,nnpxy,7)
        DIMENSION TDEL(NNXS,NNYS,NNPX,NNPY)
-       DIMENSION PMD(3),PMU(3),SVMU(3),NOS(100)
+       DIMENSION PMD(3),PMU(3),SVMU(3),NOS(200)
 
 c     fau_mod  1:x, 2:y, 3:dis
       CHARACTER*12 FNAME4,FNAME5
@@ -69,17 +69,17 @@ c
      * M6, w, omax, sin2aaz, sin2d, sinaaz, sinal, sind,
      * sinthea, all, thea, time, time0, tmax, tmin, v_min, vp, x,
      * xmean, gdp, rpz, hcru, hsou
-      real low_freq, high_freq, lat_sta(100), lon_sta(100)
+      real low_freq, high_freq, lat_sta(200), lon_sta(200)
       real fmax, eang, rang, ttvl, lat_p, lon_p, dis, az_s, baz_s
       real ta0, dta, high_freq2
       integer love, mmm, iud, idata, llove
-      DIMENSION EANG(100),HCRU(100),MMM(100),HSOU(100)
-      DIMENSION IUD(100),IDATA(100)
-      character*6 stname(100),sttyp(100)
-      dimension rang(100),az(100),TTVL(100),LLOVE(100)
-      character*5 EARTH(100)
+      DIMENSION EANG(200),HCRU(200),MMM(200),HSOU(200)
+      DIMENSION IUD(200),IDATA(200)
+      character*6 stname(200),sttyp(200)
+      dimension rang(200),az(200),TTVL(200),LLOVE(200)
+      character*5 EARTH(200)
       character*40 eventname, string
-      character*14 fname(100)
+      character*14 fname(200)
       integer i, i_seg, iflag, ll, kxy, kpxy, al, k, nstb,
      *  io_seg, io_v_d, ir, is, iso, ix, ixs, iy, iys, j, no,
      *  nstaon, nnn, nls, jf_final, leng, lnpt_use, mm, n_seg, nb,
@@ -354,7 +354,7 @@ c
                   kpxy=(iy-1)*nx_p+1
                   zdepth=fau_mod(i_seg,kxy,kpxy,3)
                   if(zdepth .le.0.1)then
-                     write(*,*)iys,iy
+                     write(*,*)iys,iy, i_seg
                      write(*,*)"ohoh, the subfault is in air"
                      stop
                   endif

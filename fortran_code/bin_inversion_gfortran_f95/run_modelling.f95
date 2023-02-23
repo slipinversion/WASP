@@ -3,8 +3,9 @@ program run_modelling
 
    use constants, only : max_seg, max_subfaults, max_subf
    use model_parameters, only : get_faults_data, get_model_space, get_special_boundaries, &
-         & subfault_positions, deallocate_ps
-   use modelling_inputs, only : get_annealing_param, n_iter, io_re, cooling_rate, t_stop, t_mid, t0, idum
+         & subfault_positions, events_segments, deallocate_ps
+   use modelling_inputs, only : get_annealing_param, moment_events, n_iter, io_re, cooling_rate, &
+         & t_stop, t_mid, t0, idum
    use save_forward, only : write_forward
    use random_gen, only : start_seed
    use annealing, only : n_threads
@@ -19,7 +20,7 @@ program run_modelling
    real*8 :: ramp(18)
    logical :: static, strong, cgps, dart, body, surf, auto
    logical :: insar, ramp_gf_file
-   logical :: use_waveforms, use_static
+   logical :: use_waveforms, use_static, many_events
    character(len=10) :: input
 
    write(*,'(/A/)')"CHEN-JI'S WAVELET KINEMATIC MODELLING METHOD"
@@ -31,6 +32,7 @@ program run_modelling
    surf = .False.
    dart = .False.
    auto = .False.
+   many_events = .False.
    do i = 1, iargc()
       call getarg(i, input)
       input = trim(input)
@@ -42,25 +44,28 @@ program run_modelling
       if (input .eq.'surf') surf = .True.
       if (input .eq.'dart') dart = .True.
       if (input .eq.'auto') auto = .True.
+      if (input .eq.'many') many_events = .True.
    end do
    call check_waveforms(strong, cgps, body, surf, dart, use_waveforms)
    call check_static(static, insar, use_static)
    call n_threads(auto)
    call get_annealing_param()
+   if (many_events) call moment_events()
    call start_seed(idum)
    call get_faults_data()
    call get_model_space()
    call get_special_boundaries()
    call subfault_positions()
+   if (many_events) call events_segments()
    call regularization_set_fault_parameters()
    if ((use_waveforms) .and. (use_static .eqv. .False.)) then
       call waveform_ffm(strong, cgps, body, surf, dart, &
-       & slip, rake, rupt_time, t_rise, t_fall)
+       & slip, rake, rupt_time, t_rise, t_fall, many_events)
    elseif ((use_static) .and. (use_waveforms .eqv. .False.)) then
-      call static_ffm(slip, rake, static, insar)
+      call static_ffm(slip, rake, static, insar, many_events)
    elseif ((use_static) .and. (use_waveforms)) then
       call mixed_ffm(strong, cgps, body, surf, dart, &
-       & static, insar, slip, rake, rupt_time, t_rise, t_fall)
+       & static, insar, slip, rake, rupt_time, t_rise, t_fall, many_events)
    endif
    call deallocate_ps()
    write(*,'(/A/)')"END CHEN-JI'S WAVELET KINEMATIC MODELLING METHOD"

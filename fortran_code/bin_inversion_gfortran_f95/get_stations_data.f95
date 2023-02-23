@@ -5,7 +5,7 @@ module get_stations_data
    use wavelet_param, only : set_params
    use wavelets, only : wavelet_obs
    implicit none
-   integer, parameter :: nnsta_tele = 80
+   integer, parameter :: nnsta_tele = 150
    real :: weight(max_stations), dt_channel(max_stations)
    integer :: misfit_type(12, max_stations)
    integer :: t_min(max_stations), t_max(max_stations), channels
@@ -17,6 +17,7 @@ module get_stations_data
    logical :: dart_channels(max_stations)
    logical :: wphase_channels(max_stations), cgps_channels(max_stations)
    integer :: lnpt, nlen, jmin, jmax, max_freq, start(max_stations)
+   integer :: event_sta(max_stations)
 
 
 contains
@@ -49,6 +50,12 @@ contains
    channels0 = channels
    end subroutine get_properties
 
+   
+   subroutine get_event_sta(event_sta0)
+   implicit none
+   integer :: event_sta0(max_stations)
+   event_sta0(:) = event_sta(:)
+   end subroutine get_event_sta
 
    subroutine get_data(strong, cgps, body, surf, dart)
    implicit none
@@ -94,7 +101,9 @@ contains
    &  nos(max_stations), io_mod(max_stations), n_chan3
    real dt, weig(max_stations), j_wig(11), dt_sample, lat_s, lon_s
    logical, parameter :: cgps=.False.
-   character(len=20) filename
+   character(len=20) filename, string2, string1
+   character(len=30) event_file
+   logical :: is_file
 !   character(len=6) sta_name(max_stations)
 !   character(len=3) component(max_stations)
 
@@ -161,7 +170,19 @@ contains
          wavelet_weight(k, ll_g) = 0
       end do
    end do
-   close(15)  
+   close(15) 
+
+   event_file = 'strong_motion_events.txt'
+   inquire(file = event_file, exist = is_file)
+   if (is_file) then
+      open(12, file=event_file, status='old')
+      do ir=1,ir_max
+         ll_g = ir+ll_in
+         read(12,*)string1, string2, event_sta(ll_g)
+      enddo
+      close(12)    
+   endif
+ 
    ll_out = ll_in + n_chan
    end subroutine get_strong_motion_stations
 
@@ -173,7 +194,9 @@ contains
    &  nos(max_stations), io_mod(max_stations), n_chan3
    real :: lat_s, lon_s, dt, weig(max_stations), j_wig(11), dt_sample
    logical, parameter :: cgps=.True.
-   character(len=20) filename
+   character(len=20) filename, string1, string2
+   character(len=30) event_file
+   logical :: is_file
 !   character(len=6) sta_name(max_stations)
 !   character(len=3) component(max_stations)
 
@@ -241,6 +264,18 @@ contains
    end do
    close(15)
    ll_out = ll_in + n_chan
+   
+   event_file = 'cgps_events.txt'
+   inquire(file = event_file, exist = is_file)
+   if (is_file) then
+      open(12, file=event_file, status='old')
+      do ir=1,ir_max
+         ll_g = ir+ll_in
+         read(12,*)string1, string2, event_sta(ll_g)
+      enddo
+      close(12)    
+   endif
+   
    end subroutine get_cgps_stations
 
    
@@ -251,9 +286,11 @@ contains
    real lat_sta, lon_sta, j_wig(11), dt, & 
    &  rang, az, earth_angle, float1, float2
    logical, parameter :: cgps=.False.
-   character(len=20) filename
+   character(len=20) filename, string1, string2
+   character(len=30) event_file
    character(len=6)  earth, sttyp 
    character(len=14) fname
+   logical :: is_file
 
    write(*,*)'Get body waves stations metadata and waveforms...'
    n_chan3 = 0
@@ -326,6 +363,18 @@ contains
    close(9)
    close(14)
    close(15)
+   
+   event_file = 'tele_events.txt'
+   inquire(file = event_file, exist = is_file)
+   if (is_file) then
+      open(12, file=event_file, status='old')
+      do ir=1,nstaon
+         ll_g = ir+ll_in
+         read(12,*)string1, string2, event_sta(ll_g)
+      enddo
+      close(12)    
+   endif
+   
    ll_out = ll_in + n_chan
    end subroutine get_body_waves_stations
 
@@ -340,9 +389,11 @@ contains
    &  ang_ns(max_stations), ang_ew(max_stations), weig(max_stations, 3), j_wig(11), dt_sample, &
    &  dip, rake, theta
    logical, parameter :: cgps=.False.
-   character(len=20) filename
+   character(len=20) filename, string1, string2
+   character(len=30) event_file
 !   character(len=6) sta_name(max_stations)
    character(len=250) modes
+   logical :: is_file
 
    write(*,*)'Get stations metadata and waveforms for long period surface waves...'
    n_chan3 = 0
@@ -431,6 +482,18 @@ contains
       end do
    end do
    close(15)   
+   
+   event_file = 'surf_events.txt'
+   inquire(file = event_file, exist = is_file)
+   if (is_file) then
+      open(12, file=event_file, status='old')
+      do ir=1,ir_max
+         ll_g = ir+ll_in
+         read(12,*)string1, string2, event_sta(ll_g)
+      enddo
+      close(12)    
+   endif
+   
    ll_out = ll_in+n_chan
    end subroutine get_surface_waves_stations
 
