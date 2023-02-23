@@ -421,6 +421,7 @@ def write_Coulomb_file(directory=None,eventID=None):
     ##########################################################################
     
     fsp = open(directory+'/fsp_sol_file.txt','r')
+    nft = 0
     for line in fsp:
         if line.startswith('% Loc'):
             hypo_lat = float(line.split()[5])
@@ -435,8 +436,10 @@ def write_Coulomb_file(directory=None,eventID=None):
         if line.startswith('% Invs : Dx '):
             sf_length_as = float(line.split()[5]) # Subfault length along strike
             sf_length_ad = float(line.split()[9]) # Subfault length along dip
-    nft = n_sf_strike * n_sf_dip
-
+        if line.startswith('% Nsbfs'):
+            nft += int(line.split()[3]) # number of subfaults
+    fsp.close()
+    print(nft)
     ##########################################################################
     ########################### WRITE HEADER INFO ############################
     ##########################################################################
@@ -496,7 +499,11 @@ def write_Coulomb_file(directory=None,eventID=None):
             continue
         else:
             lat, lon, ew, ns, dep, slip, rake, trup, trise, sf_moment = line.split()
-            LAT.append(float(lat)); LON.append(float(lon)); DEP.append(float(dep)); SLIP.append(float(slip)); RAKE.append(float(rake))
+            LAT.append(float(lat)); LON.append(float(lon)); DEP.append(float(dep)); SLIP.append(float(slip)); 
+            if float(rake) > 360:
+                RAKE.append(float(rake)-360)
+            else:
+                RAKE.append(float(rake))
     fsp.close()
     ##########################################################################
     ######### CONVERT COORDINATE SUBFAULT CENTERS TO LOCAL CARTESIAN #########
