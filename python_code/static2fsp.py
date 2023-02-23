@@ -272,6 +272,8 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
                           moment_fault)
             for line in zipped3:
                 lat, lon, dep, slip, rake, t_rup, t_ris, t_fal, moment = line
+                if rake > 360:
+                    rake = rake - 360
                 north_south = (float(lat) - event_lat) * 111.11
                 east_west = (float(lon) - event_lon) * 111.11
                 moment = moment * 10 ** -7
@@ -327,6 +329,8 @@ def static_to_fsp(tensor_info, segments_data, used_data, vel_model, solution):
                 for line in zipped3:
                     lat, lon, dep, slip, rake, t_rup, t_ris, t_fal,\
                     moment = line
+                    if rake > 360:
+                        rake = rake - 360
                     north_south = (float(lat) - event_lat) * 111.11
                     east_west = (float(lon) - event_lon) * 111.11
                     moment = moment * 10 ** -7
