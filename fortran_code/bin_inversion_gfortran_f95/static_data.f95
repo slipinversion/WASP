@@ -84,7 +84,7 @@ contains
             do j = 1, nys_sub(segment)*nxs_sub(segment)
                subfault = subfault + 1
                read(33,*)(green(channel, k, subfault), k = 1, 6)
-               if (subfault_in_event(subfault, event) .eqv. .False.) then
+               if (many_events .and. (subfault_in_event(subfault, event) .eqv. .False.)) then
                   green(channel, :, subfault) = 0.0
                endif
             enddo
