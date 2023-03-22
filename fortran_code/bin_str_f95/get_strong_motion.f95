@@ -183,29 +183,14 @@ program get_strong_motion
 !      write(*,*)'az=',az,dis,baz,lat_sta,lon_sta,lat_e,lon_e
       channel2 = comp(3:3)
 !      write(*,*)scan(comp, 'Z')
-      if (disp) then
-         if (channel2 .eq. 'Z') then
-            nn_comp = 14
-            filename=trim(sta_name(ir))//'.cgps.1'
-         elseif (channel2 .eq. 'N') then
-            nn_comp = 15
-            filename=trim(sta_name(ir))//'.cgps.2'
-         elseif (channel2 .eq. 'E') then
-            nn_comp = 16
-            filename=trim(sta_name(ir))//'.cgps.3'
-         endif
-      else
-         if (channel2 .eq. 'Z') then
-            nn_comp = 14
-            filename=trim(sta_name(ir))//'1'
-         elseif (channel2 .eq. 'N') then
-            nn_comp = 15
-            filename=trim(sta_name(ir))//'2'
-         elseif (channel2 .eq. 'E') then
-            nn_comp = 16
-            filename=trim(sta_name(ir))//'3'
-         endif
-      endif         
+      if (channel2 .eq. 'Z') then
+         nn_comp = 14
+      elseif (channel2 .eq. 'N') then
+         nn_comp = 15
+      elseif (channel2 .eq. 'E') then
+         nn_comp = 16
+      endif
+      filename = trim(sta_name(ir))//'.'//comp
       open(20,file=filename,status='unknown',access='direct',recl=block_stg)
       ll = 0
       ky = 0
