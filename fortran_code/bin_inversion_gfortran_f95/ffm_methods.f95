@@ -19,7 +19,8 @@ module ffm_methods
    use annealing, only : initial_model, print_summary, print_summary2, &
                     &   annealing_iter3, annealing_iter4, n_threads, &
                     &   annealing_iter5, annealing_iter6, &
-                    &   annealing_set_data_properties, annealing_set_fault_parameters
+                    &   annealing_set_data_properties, annealing_set_fault_parameters, &
+                    &   allocate_forward, deallocate_forward
    use annealing_static, only : print_static_summary, annealing_iter, &
                     &   annealingstatic_set_fault_properties
    implicit none
@@ -79,6 +80,7 @@ contains
    call wavelets_set_data_properties()
    call saveforward_set_data_properties()
    call annealing_set_data_properties()
+   call allocate_forward()
    call get_source_fun()
    call get_gf(strong, cgps, body, surf, dart, many_events)
    call initial_model(slip, rake, rupt_time, t_rise, t_fall)
@@ -116,6 +118,7 @@ contains
    call write_forward(slip, rake, rupt_time, t_rise, t_fall, strong, cgps, body, surf)
    call write_model(slip, rake, rupt_time, t_rise, t_fall, use_waveforms)
    call deallocate_source()
+   call deallocate_forward()
    call deallocate_gf()
    end subroutine waveform_ffm
    
@@ -146,6 +149,7 @@ contains
    call wavelets_set_data_properties()
    call saveforward_set_data_properties()
    call annealing_set_data_properties()
+   call allocate_forward()
    call get_source_fun()
    call get_gf(strong, cgps, body, surf, dart, many_events)
    call initial_model(slip, rake, rupt_time, t_rise, t_fall)
@@ -229,6 +233,7 @@ contains
    if (static) call initial_gps(slip, rake, many_events)
    call write_model(slip, rake, rupt_time, t_rise, t_fall, use_waveforms)
    call deallocate_source()
+   call deallocate_forward()
    call deallocate_gf()
    if (insar) call deallocate_insar_gf()
    end subroutine mixed_ffm

@@ -36,6 +36,8 @@ module annealing
    integer :: max_freq, lnpt, channels
    real :: dt_channel(max_stations)
    logical :: segment_in_event(max_seg, 10), subfault_in_event(max_subfaults, 10)
+   real*8, allocatable :: forward_real2(:, :), forward_imag2(:, :)
+   real, allocatable :: forward_real(:, :), forward_imag(:, :)
 
 
 contains
@@ -75,6 +77,24 @@ contains
    call get_properties(sta_name, component, dt_channel, channels)
    call get_data_param(lnpt, jmin, jmax, nlen, max_freq)
    end subroutine annealing_set_data_properties
+
+
+   subroutine allocate_forward()
+   implicit none
+   allocate(forward_real2(wave_pts, max_stations))
+   allocate(forward_imag2(wave_pts, max_stations))
+   allocate(forward_real(wave_pts, max_stations))
+   allocate(forward_imag(wave_pts, max_stations))
+   end subroutine allocate_forward
+
+
+   subroutine deallocate_forward()
+   implicit none
+   deallocate(forward_real2)
+   deallocate(forward_imag2)
+   deallocate(forward_real)
+   deallocate(forward_imag)
+   end subroutine deallocate_forward 
    
    
    subroutine initial_model(slip, rake, rupt_time, t_rise, t_fall)
@@ -127,8 +147,8 @@ contains
    real :: slip(:), rake(:), rupt_time(:)
    real :: t_rise(:), t_fall(:)
    real amp, moment, moment_reg, dt, value1, er0, slip_reg, gps_misfit, insar_misfit, &
-      & time_reg, forward_real(wave_pts2, max_stations), a, b, &
-      & forward_imag(wave_pts2, max_stations), cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2)
+      & time_reg, forward_real3(wave_pts2, max_stations), a, b, &
+      & forward_imag3(wave_pts2, max_stations), cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2)
    real :: rake2, delta_freq, delta_freq0, moment0, kahan_y, kahan_t, kahan_c
    real*8 :: omega, misfit2, ex
    integer :: i, segment, channel, isl, isr, jf, k, subfault, used_data
@@ -177,10 +197,10 @@ contains
       end do
 
       do i = 1, wave_pts
-         forward_real(i, channel) = real(forward(i))
-         forward_imag(i, channel) = aimag(forward(i))
-         cr(i) = forward_real(i, channel)
-         cz(i) = forward_imag(i, channel)
+         forward_real3(i, channel) = real(forward(i))
+         forward_imag3(i, channel) = aimag(forward(i))
+         cr(i) = forward_real3(i, channel)
+         cz(i) = forward_imag3(i, channel)
       end do
       call wavelet_syn(cr, cz, forward2)
       call misfit_channel(channel, forward2, ex)
@@ -295,8 +315,8 @@ contains
    real :: slip(:), rake(:), rupt_time(:)
    real :: t_rise(:), t_fall(:)
    real amp, moment, moment_reg(10), moment_reg2, dt, value1, er0, slip_reg, gps_misfit, insar_misfit, &
-      & time_reg, forward_real(wave_pts2, max_stations), a, b, &
-      & forward_imag(wave_pts2, max_stations), cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2)
+      & time_reg, forward_real3(wave_pts2, max_stations), a, b, &
+      & forward_imag3(wave_pts2, max_stations), cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2)
    real :: rake2, delta_freq, delta_freq0, moment0(10), kahan_y, kahan_t, kahan_c
    real*8 :: omega, misfit2, ex
    integer :: i, segment, channel, isl, isr, jf, k, subfault, used_data
@@ -345,10 +365,10 @@ contains
       end do
 
       do i = 1, wave_pts
-         forward_real(i, channel) = real(forward(i))
-         forward_imag(i, channel) = aimag(forward(i))
-         cr(i) = forward_real(i, channel)
-         cz(i) = forward_imag(i, channel)
+         forward_real3(i, channel) = real(forward(i))
+         forward_imag3(i, channel) = aimag(forward(i))
+         cr(i) = forward_real3(i, channel)
+         cz(i) = forward_imag3(i, channel)
       end do
       call wavelet_syn(cr, cz, forward2)
       call misfit_channel(channel, forward2, ex)
@@ -474,14 +494,15 @@ contains
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, &
    & n_total, j
-   real :: duse, ause, vuse, forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), &
+!   real, allocatable :: forward_real(:, :), forward_imag(:, :)
+   real :: duse, ause, vuse, &
    & de, rand, c, aux, dpb, amp, moment_reg, value1, gps_misfit, &
    & moment, d_sub, a_sub, slip_reg, a, b, moment0, &
    & time_reg, t_save, a_save, d_save, x, kahan_y, kahan_t, kahan_c, &
    & l_save, r_save, cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2), &
    & slip_beg, slip_max, slip_end, angle_beg, angle_end, angle_max, &
    & rupt_beg, rupt_end, rupt_max, rise_time_beg, rise_time_end, rise_time_max
-   real*8 :: forward_real2(wave_pts, max_stations), forward_imag2(wave_pts, max_stations)
+!   real*8, allocatable :: forward_real2(:, :), forward_imag2(:, :)
    real :: delta_freq0, delta_freq, rake2!, ex!, misfit2
    real*8 :: omega, misfit2, ex
    complex :: green_subf
@@ -810,7 +831,8 @@ contains
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, &
    & n_total, j
-   real :: forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), duse, ause, vuse, &
+!   real, allocatable :: forward_real(:, :), forward_imag(:, :)
+   real :: duse, ause, vuse, &
    & de, rand, c, aux, dpb, amp, moment_reg, value1, gps_misfit, insar_misfit, &
    & moment, d_sub, a_sub, slip_reg, a, b, kahan_y, kahan_c, kahan_t, &
    & time_reg, t_save, a_save, d_save, x, moment0, &
@@ -819,7 +841,7 @@ contains
    & rupt_beg, rupt_end, rupt_max, rise_time_beg, rise_time_end, rise_time_max
    real ramp_beg, ramp_end, ramp_max, ramp_use
    real*8 :: ramp0(36), ramp1(36)
-   real*8 :: forward_real2(wave_pts, max_stations), forward_imag2(wave_pts, max_stations)
+!   real*8, allocatable :: forward_real2(:, :), forward_imag2(:, :)
    real*8 :: omega, misfit2, ex
    real :: delta_freq, delta_freq0, rake2!, ex
    complex :: green_subf
@@ -1211,14 +1233,15 @@ contains
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, &
    & n_total, j, event
-   real :: duse, ause, vuse, forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), &
+!   real, allocatable :: forward_real(:, :), forward_imag(:, :)
+   real :: duse, ause, vuse, &
    & de, rand, c, aux, dpb, amp, moment_reg(10), moment_reg2, value1, gps_misfit, &
    & moment, d_sub, a_sub, slip_reg, a, b, moment0(10), &
    & time_reg, t_save, a_save, d_save, x, kahan_y, kahan_t, kahan_c, &
    & l_save, r_save, cr(wave_pts2), cz(wave_pts2), forward2(wave_pts2), &
    & slip_beg, slip_max, slip_end, angle_beg, angle_end, angle_max, &
    & rupt_beg, rupt_end, rupt_max, rise_time_beg, rise_time_end, rise_time_max
-   real*8 :: forward_real2(wave_pts, max_stations), forward_imag2(wave_pts, max_stations)
+!   real*8, allocatable :: forward_real2(:, :), forward_imag2(:, :)
    real :: delta_freq0, delta_freq, rake2!, ex!, misfit2
    real*8 :: omega, misfit2, ex
    complex :: green_subf
@@ -1575,7 +1598,8 @@ contains
    integer isl, isr, n_subfault(max_subfaults), n_accept, &
    & nbb, i, k, npb, nn, nran, subfault_seg, segment, channel, subfault, &
    & n_total, j, event
-   real :: forward_real(wave_pts, max_stations), forward_imag(wave_pts, max_stations), duse, ause, vuse, &
+!   real, allocatable :: forward_real(:, :), forward_imag(:, :)
+   real :: duse, ause, vuse, &
    & de, rand, c, aux, dpb, amp, moment_reg(10), moment_reg2, value1, gps_misfit, insar_misfit, &
    & moment, d_sub, a_sub, slip_reg, a, b, kahan_y, kahan_c, kahan_t, &
    & time_reg, t_save, a_save, d_save, x, moment0(10), &
@@ -1584,7 +1608,7 @@ contains
    & rupt_beg, rupt_end, rupt_max, rise_time_beg, rise_time_end, rise_time_max
    real ramp_beg, ramp_end, ramp_max, ramp_use
    real*8 :: ramp0(36), ramp1(36)
-   real*8 :: forward_real2(wave_pts, max_stations), forward_imag2(wave_pts, max_stations)
+!   real*8, allocatable :: forward_real2(:, :), forward_imag2(:, :)
    real*8 :: omega, misfit2, ex
    real :: delta_freq, delta_freq0, rake2!, ex
    complex :: green_subf

@@ -8,7 +8,7 @@ module constants
    integer, parameter :: max_subf = max_stk_subfaults * max_dip_subfaults
    integer, parameter :: max_psources = max_dip_psources * max_stk_psources, log2_pts = 10
    integer, parameter :: wave_pts = 2 ** log2_pts, wave_pts2 = 2 * wave_pts
-   integer, parameter :: n_data = 10000, max_stations = 300
+   integer, parameter :: n_data = 10000, max_stations = 500
    integer, parameter :: max_seg = 30, max_subfaults = 1000, max_subfaults2 = 5000
    integer, parameter :: npuse = 1 + wave_pts/2, block_stg = npuse * 130
    integer, parameter :: block_far = 256 * 1024, ltde = 320000
