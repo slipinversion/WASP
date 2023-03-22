@@ -13,10 +13,10 @@ program gf_static
    use retrieve_gf, only : lnpt, dt
    use geodesics, only : distaz
    implicit none
-   character(len=10) sta_name(4000), input
+   character(len=10) sta_name(9000), input
    character(len=100) vel_model, filename, filename2
    real*8 :: ang_d(ndis), dip, theta, azi(ndis)
-   real lat_s(4000),lon_s(4000), area
+   real lat_s(9000),lon_s(9000), area
    real dist(ndis),lat_sta,lon_sta,lat_p,lon_p
    real dep_p,t0(ndis)
    real*8 az,baz,dis
@@ -107,7 +107,7 @@ program gf_static
    vel_model = 'vel_model.txt'
    vel_model = trim(vel_model)
    call read_vel_model(vel_model)
-   do ll=1,4000
+   do ll=1,ndis
       t0(ll)=-50
    enddo
 !       
