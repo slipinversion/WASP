@@ -28,7 +28,7 @@ program run_forward
    surf = .False.
    dart = .False.
    use_waveforms = .True.
-   many_events = .True.
+   many_events = .False.
    do i = 1, iargc()
       call getarg(i, input)
       input = trim(input)
