@@ -18,7 +18,7 @@ program run_forward
    integer i
    character(len=10) :: input
    logical :: static, strong, cgps, body, surf, dart, insar
-   logical :: use_waveforms
+   logical :: use_waveforms, many_events
 
    static = .False.
    insar = .False.
@@ -28,6 +28,7 @@ program run_forward
    surf = .False.
    dart = .False.
    use_waveforms = .True.
+   many_events = .False.
    do i = 1, iargc()
       call getarg(i, input)
       input = trim(input)
@@ -38,6 +39,7 @@ program run_forward
       if (input .eq.'body') body = .True.
       if (input .eq.'surf') surf = .True.
       if (input .eq.'dart') dart = .True.
+      if (input .eq.'many') many_events = .True.
    end do
    call get_annealing_param()
    call get_faults_data()
@@ -50,12 +52,13 @@ program run_forward
    call retrievegf_set_data_properties()
    call wavelets_set_data_properties()
    call saveforward_set_data_properties()
-   call get_gf(strong, cgps, body, surf, dart)
+   call get_gf(strong, cgps, body, surf, dart, many_events)
    call staticdata_set_fault_parameters()
    call insardata_set_fault_parameters()
    call write_forward(slip0, rake0, rupt_time0, t_rise0, t_fall0, strong, cgps, body, surf)
-   if (static) call initial_gps(slip0, rake0)
+   if (static) call initial_gps(slip0, rake0, many_events)
    if (insar) call get_insar_gf()
+   if (insar) call get_insar_data()
    if (insar) call initial_insar(slip0, rake0)
    call write_model(slip0, rake0, rupt_time0, t_rise0, t_fall0, use_waveforms)
    call deallocate_gf()

@@ -5,7 +5,7 @@ program gf_static
 
 
    use constants, only : dpi, max_seg, max_stk_subfaults, max_dip_subfaults, max_stk_psources, &
-   &  max_dip_psources, nt 
+   &  max_dip_psources, nt, ndis
    use vel_model_data, only : read_vel_model, update_model, src, new_vel_s, new_dens
    use wave_travel, only : trav_fk
    use fk_static, only : sub_bs_dc 
@@ -13,19 +13,19 @@ program gf_static
    use retrieve_gf, only : lnpt, dt
    use geodesics, only : distaz
    implicit none
-   character(len=10) sta_name(2500), input
+   character(len=10) sta_name(9000), input
    character(len=100) vel_model, filename, filename2
-   real*8 :: ang_d(3000), dip, theta, azi(3000)
-   real lat_s(2500),lon_s(2500), area
-   real dist(3000),lat_sta,lon_sta,lat_p,lon_p
-   real dep_p,t0(3000)
+   real*8 :: ang_d(ndis), dip, theta, azi(ndis)
+   real lat_s(9000),lon_s(9000), area
+   real dist(ndis),lat_sta,lon_sta,lat_p,lon_p
+   real dep_p,t0(ndis)
    real*8 az,baz,dis
    real ta0,dta
    real*8 :: coef_v(2,3),coef_r(2,5)
    real dxs,dys,niu
    integer j,ir_max,ir,no,ix,iy
    integer iys,ixs,iyp,ixp,nxp,nyp,k,msou
-   real green_p(nt,8,3000)
+   real green_p(nt,8,ndis)
    real green_sub_dip(3), gf_dip
    real green_sub_stk(3), gf_stk
    real, allocatable :: fau_mod(:, :, :, :, :, :)
@@ -107,8 +107,8 @@ program gf_static
    vel_model = 'vel_model.txt'
    vel_model = trim(vel_model)
    call read_vel_model(vel_model)
-   do ll=1,3000
-      t0(ir)=-50
+   do ll=1,ndis
+      t0(ll)=-50
    enddo
 !       
 !       Compute static GF in all point sources
@@ -194,7 +194,7 @@ program gf_static
 !                     green_stk(2,ixs)=kahan_t(4,ixs)
                      gf_dip = 0.0
                      gf_stk = 0.0
-                     call rad_coef(dip,theta,azi(ll),ang_d(ll),16,coef_v,coef_r) !N
+                     call rad_coef(dip,theta,azi(ll),ang_d(ll),16,coef_v,coef_r) !E
                      do j=1,5
                         gf_dip = gf_dip + coef_r(1,j)*green_p(1,j,ll)*niu*area  
                         gf_stk = gf_stk + coef_r(2,j)*green_p(1,j,ll)*niu*area

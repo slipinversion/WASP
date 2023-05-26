@@ -19,6 +19,8 @@ module model_parameters
    real :: beg(max_subfaults2), dp(max_subfaults2)
    integer :: np(max_subfaults2)
    integer :: subfaults, cum_subfaults(max_seg)
+   logical :: segment_in_event(max_seg, 10)
+   logical :: subfault_in_event(max_subfaults, 10)
 !
 ! for regularization
 !
@@ -134,6 +136,33 @@ contains
    end do 
    close(12)
    end subroutine get_faults_data
+
+
+   subroutine events_segments()
+   use modelling_inputs, only : events
+   implicit none
+   integer :: event_segment(max_seg)
+   integer :: integer1, integer2, i, k, segment, subfault0
+   segment_in_event(:, :) = .False.
+   subfault_in_event(:, :) = .False.
+   open(20, file='segments_events.txt', status='old')
+   read(20,*)
+   do i=1, segments
+      read(20, *) integer1, event_segment(i) 
+   enddo
+   close(20)
+   do i = 1, events
+      do segment = 1, segments
+         subfault0 = cum_subfaults(segment)
+         if (event_segment(segment) .eq. i) then
+            segment_in_event(segment, i) = .True.
+            do k = 1, nxs_sub(segment) * nys_sub(segment)
+               subfault_in_event(k+subfault0, i) = .True.
+            enddo
+         endif
+      enddo
+   enddo
+   end subroutine events_segments
 
 
    subroutine write_model(slip, rake, tt, tl, tr, use_waveforms)
@@ -576,6 +605,15 @@ contains
    close(22)
    end subroutine subfault_positions
    
+   
+   subroutine get_events_segments(segment_in_event0, subfault_in_event0)
+   implicit none
+   logical :: segment_in_event0(max_seg, 10)
+   logical :: subfault_in_event0(max_subfaults, 10)
+   segment_in_event0(:, :) = segment_in_event(:, :)
+   subfault_in_event0(:, :) = subfault_in_event(:, :)
+   end subroutine get_events_segments
+
 
    subroutine get_rise_time(ta00, dta0, msou0)
    implicit none

@@ -2,6 +2,7 @@ import sys
 import os
 import numpy as np
 import json
+import time
 #import matplotlib
 #matplotlib.use('Qt5Agg')
 from matplotlib import pyplot as plt
@@ -82,7 +83,7 @@ def add_metadata(axes, **kwargs):
 
 
 def plot_waveform_fits(files, components, type_str, start_margin=10,
-                       test=False):
+                       test=False, event=None):
     """Plot fit of observed to synthetic data for selected channels.
 
     :param files: waveform files to plot
@@ -138,23 +139,25 @@ def plot_waveform_fits(files, components, type_str, start_margin=10,
     axes2 = add_metadata(axes2, **dict)
 
     if type_str == 'cgps':
-        if 'LXZ' in components: plot_name = 'LXZ_cgps_waves.png'
-        if 'LXN' in components: plot_name = 'LXN_cgps_waves.png'
-        if 'LXE' in components: plot_name = 'LXE_cgps_waves.png'
+        if 'LXZ' in components: plot_name = 'LXZ_cgps_waves'
+        if 'LXN' in components: plot_name = 'LXN_cgps_waves'
+        if 'LXE' in components: plot_name = 'LXE_cgps_waves'
 
     if type_str == 'strong_motion':
-        if 'HNZ' in components: plot_name = 'HNZ_strong_motion_waves.png'
-        if 'HNN' in components: plot_name = 'HNN_strong_motion_waves.png'
-        if 'HNE' in components: plot_name = 'HNE_strong_motion_waves.png'
+        if 'HNZ' in components: plot_name = 'HNZ_strong_motion_waves'
+        if 'HNN' in components: plot_name = 'HNN_strong_motion_waves'
+        if 'HNE' in components: plot_name = 'HNE_strong_motion_waves'
 
     if type_str == 'tele_body':
-        if 'BHZ' in components: plot_name = 'P_body_waves.png'
-        if 'SH' in components: plot_name = 'SH_body_waves.png'
+        if 'BHZ' in components: plot_name = 'P_body_waves'
+        if 'SH' in components: plot_name = 'SH_body_waves'
 
     if type_str == 'surf_tele':
-        if 'BHZ' in components: plot_name = 'Rayleigh_surf_waves.png'
-        if 'SH' in components: plot_name = 'Love_surf_waves.png'
+        if 'BHZ' in components: plot_name = 'Rayleigh_surf_waves'
+        if 'SH' in components: plot_name = 'Love_surf_waves'
 
+    if event is not None:
+        plot_name = '{}_event{}'.format(plot_name, event)
     plt.savefig(plot_name, bbox_inches='tight')
     plt.close()
     return
