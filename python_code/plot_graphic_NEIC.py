@@ -1338,6 +1338,7 @@ def _PlotMap(tensor_info, segments, point_sources, solution, default_dirs, conve
         )
         fig.plot(x=lon0, y=lat0, style='a7p', color="gold", pen="black")
 
+    fig.savefig("Map.eps")
     fig.savefig("Map.png")
     fig.savefig("Map.pdf")
 
@@ -2039,6 +2040,7 @@ def calculate_cumulative_moment_tensor(solution, directory=None):
 
 
     for kseg in range(num_seg):
+        print("Segment: ",kseg)
         axes = fig.add_subplot(1, num_seg+1,kseg+1)
         axes.set_axis_off()
         strk = segments[kseg]['strike']
@@ -2046,12 +2048,14 @@ def calculate_cumulative_moment_tensor(solution, directory=None):
         Mm6_seg = [0, 0, 0, 0, 0, 0]
         seg_moment = sum(moment[kseg].flatten())
         seg_Mw = (2./3)*(np.log10(seg_moment*1e-7)-9.1)
+        print("   Mw:",seg_Mw)
         total_moment+=seg_moment
         for subfault in range(len(slip[kseg].flatten())):
             Mmt_seg = pmt.MomentTensor(strike=strk, dip=dip, rake=rake[kseg].flatten()[subfault],
                       scalar_moment=moment[kseg].flatten()[subfault])
             Mm6_seg = [Mm6_seg[0]+Mmt_seg.mnn, Mm6_seg[1]+Mmt_seg.mee, Mm6_seg[2]+Mmt_seg.mdd,
                        Mm6_seg[3]+Mmt_seg.mne, Mm6_seg[4]+Mmt_seg.mnd, Mm6_seg[5]+Mmt_seg.med] 
+        print("   MT:",Mm6_seg)
         beachball.plot_beachball_mpl(
             pmt.as_mt(Mm6_seg),
             axes,
@@ -2088,7 +2092,8 @@ def calculate_cumulative_moment_tensor(solution, directory=None):
     (s1, d1, r1), (s2, d2, r2) = pmt.as_mt(Mm6).both_strike_dip_rake()
     axes.text(0.1, 0.1, 's1/d1/r1: %d, %d, %d' % (s1, d1, r1), fontsize=5)
     axes.text(0.1, 0.05, 's2/d2/r2: %d, %d, %d' % (s2, d2, r2), fontsize=5)
-
+    print("Total Mw:",total_Mw)
+    print("Total MT:", Mm6)
     plt.savefig('Cumulative_Moment_Tensor.png')
     plt.close()
     return

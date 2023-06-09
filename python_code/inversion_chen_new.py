@@ -785,6 +785,8 @@ def delete_binaries():
     """to remove the files with Green function data.
     """
     deletables = glob.glob('*.GRE') + glob.glob('*.TDE') + glob.glob('*[1-2-3]')
+    deletables = deletables + glob.glob('*.H[LN][E-N-Z]')
+    deletables = deletables + glob.glob('*.L[HXY][E-N-Z]')
     for file in deletables:
         if os.path.isfile(file):
             os.remove(file)

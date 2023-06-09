@@ -637,9 +637,9 @@ def input_chen_insar():
                 lat = float(line[1])
                 lon = float(line[0])
                 observed = 100*float(line[2])
-                look_ew = float(line[3])
-                look_ns = float(line[4])
-                look_ud = float(line[5])
+                look_ew = float(line[3])#look_ew
+                look_ns = float(line[4])#loow_ns
+                look_ud = float(line[5])#look_ud
                 outfile.write(
                     string_fun(
                         points2, i, lat, lon, observed,
@@ -1189,7 +1189,10 @@ if __name__ == '__main__':
         velmodel = json.load(open('velmodel_data.json'))
 #        write_velmodel(velmodel)
         segments_data = json.load(open('segments_data.json'))
-        plane_for_chen(tensor_info, segments_data, 1.5, 3.25, velmodel)
+        segments = segments_data['segments']
+        min_vel = segments[0]['min_vel']
+        max_vel = segments[0]['max_vel']
+        plane_for_chen(tensor_info, segments_data, min_vel, max_vel, velmodel)
     if not os.path.isfile('sampling_filter.json'):
         raise FileNotFoundError(
             errno.ENOENT, os.strerror(errno.ENOENT), 'sampling_filter.json')
