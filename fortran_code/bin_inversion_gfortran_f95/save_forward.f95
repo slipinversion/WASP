@@ -39,14 +39,15 @@ contains
    end subroutine saveforward_set_data_properties
 
 
-   subroutine write_forward(slip, rake, rupt_time, tl, tr, strong, cgps, body, surf)
+   subroutine write_forward(slip, rake, rupt_time, tl, tr, &
+      &  strong, cgps, body, surf, dart)
 !
 !  Here, we write the forward solution given a kinematic model, for all specified 
 !       data types.
 !  
    implicit none
    integer ll_in, ll_out
-   logical :: strong, cgps, body, surf
+   logical :: strong, cgps, body, surf, dart
    real slip(:), rake(:), rupt_time(:), &
    &  tr(:), tl(:), erm, ermin
    complex z0
@@ -74,10 +75,10 @@ contains
       call write_surface_waves_forward(slip, rake, rupt_time, tl, tr, ll_in, ll_out)
       ll_in = ll_out
    end if
-!   if (dart) then
-!      call write_dart_forward(slip, rake, rupt_time, tl, tr, ll_in, ll_out)
-!      ll_in = ll_out
-!   end if
+   if (dart) then
+      call write_dart_forward(slip, rake, rupt_time, tl, tr, ll_in, ll_out)
+      ll_in = ll_out
+   end if
    end subroutine write_forward
    
    
@@ -477,7 +478,7 @@ contains
          cr(i) = real(forward(i))
          cz(i) = aimag(forward(i))
       end do
-  
+ 
       call realtr(cr, cz, lnpt)
       call fft(cr, cz, lnpt, 1.)
    

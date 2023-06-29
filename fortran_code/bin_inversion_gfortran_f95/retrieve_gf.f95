@@ -85,10 +85,10 @@ contains
       call get_surface_waves_gf(ll_in, ll_out, many_events)
       ll_in = ll_out
    end if
-!   if (dart) then
-!      call get_dart_gf(ll_in, ll_out)
-!      ll_in = ll_out
-!   end if
+   if (dart) then
+      call get_dart_gf(ll_in, ll_out)
+      ll_in = ll_out
+   end if
    end subroutine get_gf
 
    
@@ -688,6 +688,85 @@ contains
    end subroutine get_surface_waves_gf
 
 
+   subroutine get_dart_gf(ll_in, ll_out)
+   implicit none
+   integer :: ll_in, ll_out, io_v_d, ll_g, subfault, psource, &
+   &  io_chan, i, segment, channel, channel_max, n_chan, &
+   &  ixs, iys, length, etc
+   real :: omega, dt, df, dt_sample, w, tlen, real, imag, time
+   complex :: z0, z
+   character(len=80) filename
+   
+   write(*,*)'Store DART GF in memory...'
+   z0 = cmplx(0.0, 0.0)
+!
+!  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
+!       subfault is 3e+21. The gfs is for Mo = 1e+20
+!
+
+   open(9, file='channels_dart.txt', status='old')
+
+   read(9,*)
+   read(9,*)
+   read(9,*) lnpt, dt_sample
+   read(9,*) io_v_d
+   nlen = 2**lnpt
+   dt = dt_sample
+   tlen = dt*nlen
+   df = 1.0/tlen
+
+   read(9,*) channel_max, n_chan
+   close(9)
+   io_chan = 0
+!       
+!       Here we read the green functions of strong motion waves
+!
+   df = 1. / ((2.0 ** lnpt) * dt)
+   nlen = 2 ** lnpt
+   tlen = nlen * dt
+   psource = int(ny_p/2 + 1)*nx_p + int(nx_p/2 + 1)
+
+   do channel = 1, channel_max
+
+      ll_g = ll_in+channel
+      filename = trim(sta_name(ll_g))//'_gf.txt'
+      open(12, file=filename, status='old')
+      io_chan = io_chan+1
+!
+!       Here, we read the green functions and derivate them
+!
+      subfault = 0
+      do segment = 1, segments
+         do iys = 1, nys_sub(segment)
+            do ixs = 1, nxs_sub(segment)
+               subfault = subfault+1
+               time = point_sources(4, psource, subfault)/v_ref
+               green_dip(:,ll_g,subfault) = z0
+               green_stk(:,ll_g,subfault) = z0
+               read(12, *)etc, max_freq
+               do i = 1, max_freq
+                  read(12, *)real, imag
+                  green_dip(i, ll_g, subfault) = cmplx(real, imag)
+               enddo
+               do i = 1, max_freq
+!
+! we eventually shift synthetics in time, in case the fault plane used has a delay
+!
+                  omega = twopi*(i-1)*df
+                  w = -omega*(time+delay_seg(segment))
+                  z = cmplx(0.0, w)
+                  z = cexp(z)
+                  green_dip(i, ll_g, subfault) = green_dip(i, ll_g, subfault)*z
+               end do
+            end do
+         end do
+      end do
+      close(12)
+   end do      
+   ll_out = ll_in+n_chan
+   end subroutine get_dart_gf
+
+   
    subroutine deallocate_gf()
    deallocate(green_stk)
    deallocate(green_dip)

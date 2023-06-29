@@ -15,7 +15,7 @@ module get_stations_data
    integer :: mmm(max_stations), llove(max_stations), io_up(max_stations), idata(max_stations), &
          &     disp_or_vel(max_stations)
    logical :: dart_channels(max_stations)
-   logical :: wphase_channels(max_stations), cgps_channels(max_stations)
+   logical :: cgps_channels(max_stations)
    integer :: lnpt, nlen, jmin, jmax, max_freq, start(max_stations)
    integer :: event_sta(max_stations)
 
@@ -100,7 +100,7 @@ contains
    &  n_wave_weight, ir_max, n_chan, &
    &  nos(max_stations), io_mod(max_stations), n_chan3
    real dt, weig(max_stations), j_wig(11), dt_sample, lat_s, lon_s
-   logical, parameter :: cgps=.False.
+   logical, parameter :: cgps=.False., dart = .False.
    character(len=20) filename, string2, string1
    character(len=30) event_file
    logical :: is_file
@@ -137,6 +137,7 @@ contains
    do ir = 1, ir_max
       ll_g = ir+ll_in
       cgps_channels(ll_g) = .False.
+      dart_channels(ll_g) = .False.
       read(9,*) no, sta_name(ll_g), lat_s, lon_s, io_mod(ir), component(ll_g), weig(ir), nos(ir)
       if (weig(ir) .gt. 0) n_chan3 = n_chan3 + 1
    end do
@@ -193,7 +194,7 @@ contains
    &  n_wave_weight, ir_max, n_chan, &
    &  nos(max_stations), io_mod(max_stations), n_chan3
    real :: lat_s, lon_s, dt, weig(max_stations), j_wig(11), dt_sample
-   logical, parameter :: cgps=.True.
+   logical, parameter :: cgps=.True., dart = .False.
    character(len=20) filename, string1, string2
    character(len=30) event_file
    logical :: is_file
@@ -230,6 +231,7 @@ contains
    do ir = 1, ir_max
       ll_g = ir+ll_in
       cgps_channels(ll_g) = .True.
+      dart_channels(ll_g) = .False.
       read(9,*) no, sta_name(ll_g), lat_s, lon_s, io_mod(ir), component(ll_g), weig(ir), nos(ir)
       if (weig(ir) .gt. 0) n_chan3 = n_chan3 + 1
    end do
@@ -282,10 +284,10 @@ contains
    subroutine get_body_waves_stations(ll_in, ll_out)
    implicit none
    integer ll_in, ll_out, ll_g, j_con(11), k, ir, n_wave_weight, n_chan, &
-   &  nos, n_chan3, idts, nstaon, love, int1
+   &  nos, n_chan3, idts, love, int1 
    real lat_sta, lon_sta, j_wig(11), dt, & 
    &  rang, az, earth_angle, float1, float2
-   logical, parameter :: cgps=.False.
+   logical, parameter :: cgps=.False., dart = .False.
    character(len=20) filename, string1, string2
    character(len=30) event_file
    character(len=6)  earth, sttyp 
@@ -307,15 +309,15 @@ contains
    read(9,*)
    read(9,*) idts, lnpt, dt
    read(9,*)
-   read(9,*) nstaon
-   call error1(ll_in, nstaon)
+   read(9,*) n_chan
+   call error1(ll_in, n_chan)
    nlen = 2 ** lnpt
 
    open(15, file='wavelets_body.txt', status='old')
    read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
-   do ir = 1, nstaon
+   do ir = 1, n_chan
       ll_g = ll_in+ir
       read(14,*) weight(ll_g)
       if (weight(ll_g) .gt. 0) n_chan3 = n_chan3 + 1
@@ -323,16 +325,16 @@ contains
    rewind 14
    call set_params(lnpt, jmin, jmax, nlen, max_freq)
 !   write(*,*)'n_chan: ', n_chan3
-   n_chan = nstaon 
-   call error2(n_wave_weight, nstaon)
+   call error2(n_wave_weight, n_chan)
    
    filename = 'waveforms_body.txt'
    filename = trim(filename)
-   call get_waveforms(filename, nstaon, ll_in, ll_out)
+   call get_waveforms(filename, n_chan, ll_in, ll_out)!, cgps, dart)
 
-   do ir = 1, nstaon
+   do ir = 1, n_chan
       ll_g = ir+ll_in
       cgps_channels(ll_g) = .False.
+      dart_channels(ll_g) = .False.
       read(9,*) nos, earth, sttyp, sta_name(ll_g), fname, &
       & rang, az, lat_sta, lon_sta, earth_angle, float1, &
       & mmm(ir), disp_or_vel(ir), float2, llove(ir), int1, idata(ir)
@@ -368,7 +370,7 @@ contains
    inquire(file = event_file, exist = is_file)
    if (is_file) then
       open(12, file=event_file, status='old')
-      do ir=1,nstaon
+      do ir=1,n_chan
          ll_g = ir+ll_in
          read(12,*)string1, string2, event_sta(ll_g)
       enddo
@@ -388,7 +390,7 @@ contains
    real lat_s(max_stations), lon_s(max_stations), dt, &
    &  ang_ns(max_stations), ang_ew(max_stations), weig(max_stations, 3), j_wig(11), dt_sample, &
    &  dip, rake, theta
-   logical, parameter :: cgps=.False.
+   logical, parameter :: cgps=.False., dart=.False.
    character(len=20) filename, string1, string2
    character(len=30) event_file
 !   character(len=6) sta_name(max_stations)
@@ -431,6 +433,7 @@ contains
    do ir = 1, ir_max    
       ll_g = ir+ll_in
       cgps_channels(ll_g) = .False.
+      dart_channels(ll_g) = .False.
       read(9,*) no, sta_name(ll_g), lat_s(ir), lon_s(ir), io_mod(ir), &
       & io_up(ir), io_ns(ir), io_ew(ir), ang_ns(ir), ang_ew(ir), &
       & io_str(ir),(weig(ir, k), k = 1, 3), nos(ir)
@@ -503,7 +506,7 @@ contains
    integer ll_in, ll_out, ll_g, j_con(11), k, ir, no, &
    &  n_wave_weight, ir_max, n_chan, nos, io_mod, n_chan3
    real :: lat_s, lon_s, dt, weig(max_stations), j_wig(11), dt_sample
-   logical, parameter :: cgps=.False.
+   logical, parameter :: cgps=.False., dart=.True.
    character(len=20) filename
 !   character(len=6) sta_name(max_stations)
 !   character(len=3) component(max_stations)
@@ -535,6 +538,7 @@ contains
    do ir = 1, ir_max
       ll_g = ir+ll_in
       cgps_channels(ll_g) = .False.
+      dart_channels(ll_g) = .True.
       read(9,*) no, sta_name(ll_g), lat_s, lon_s, io_mod, component(ll_g), weig(ir), nos
       if (weig(ir) .gt. 0) n_chan3 = n_chan3 + 1
    end do
@@ -600,16 +604,17 @@ contains
    implicit none
    real, intent(out) :: wave_obs(wave_pts2, max_stations), wmax(max_stations)
    integer, intent(out) :: t_max_val(max_stations)
-   integer nm, i, ir, start1
+   integer nm, i, j, ir, start1, length, n_begin, n_delt
    real cr(wave_pts2), cz(wave_pts2), obser(n_data), &
    &  amp_max, mean
-   logical :: cgps
+   logical :: cgps, dart
 !
 ! TODO : how to implement this in a more elegant way?
 !
    do ir = 1, channels
       start1 = start(ir)
       cgps = cgps_channels(ir)
+      dart = dart_channels(ir)
       mean = sum(obse(start1 - 20:start1, ir)) / 20.0
       do i = 1, wave_pts2
          cz(i) = 0.0
@@ -630,20 +635,25 @@ contains
       call wavelet_obs(cr, cz, obser)
       amp_max = 0.0
       nm = 1
-      if (cgps .eqv. .False.) then
-         do i = 1, nlen
-            if (amp_max .lt. abs(obser(i))) then
-               amp_max = abs(obser(i))
-               nm = i
-            end if
-         end do
-      else
-         do i = 1, nlen
-            if (amp_max .lt. abs(obser(i))) then
-               amp_max = abs(obser(i))
-               nm = i
-            end if
-         end do
+      do i = 1, nlen
+         if (amp_max .lt. abs(obser(i))) then
+            amp_max = abs(obser(i))
+            nm = i
+         end if
+      end do
+      if (dart) then
+         amp_max = 0.0
+         do j = jmin, jmax
+            n_begin = 2**(j-1)
+            n_delt = nlen/n_begin
+            length = int(t_max(ir)/n_delt+0.5)-1
+            do i =1, length
+               if (amp_max .lt. abs(obser(n_begin+i))) then
+                  amp_max = abs(obser(n_begin+i))
+                  nm = n_begin+i
+               endif
+            enddo
+         enddo
       endif
 
       wmax(ir) = amp_max
