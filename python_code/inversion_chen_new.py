@@ -326,6 +326,8 @@ def modelling_new_data(tensor_info, data_type, default_dirs,
         data_type2 = data_type2 + ['gps']
     if os.path.isfile('insar_data.json'):
         data_type2 = data_type2 + ['insar']
+    if os.path.isfile('dart_waves.json'):
+        data_type2 = data_type2 + ['dart']
     manual_modelling(tensor_info, data_type2, default_dirs, segments_data)
     return
 
@@ -591,6 +593,8 @@ def writing_inputs0(tensor_info, data_type):
         input_files.input_chen_static(tensor_info)
     if 'insar' in data_type:
         input_files.input_chen_insar()
+    if 'dart' in data_type:
+        input_files.input_chen_dart(tensor_info, data_prop)
 
 
 def writing_inputs(tensor_info, data_type, segments_data, min_vel, max_vel,
@@ -681,6 +685,7 @@ def inversion(tensor_info, data_type, default_dirs, logger, forward=False):
     args = args + ['gps'] if 'gps' in data_type else args
     args = args + ['dart'] if 'dart' in data_type else args
     args = args + ['insar'] if 'insar' in data_type else args
+    print(args)
     if not forward:
         # print('Perform kinematic modelling')
         logger.info('Inversion at folder {}'.format(os.getcwd()))

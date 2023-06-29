@@ -577,6 +577,63 @@ def input_chen_static(tensor_info):
             )
 
 
+def input_chen_dart(tensor_info, data_prop):
+    """Based on the cGPS data acquired, we write some text files with such
+    data as input for Chen's fortran scripts.
+
+    :param tensor_info: dictionary with moment tensor information
+    :param data_prop: dictionary with properties of waveform data
+    :type tensor_info: dict
+    :type data_prop: dict
+
+    .. warning::
+
+        Make sure the filters of cGPS data agree with the values in
+        sampling_filter.json!
+    """
+    if not os.path.isfile('dart_waves.json'):
+        return
+
+    traces_info = json.load(open('dart_waves.json'))
+    date_origin = tensor_info['date_origin']
+    moment_mag = tensor_info['moment_mag']
+    event_lat = tensor_info['lat']
+    event_lon = tensor_info['lon']
+    depth = tensor_info['depth']
+    dt_dart = traces_info[0]['dt']
+    dt_dart = round(dt_dart, 2)
+
+    nsta = len(traces_info)
+
+    io_vd = 0
+    string = '{0:3d} {1:>5}{2:>9.3f}{3:>10.3f} 31{4:>5} {5} 0\n'
+    string_fun = lambda i, name, lat, lon, a, w:\
+    string.format(i + 1, name, lat, lon, a, w)
+
+    with open('channels_dart.txt', 'w') as outfile:
+        outfile.write('{}{}{}{}{}{}{}\n'.format(
+            date_origin.year, date_origin.month, date_origin.day,
+            date_origin.hour, date_origin.minute, date_origin.second,
+            date_origin.microsecond))
+        outfile.write('{} {} {}\n'.format(event_lat, event_lon, depth))
+        outfile.write('10 {} {}\n'.format(dt_dart, moment_mag))
+        outfile.write('{}\n'.format(io_vd))
+        outfile.write('{} {}\n'.format(nsta, nsta))
+        outfile.write('No STA Lat Lon M V H1 H2 Weight\n')
+        for i, file in enumerate(traces_info):
+            name = file['name']
+            channel = file['component']
+            lat, lon = file['location']
+            weight = file['trace_weight']
+            outfile.write(string_fun(i, name, lat, lon, channel, weight))
+
+    with open('wavelets_dart.txt', 'w') as file1, open('waveforms_dart.txt', 'w') as file2:
+        write_files_wavelet_observed(
+            file1, file2, dt_dart, data_prop, traces_info,
+            dart=True, zero_start=True)
+    return 'cgps'
+
+
 def input_chen_insar():
     """Modify format of input insar file.
     """
@@ -936,9 +993,12 @@ def from_synthetic_to_obs(files, data_type, tensor_info, data_prop,
     if data_type == 'dart':
         max_val = 0.005
         # dt = 60.0
-        syn_file = 'synm.dart'
-        obser_file = 'Obser.dart'
+        syn_file = 'synthetics_dart.txt'
+        obser_file = 'waveforms_dart.txt'
         std_shift = 30
+        corners = []
+        filters = []
+        orders = []
 
     dart = 'dart' in data_type
     string = '{0:3d} {1:>5}{2:>10.3f}{3:>10.3f} {4} {5} {6} {7} {8} {9}\n'
