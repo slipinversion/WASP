@@ -56,6 +56,8 @@ def create_finite_fault(tensor_info, np_plane_info, data_type, water_level=0,
     rake = np_plane_info['rake']
     rupture_vel = __default_vel_of_eq(tensor_info)\
         if not rupture_vel else rupture_vel
+    min_rupture_vel = rupture_vel - 0.5
+    max_rupture_vel = rupture_vel + 0.5
     plane_info = __plane_tensor_def(strike, dip, rake, rupture_vel)
     plane_info2 = plane_info.copy()
 
@@ -702,7 +704,9 @@ def __plane_tensor_def(strike, dip, rake, rupture_vel):
         'strike': strike,
         'dip': dip,
         'rake': rake,
-        'rupture_vel': rupture_vel
+        'rupture_vel': rupture_vel,
+        'max_vel': rupture_vel + 1.5,
+        'min_vel': rupture_vel -1.5
     }
     return values
 
