@@ -11,4 +11,7 @@ Users of this code should consider citing the following relevant publications:
 The surface wave GF bank (fd_bank) is now available in Zenodo, where the user needs to search for "Surface wave Green's functions for WASP slip inversion code" or go directly to: https://zenodo.org/record/7236739#.Y9q4BOzMKDV
 Put the fd_bank file in fortran_code/gfs_nm/long/.
 
+The LITHO1.0.nc can be downloaded here: https://ds.iris.edu/ds/products/emc-litho10/
+Put the LITHO1.0.nc file in fortran_code/info/.
+
 Example json files for the modelling of multi-segment faults are available now in multi_segment_example. With these files, the user can re-create the geometry for the solution of the 2011 Tohoku event published by the USGS.
