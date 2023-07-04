@@ -71,11 +71,11 @@ contains
    ll_out = 0
    dt_channel(:) = 0.0
    if (strong) then
-      call get_strong_motion_stations(ll_in, ll_out)
+      call get_near_field_stations(ll_in, ll_out, strong, .False.)
       ll_in = ll_out
    end if
    if (cgps) then
-      call get_cgps_stations(ll_in, ll_out)
+      call get_near_field_stations(ll_in, ll_out, .False., cgps)
       ll_in = ll_out
    end if
    if (body) then
@@ -93,28 +93,36 @@ contains
    channels = ll_out
    end subroutine get_data
 
-   
-   subroutine get_strong_motion_stations(ll_in, ll_out)
+
+   subroutine get_near_field_stations(ll_in, ll_out, strong, cgps)
    implicit none
    integer ll_in, ll_out, ll_g, io_chan, j_con(11), k, ir, no, &
    &  n_wave_weight, ir_max, n_chan, &
    &  nos(max_stations), io_mod(max_stations), n_chan3
    real dt, weig(max_stations), j_wig(11), dt_sample, lat_s, lon_s
-   logical, parameter :: cgps=.False., dart = .False.
+   logical, parameter :: dart = .False.
    character(len=20) filename, string2, string1
-   character(len=30) event_file
-   logical :: is_file
+   character(len=30) event_file, channels_file, wavelets_file, waveforms_file
+   logical :: is_file, strong, cgps
 !   character(len=6) sta_name(max_stations)
 !   character(len=3) component(max_stations)
 
-   write(*,*)'Get strong motion stations metadata and waveforms...'
+   if (strong) write(*,*)'Get strong motion stations metadata and waveforms...'
+   if (cgps) write(*,*)'Get cGPS stations metadata and waveforms...'
    n_chan3 = 0
 !
 !  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
 !       subfault is 3e+21. The gfs is for Mo = 1e+20
 !
-   open(9,file='channels_strong.txt',status='old')
-   open(15,file='wavelets_strong.txt', status='old')
+
+   channels_file = 'channels_strong.txt'
+   if (cgps) channels_file = 'channels_cgps.txt'
+   channels_file = trim(channels_file)
+   open(9,file=channels_file,status='old')
+   wavelets_file = 'wavelets_strong.txt'
+   if (cgps) wavelets_file = 'wavelets_cgps.txt'
+   wavelets_file = trim(wavelets_file)
+   open(15,file=wavelets_file, status='old')
    read(15,*) jmin, jmax, max_freq
    read(15,*)
    read(15,*) n_wave_weight
@@ -137,6 +145,7 @@ contains
    do ir = 1, ir_max
       ll_g = ir+ll_in
       cgps_channels(ll_g) = .False.
+      if (cgps) cgps_channels(ll_g) = .True.
       dart_channels(ll_g) = .False.
       read(9,*) no, sta_name(ll_g), lat_s, lon_s, io_mod(ir), component(ll_g), weig(ir), nos(ir)
       if (weig(ir) .gt. 0) n_chan3 = n_chan3 + 1
@@ -145,6 +154,7 @@ contains
 !   write(*,*)'n_chan: ', n_chan3
 
    filename = 'waveforms_strong.txt'
+   if (cgps) filename = 'waveforms_cgps.txt'
    filename = trim(filename)
    call get_waveforms(filename, ir_max, ll_in, ll_out)
 
@@ -174,6 +184,7 @@ contains
    close(15) 
 
    event_file = 'strong_motion_events.txt'
+   if (cgps) event_file = 'cgps_events.txt'
    inquire(file = event_file, exist = is_file)
    if (is_file) then
       open(12, file=event_file, status='old')
@@ -185,101 +196,8 @@ contains
    endif
  
    ll_out = ll_in + n_chan
-   end subroutine get_strong_motion_stations
-
+   end subroutine get_near_field_stations
    
-   subroutine get_cgps_stations(ll_in, ll_out)
-   implicit none
-   integer ll_in, ll_out, ll_g, io_chan, j_con(11), k, ir, no, &
-   &  n_wave_weight, ir_max, n_chan, &
-   &  nos(max_stations), io_mod(max_stations), n_chan3
-   real :: lat_s, lon_s, dt, weig(max_stations), j_wig(11), dt_sample
-   logical, parameter :: cgps=.True., dart = .False.
-   character(len=20) filename, string1, string2
-   character(len=30) event_file
-   logical :: is_file
-!   character(len=6) sta_name(max_stations)
-!   character(len=3) component(max_stations)
-
-   write(*,*)'Get cGPS stations metadata and waveforms...'
-   n_chan3 = 0
-!
-!  suppose the ni = u3e+11, then then moment of 1cm*1km^2 
-!       subfault is 3e+21. The gfs is for Mo = 1e+20
-!
-   open(9, file='channels_cgps.txt', status='old')
-   open(15, file='wavelets_cgps.txt', status='old')
-   read(15,*) jmin, jmax, max_freq
-   read(15,*)
-   read(15,*) n_wave_weight
-
-   read(9,*)
-   read(9,*)
-   read(9,*) lnpt, dt_sample
-   read(9,*)
-   nlen = 2**lnpt
-   call set_params(lnpt, jmin, jmax, nlen, max_freq)
-   dt = dt_sample
-
-   read(9,*) ir_max, n_chan
-   read(9,*)
-   call error1(ll_in, n_chan)
-   call error2(n_wave_weight, n_chan)
-   ir = 0
-   io_chan = 0
- 
-   do ir = 1, ir_max
-      ll_g = ir+ll_in
-      cgps_channels(ll_g) = .True.
-      dart_channels(ll_g) = .False.
-      read(9,*) no, sta_name(ll_g), lat_s, lon_s, io_mod(ir), component(ll_g), weig(ir), nos(ir)
-      if (weig(ir) .gt. 0) n_chan3 = n_chan3 + 1
-   end do
-   close(9)
-
-   filename = 'waveforms_cgps.txt'
-   filename = trim(filename)
-   call get_waveforms(filename, ir_max, ll_in, ll_out) 
-
-   do ir = 1, ir_max
-
-      io_chan = io_chan+1
-      ll_g = io_chan+ll_in
-      weight(ll_g) = weig(ir) / n_chan3
-      dt_channel(ll_g) = dt_sample
-      
-      do k = 1, 11
-         misfit_type(k, ll_g) = 0
-         wavelet_weight(k, ll_g) = 0
-      end do
-      read(15,*)
-      read(15,*)(j_con(k), k = 1, jmax)
-      read(15,*)(j_wig(k), k = 1, jmax)
-      do k = jmin, jmax
-         misfit_type(k, ll_g) = j_con(k)
-         wavelet_weight(k, ll_g) = real(j_wig(k))
-      end do
-      do k = jmax+1, 11
-         misfit_type(k, ll_g) = 0
-         wavelet_weight(k, ll_g) = 0
-      end do
-   end do
-   close(15)
-   ll_out = ll_in + n_chan
-   
-   event_file = 'cgps_events.txt'
-   inquire(file = event_file, exist = is_file)
-   if (is_file) then
-      open(12, file=event_file, status='old')
-      do ir=1,ir_max
-         ll_g = ir+ll_in
-         read(12,*)string1, string2, event_sta(ll_g)
-      enddo
-      close(12)    
-   endif
-   
-   end subroutine get_cgps_stations
-
    
    subroutine get_body_waves_stations(ll_in, ll_out)
    implicit none
