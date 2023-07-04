@@ -115,7 +115,8 @@ contains
       call print_summary(slip, rake, rupt_time, t_rise, t_fall, static, &
         &  insar, get_coeff)
    endif
-   call write_forward(slip, rake, rupt_time, t_rise, t_fall, strong, cgps, body, surf)
+   call write_forward(slip, rake, rupt_time, t_rise, t_fall, &
+           &  strong, cgps, body, surf, dart)
    call write_model(slip, rake, rupt_time, t_rise, t_fall, use_waveforms)
    call deallocate_source()
    call deallocate_forward()
@@ -229,7 +230,8 @@ contains
       endif
       call initial_insar(slip, rake, ramp)
    end if
-   call write_forward(slip, rake, rupt_time, t_rise, t_fall, strong, cgps, body, surf)
+   call write_forward(slip, rake, rupt_time, t_rise, t_fall, &
+        &  strong, cgps, body, surf, dart)
    if (static) call initial_gps(slip, rake, many_events)
    call write_model(slip, rake, rupt_time, t_rise, t_fall, use_waveforms)
    call deallocate_source()
