@@ -311,18 +311,13 @@ def input_chen_tele_body(tensor_info, data_prop):
             arrivals = mng.theoretic_arrivals(model, dist, depth)
             p_slowness = arrivals['p_slowness']
             s_slowness = arrivals['s_slowness']
-            if channel == 'BHZ':
-                outfile.write(
-                    string_fun1(
-                        i + 1, name, dist, az, lat, lon, p_slowness, derivative
-                    )
+            slowness = p_slowness if channel == 'BHZ' else s_slowness
+            string_fun3 = string_fun1 if channel == 'BHZ' else string_fun2
+            outfile.write(
+                string_fun3(
+                    i + 1, name, dist, az, lat, lon, slowness, derivative
                 )
-            else:
-                outfile.write(
-                    string_fun2(
-                        i + 1, name, dist, az, lat, lon, s_slowness, derivative
-                    )
-                )
+            )
             i = i + 1
 
     with open('wavelets_body.txt', 'w') as file1, open('waveforms_body.txt', 'w') as file2:
